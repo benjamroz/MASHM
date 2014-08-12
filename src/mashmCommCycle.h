@@ -53,7 +53,7 @@ void MashmCommCollectionInit(MashmCommCollection* commCollection) {
 
   /* Allocate at least two */
   commCollection->commArrayReserveSize = 2;
-  commCollection->commArray = malloc(commCollection->commArrayReserveSize * sizeof(MashmComm));
+  commCollection->commArray = (MashmComm*) malloc(commCollection->commArrayReserveSize * sizeof(MashmComm));
   commCollection->commArraySize = 0;
 
   commCollection->isInit = true;
@@ -64,7 +64,7 @@ void MashmCommCollectionExtend(MashmCommCollection* commCollection) {
   int i;
   int commArrayNewReserveSize = 2*commCollection->commArrayReserveSize;
 
-  tempCollection = malloc(commArrayNewReserveSize*sizeof(MashmCommCollection));
+  tempCollection = (MashmComm*) malloc(commArrayNewReserveSize*sizeof(MashmComm));
 
   for (i = 0; i < commCollection->commArraySize; i++) {
     MashmCommCopy(commCollection->commArray[i],&(tempCollection[i]));
