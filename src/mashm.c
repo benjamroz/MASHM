@@ -1,5 +1,21 @@
 #include "mashm.h"
 
+#include "mashmBool.h"
+#include "intraNodeComm.h"
+#include "mashmCommCycle.h"
+
+struct MashmPrivate {
+  MPI_Comm comm;
+  int size;
+  int rank;
+  mashmBool isMasterProc;
+  intraNodeComm intraComm;
+  int numSharedMemNodes;
+  int sharedMemIndex;
+  int isInit;
+  MashmCommCollection commCollection;
+} ;
+
 int mashmInit(Mashm* in_mashm, MPI_Comm in_comm) {
   int ierr;
   int numSharedMemNodes, sharedMemNodeRank;
@@ -7,34 +23,36 @@ int mashmInit(Mashm* in_mashm, MPI_Comm in_comm) {
   /* Temporary subcommunicator to determine the number of shared memory nodes */
   MPI_Comm rankComm; 
 
-  /* Set the communicator and get the size and rank */
-  in_mashm->comm = in_comm;
-  ierr = MPI_Comm_size(mashmGetComm(*in_mashm), &(in_mashm->size));
-  ierr = MPI_Comm_rank(mashmGetComm(*in_mashm), &(in_mashm->rank));
+  in_mashm->p = malloc(sizeof(_p_mashm));
 
-  if (in_mashm->rank == 0) {
-    in_mashm->isMasterProc = true;
+  /* Set the communicator and get the size and rank */
+  in_mashm->p->comm = in_comm;
+  ierr = MPI_Comm_size(mashmGetComm(*in_mashm), &(in_mashm->p->size));
+  ierr = MPI_Comm_rank(mashmGetComm(*in_mashm), &(in_mashm->p->rank));
+
+  if (in_mashm->p->rank == 0) {
+    in_mashm->p->isMasterProc = true;
   }
   else {
-    in_mashm->isMasterProc = false;
+    in_mashm->p->isMasterProc = false;
   }
 
   /* Initialize the intra-node subcommunicator */
-  init(&(in_mashm->intraComm),in_mashm->comm);
+  init(&(in_mashm->p->intraComm),in_mashm->p->comm);
 
   /* Now calculate the number of shared memory indices */
-  ierr = MPI_Comm_split(in_mashm->comm, in_mashm->intraComm.rank, in_mashm->rank, &rankComm);
+  ierr = MPI_Comm_split(in_mashm->p->comm, in_mashm->p->intraComm.rank, in_mashm->p->rank, &rankComm);
 
   /* Only the nodal root is participates */
-  if (in_mashm->intraComm.rank == 0) {
+  if (in_mashm->p->intraComm.rank == 0) {
     ierr = MPI_Comm_size(rankComm, &numSharedMemNodes);
     ierr = MPI_Comm_rank(rankComm, &sharedMemNodeRank);
     /* The number of shared memory nodes */
-    in_mashm->numSharedMemNodes = numSharedMemNodes;
+    in_mashm->p->numSharedMemNodes = numSharedMemNodes;
     /* The index of each shared memory node */
-    in_mashm->sharedMemIndex = sharedMemNodeRank;
-    if (in_mashm->sharedMemIndex == 0) {
-      printf("Number of shared memory nodes %d\n", in_mashm->numSharedMemNodes);
+    in_mashm->p->sharedMemIndex = sharedMemNodeRank;
+    if (in_mashm->p->sharedMemIndex == 0) {
+      printf("Number of shared memory nodes %d\n", in_mashm->p->numSharedMemNodes);
     }
   }
 
@@ -42,49 +60,49 @@ int mashmInit(Mashm* in_mashm, MPI_Comm in_comm) {
   ierr = MPI_Comm_free(&rankComm);
 
   /* Broadcast (to the shared sub comm) the number of shared memory nodes */
-  ierr = MPI_Bcast(&(in_mashm->numSharedMemNodes), 1, MPI_INT, 0, in_mashm->comm);
+  ierr = MPI_Bcast(&(in_mashm->p->numSharedMemNodes), 1, MPI_INT, 0, in_mashm->p->comm);
   /* Broadcast (to the shared sub comm) the index of each shared memory nodes */
-  ierr = MPI_Bcast(&(in_mashm->sharedMemIndex), 1, MPI_INT, 0, in_mashm->comm);
+  ierr = MPI_Bcast(&(in_mashm->p->sharedMemIndex), 1, MPI_INT, 0, in_mashm->p->comm);
 
   /* Initialize the MashmCommCollection */
-  MashmCommCollectionInit(&(in_mashm->commCollection));
+  MashmCommCollectionInit(&(in_mashm->p->commCollection));
 
-  in_mashm->isInit = true;
+  in_mashm->p->isInit = true;
 
   return 0;
 }
 
 MPI_Comm mashmGetComm(const Mashm in_mashm) {
-  return in_mashm.comm;
+  return in_mashm.p->comm;
 }
 
 int mashmGetSize(const Mashm in_mashm) {
-  return in_mashm.size;
+  return in_mashm.p->size;
 }
 
 int mashmGetRank(const Mashm in_mashm) {
-  return in_mashm.rank;
+  return in_mashm.p->rank;
 }
 
 void mashmPrintInfo(const Mashm in_mashm) {
   int iNode;
 
-  if (in_mashm.isMasterProc) {
-    printf("Number of shared memory nodes %d\n", in_mashm.numSharedMemNodes);
+  if (in_mashm.p->isMasterProc) {
+    printf("Number of shared memory nodes %d\n", in_mashm.p->numSharedMemNodes);
   }
 
-  for (iNode = 0; iNode < in_mashm.numSharedMemNodes; iNode++) {
-    if (in_mashm.isMasterProc) {
+  for (iNode = 0; iNode < in_mashm.p->numSharedMemNodes; iNode++) {
+    if (in_mashm.p->isMasterProc) {
       printf("  Node %d\n", iNode);
     }
-    if (in_mashm.sharedMemIndex == iNode) {
-      intraNodeCommPrintInfo(in_mashm.intraComm);
+    if (in_mashm.p->sharedMemIndex == iNode) {
+      intraNodeCommPrintInfo(in_mashm.p->intraComm);
     }
   }
 }
 
-void mashmAddSymComm(Mashm* in_mashm, int pairRank, int msgSize) {
-  MashmCommCollectionAddComm(&(in_mashm->commCollection), pairRank, msgSize, msgSize);
+void mashmAddSymComm(Mashm in_mashm, int pairRank, int msgSize) {
+  MashmCommCollectionAddComm(&(in_mashm.p->commCollection), pairRank, msgSize, msgSize);
 }
 
 /**
@@ -92,10 +110,10 @@ void mashmAddSymComm(Mashm* in_mashm, int pairRank, int msgSize) {
  */
 void mashmPrintCommCollection(const Mashm in_mashm) {
   int i;
-  for (i = 0; i < in_mashm.size; i++) {
-    if (i == in_mashm.rank) {
-      printf("Rank %d has communication:\n", in_mashm.rank);
-      MashmCommCollectionPrint(in_mashm.commCollection);
+  for (i = 0; i < in_mashm.p->size; i++) {
+    if (i == in_mashm.p->rank) {
+      printf("Rank %d has communication:\n", in_mashm.p->rank);
+      MashmCommCollectionPrint(in_mashm.p->commCollection);
     }
   }
 }
@@ -105,7 +123,7 @@ void mashmPrintCommCollection(const Mashm in_mashm) {
  *
  * @param in_mashm Set precalculation of modified messaging
  */
-void mashmCommFinish(Mashm* in_mashm) {
+void mashmCommFinish(Mashm in_mashm) {
 }
 
 
@@ -115,7 +133,7 @@ void mashmCommFinish(Mashm* in_mashm) {
  *
  * Begin Isend/Irecv communication. The waitalls for these are called with mashmInterNodeCommEnd
  */
-void mashmInterNodeCommBegin(Mashm* myMashm);
+void mashmInterNodeCommBegin(Mashm myMashm);
 
 /* @brief Finish nodal communication
  *
@@ -123,7 +141,7 @@ void mashmInterNodeCommBegin(Mashm* myMashm);
  *
  * Wait for all internode communication to be completed. Here, we call the MPI_Waitall corresponding to the MPI_Irecv/MPI_Isend calls in mashmInterNodeCommBegin.
  */
-void mashmInterNodeCommEnd(Mashm* myMashm);
+void mashmInterNodeCommEnd(Mashm myMashm);
 
 /* @brief Perform intranode communication
  *
@@ -131,5 +149,5 @@ void mashmInterNodeCommEnd(Mashm* myMashm);
  *
  * Perform intranode communication. Depending upon the method used this will call different algorithms.
  */
-void mashmIntraNodeExchange(Mashm* myMashm);
+void mashmIntraNodeExchange(Mashm myMashm);
 

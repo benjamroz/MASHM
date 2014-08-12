@@ -1,3 +1,6 @@
+#ifndef INTRA_NODE_COMM_H
+#define INTRA_NODE_COMM_H
+
 #include <mpi.h>
 
 #include "mashmBool.h"
@@ -25,3 +28,5 @@ int determineGlobalInfo(intraNodeComm* intraComm);
 int determineNodalInfo(intraNodeComm* intraComm);
 
 void intraNodeCommPrintInfo(const intraNodeComm intraComm);
+
+#endif 

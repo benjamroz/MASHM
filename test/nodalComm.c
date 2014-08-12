@@ -16,10 +16,10 @@ int main(int argc, char** argv) {
   mashmPrintInfo(myMashm);
 
   /* Add a communication */
-  mashmAddSymComm(&myMashm, dest, size );
+  //mashmAddSymComm(myMashm, dest, size );
 
   /* Perform precalculation */
-  mashmCommFinish(&myMashm);
+  mashmCommFinish(myMashm);
 
   /* Allocate shared memory data */
   //shmMem = mashmAllocateSharedData(&myMashm);

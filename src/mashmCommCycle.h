@@ -1,3 +1,6 @@
+#ifndef MASHM_COMM_H
+#define MASHM_COMM_H
+
 /* Structure representing one point to point communication */
 typedef struct {
   int pairRank;
@@ -99,4 +102,4 @@ void MashmCommCollectionPrint(const MashmCommCollection commCollection) {
   }
 }
 
-
+#endif 
