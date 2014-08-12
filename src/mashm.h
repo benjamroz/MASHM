@@ -1,6 +1,7 @@
 #include "mpi.h"
 
 #include "intraNodeComm.h"
+#include "mashmCommCycle.h"
 
 typedef struct {
   MPI_Comm comm;
@@ -11,9 +12,19 @@ typedef struct {
   int numSharedMemNodes;
   int sharedMemIndex;
   int isInit;
+  MashmCommCollection commCollection;
 } Mashm;
 
 int mashmInit(Mashm* in_mashm, MPI_Comm in_comm);
 MPI_Comm mashmGetComm(const Mashm in_mashm);
 int mashmGetSize(const Mashm in_mashm);
 int mashmGetRank(const Mashm in_mashm);
+
+void mashmAddSymComm(Mashm* in_mashm, int pairRank, int msgSize);
+void mashmCommFinish(Mashm* in_mashm);
+
+
+void mashmInterNodeCommBegin(Mashm* myMashm);
+void mashmIntraNodeExchange(Mashm* myMashm);
+void mashmInterNodeCommEnd(Mashm* myMashm);
+

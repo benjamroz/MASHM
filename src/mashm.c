@@ -46,6 +46,9 @@ int mashmInit(Mashm* in_mashm, MPI_Comm in_comm) {
   /* Broadcast (to the shared sub comm) the index of each shared memory nodes */
   ierr = MPI_Bcast(&(in_mashm->sharedMemIndex), 1, MPI_INT, 0, in_mashm->comm);
 
+  /* Initialize the MashmCommCollection */
+  MashmCommCollectionInit(&(in_mashm->commCollection));
+
   in_mashm->isInit = true;
 
   return 0;
@@ -68,7 +71,6 @@ void mashmPrintInfo(const Mashm in_mashm) {
 
   if (in_mashm.isMasterProc) {
     printf("Number of shared memory nodes %d\n", in_mashm.numSharedMemNodes);
-
   }
 
   for (iNode = 0; iNode < in_mashm.numSharedMemNodes; iNode++) {
@@ -78,8 +80,56 @@ void mashmPrintInfo(const Mashm in_mashm) {
     if (in_mashm.sharedMemIndex == iNode) {
       intraNodeCommPrintInfo(in_mashm.intraComm);
     }
-
   }
-
-
 }
+
+void mashmAddSymComm(Mashm* in_mashm, int pairRank, int msgSize) {
+  MashmCommCollectionAddComm(&(in_mashm->commCollection), pairRank, msgSize, msgSize);
+}
+
+/**
+ * @brief Print out all of the communications
+ */
+void mashmPrintCommCollection(const Mashm in_mashm) {
+  int i;
+  for (i = 0; i < in_mashm.size; i++) {
+    if (i == in_mashm.rank) {
+      printf("Rank %d has communication:\n", in_mashm.rank);
+      MashmCommCollectionPrint(in_mashm.commCollection);
+    }
+  }
+}
+
+/**
+ * @brief Call when finished adding all messages.
+ *
+ * @param in_mashm Set precalculation of modified messaging
+ */
+void mashmCommFinish(Mashm* in_mashm) {
+}
+
+
+/* @brief Begin nodal communication
+ *
+ * @param in_mash
+ *
+ * Begin Isend/Irecv communication. The waitalls for these are called with mashmInterNodeCommEnd
+ */
+void mashmInterNodeCommBegin(Mashm* myMashm);
+
+/* @brief Finish nodal communication
+ *
+ * @param in_mash
+ *
+ * Wait for all internode communication to be completed. Here, we call the MPI_Waitall corresponding to the MPI_Irecv/MPI_Isend calls in mashmInterNodeCommBegin.
+ */
+void mashmInterNodeCommEnd(Mashm* myMashm);
+
+/* @brief Perform intranode communication
+ *
+ * @param in_mash
+ *
+ * Perform intranode communication. Depending upon the method used this will call different algorithms.
+ */
+void mashmIntraNodeExchange(Mashm* myMashm);
+
