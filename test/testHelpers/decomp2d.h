@@ -76,11 +76,11 @@ int decomp2dGetOwnerRank(int mIndex, int nIndex, int totalNumRanks, int m, int n
   numCeil = totalNumElements % totalNumRanks;
 
   elemIndex = nIndex + n*mIndex;
-  printf("  elemIndex = %d\n", elemIndex);
   rankCeil = 0;
   for (i = 0; i < numCeil; i++) {
     rankCeil = rankCeil + ceilElementsPerRank;
     if (elemIndex < rankCeil) {
+      printf("map1: nIndex, mIndex %d, %d owned by %d\n", mIndex, nIndex, i);
       return i;
     }
   }
@@ -88,6 +88,7 @@ int decomp2dGetOwnerRank(int mIndex, int nIndex, int totalNumRanks, int m, int n
   for (i = numCeil; i < totalNumRanks; i++) {
     rankCeil = rankCeil + floorElementsPerRank;
     if (elemIndex < rankCeil) {
+      printf("map2: nIndex, mIndex %d, %d owned by %d\n", mIndex, nIndex, i);
       return i;
     }
     
@@ -126,21 +127,22 @@ void decomp2dCreateGraph(int m, int n, int rank, int totalNumRanks, int** elemen
   for (i = 0; i < numElements; i++) {
     mIndex = (*elements)[i] /n;
     nIndex = (*elements)[i] % n;
+
     for (j = -1; j < 2; j++) {
       mIndexOther = mIndex + j;
       if (mIndexOther < 0 || mIndexOther >= m) {
         continue;
       }
       for (k = -1; k < 2; k++) {
-        nIndexOther = nIndex + i;
+        nIndexOther = nIndex + k;
         if (nIndexOther < 0 || nIndexOther >= n) {
           continue;
         }
-        neighborRank = decomp2dGetOwnerRank(mIndexOther, nIndexOther, totalNumRanks, m, n);
-
         if (neighborRank == rank) {
           continue;
         }
+
+        neighborRank = decomp2dGetOwnerRank(mIndexOther, nIndexOther, totalNumRanks, m, n);
 
         if (k == 0 || j == 0) {
           msgSize = 4;
@@ -149,7 +151,9 @@ void decomp2dCreateGraph(int m, int n, int rank, int totalNumRanks, int** elemen
           msgSize = 1;
         }
 
-        /* Iterate through .. */
+        /* Iterate through the list of neighbors to see if it has already been added
+         * update the msgSize as you go
+         */
         found = false;
         for (iNeigh = 0; iNeigh < neighborCounter; iNeigh++) {
           if (neighborsMax[iNeigh] == neighborRank) {

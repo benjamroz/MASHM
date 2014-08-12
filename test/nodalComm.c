@@ -55,24 +55,29 @@ int main(int argc, char** argv) {
     if (iRank == rank) {
       printf("Process %d owns the folloing elements:\n", rank);
       for (i = 0; i < numElems; i++) {
-        //printf("  elem %d\n", elements[i]);
+        printf("  elem %d\n", elements[i]);
         // Calc
-        mIndex = elements[i] / n;
-        nIndex = elements[i] % n;
-        calcRank = decomp2dGetOwnerRank(mIndex, nIndex, numProcs, m, n);
-        printf("  elem %d, calc %d, m %d, n %d\n", elements[i], calcRank, mIndex, nIndex);
+        //mIndex = elements[i] / n;
+        //nIndex = elements[i] % n;
+        //calcRank = decomp2dGetOwnerRank(mIndex, nIndex, numProcs, m, n);
+        //printf("  elem %d, calc %d, m %d, n %d\n", elements[i], calcRank, mIndex, nIndex);
       }
     }
     ierr = MPI_Barrier(MPI_COMM_WORLD);
+    ierr = MPI_Barrier(MPI_COMM_WORLD);
   }
+  ierr = MPI_Barrier(MPI_COMM_WORLD);
+  ierr = MPI_Barrier(MPI_COMM_WORLD);
 
 
   for (iRank = 0; iRank < numProcs; iRank++) {
     if (iRank == rank) {
+      printf("Process %d has %d mpi neighbors\n", rank, numNeighbors);
       for (i = 0; i < numNeighbors; i++) {
         printf("Process %d communicates with process %d size %d\n", rank, neighbors[i], msgSizes[i]);
       }
     }
+    ierr = MPI_Barrier(MPI_COMM_WORLD);
     ierr = MPI_Barrier(MPI_COMM_WORLD);
   }
 
