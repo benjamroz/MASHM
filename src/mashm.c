@@ -120,6 +120,18 @@ void mashmPrintCommCollection(const Mashm in_mashm) {
 
 /**
  * @brief Call when finished adding all messages.
+ * 
+ * Allocate buffer data for communication methods. 
+ * If intranode then just regular data
+ * If intranode shared then 
+ *     regular data for internode comm
+ *     shared data for intranode comm
+ * If minimal nodal then
+ *     block of shared data for each nodal message
+ *       or
+ *     block of shared data for all messages
+ *      
+ * TODO: We should have an option to declare which communication strategy we are targeting.
  *
  * @param in_mashm Set precalculation of modified messaging
  */

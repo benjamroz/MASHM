@@ -96,8 +96,8 @@ int decomp2dGetOwnerRank(int mIndex, int nIndex, int totalNumRanks, int m, int n
   return -1;
 }
 
-void decomp2dCreateGraph(int m, int n, int rank, int totalNumRanks, int** elements, int** neighbors, int** msgSizes, int* numNeighbors) {
-  int numElements;
+void decomp2dCreateGraph(int m, int n, int rank, int totalNumRanks, int* numElements, int** elements, int** neighbors, int** msgSizes, int* numNeighbors) {
+  //int numElements;
   //int* elements;
   int neighborsMaxSize;
   int* neighborsMax;
@@ -112,19 +112,19 @@ void decomp2dCreateGraph(int m, int n, int rank, int totalNumRanks, int** elemen
   int neighborCounter;
 
   /* Determine the number of elements */
-  numElements = decomp2dRectNumElements(m, n, rank, totalNumRanks);
+  *numElements = decomp2dRectNumElements(m, n, rank, totalNumRanks);
 
-  *elements = (int*) malloc(sizeof(int)*numElements);
+  *elements = (int*) malloc(sizeof(int)*(*numElements));
   decomp2dRectGetElements(m, n, rank, totalNumRanks, *elements);
 
   /* Allocate the maximum possible number of elements */
-  neighborsMaxSize = 8*numElements;
+  neighborsMaxSize = 8*(*numElements);
   neighborsMax = (int*) malloc(sizeof(int)*neighborsMaxSize);
   msgSizesMax = (int*) malloc(sizeof(int)*neighborsMaxSize);
 
   /* Iterate through neighbors and add the communication */
   neighborCounter = 0;
-  for (i = 0; i < numElements; i++) {
+  for (i = 0; i < *numElements; i++) {
     mIndex = (*elements)[i] /n;
     nIndex = (*elements)[i] % n;
 
