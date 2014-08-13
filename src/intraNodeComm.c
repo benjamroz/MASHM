@@ -13,6 +13,7 @@ int init(intraNodeComm* intraComm, MPI_Comm in_comm) {
 
   ierr = MPI_Comm_size(intraComm->comm, &(intraComm->size));
   ierr = MPI_Comm_rank(intraComm->comm, &(intraComm->rank));
+  ierr = MPI_Comm_rank(intraComm->parentComm, &(intraComm->parentRank));
 
   /* Subcommunicator rank == 0 is the master process */
   if (intraComm->rank == 0) {
@@ -21,6 +22,10 @@ int init(intraNodeComm* intraComm, MPI_Comm in_comm) {
   else {
     intraComm->isMasterProc = false;
   }
+
+  intraComm->parentRanksOnNode = (int *) malloc(sizeof(int)*intraComm->size);
+  ierr = MPI_Allgather(&(intraComm->parentRank), 1, MPI_INT, 
+                       intraComm->parentRanksOnNode, intraComm->size, MPI_INT, intraComm->comm);
 
   return 0;
 }

@@ -107,7 +107,7 @@ void decomp2dCreateGraph(int m, int n, int rank, int totalNumRanks, int* numElem
   //int numNeighbors;
   int i, j, k, iNeigh;
   int mIndex, nIndex, msgSize, neighborRank;
-  mashmBool found;
+  MashmBool found;
   int mIndexOther, nIndexOther;
   int neighborCounter;
 
@@ -138,11 +138,12 @@ void decomp2dCreateGraph(int m, int n, int rank, int totalNumRanks, int* numElem
         if (nIndexOther < 0 || nIndexOther >= n) {
           continue;
         }
+
+        neighborRank = decomp2dGetOwnerRank(mIndexOther, nIndexOther, totalNumRanks, m, n);
+
         if (neighborRank == rank) {
           continue;
         }
-
-        neighborRank = decomp2dGetOwnerRank(mIndexOther, nIndexOther, totalNumRanks, m, n);
 
         if (k == 0 || j == 0) {
           msgSize = 4;

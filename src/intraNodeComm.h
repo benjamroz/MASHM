@@ -12,7 +12,9 @@ typedef struct {
   MPI_Comm parentComm;
   int size;
   int rank;
-  mashmBool isMasterProc;
+  MashmBool isMasterProc;
+  int parentRank;
+  int* parentRanksOnNode;
 } intraNodeComm;
 
 int init(intraNodeComm* intraComm, MPI_Comm in_comm);

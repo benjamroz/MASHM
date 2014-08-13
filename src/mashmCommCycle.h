@@ -46,7 +46,7 @@ typedef struct {
   MashmComm* commArray;
   int commArraySize;
   int commArrayReserveSize;
-  mashmBool isInit;
+  MashmBool isInit;
 } MashmCommCollection;
 
 void MashmCommCollectionInit(MashmCommCollection* commCollection) {

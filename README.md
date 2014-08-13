@@ -1,4 +1,4 @@
-# Minimal Aggregated SHared Memory - message passing layer (MASHM-MPL)
+# Minimal Aggregated SHared memory Messaging - Message Passing Layer (MASHM-MPL)
 
 # Design decisions
 
@@ -7,6 +7,7 @@ The following library is designed to facilitate the use of MPI 3.0 shared memory
 # Usage
 
 The assumptions of user codes are the following:
+
 1. An existing point to point MPI communication exchange
 2. Connectivity information explicitly available
 
@@ -21,10 +22,10 @@ By default, this package requires the use of MPI and specifically requires a ver
 
 These are required by the library to implement the shared memory messaging. These features have been found to be supported in the following implementations and versions
 
-1. OpenMPI ?
-2. MVAPICH ?
-3. MPICH ?
-4. IMPI ?
+1. OpenMPI >= 1.7.5
+2. MVAPICH >= 2.0
+3. MPICH >= 6.0.2
+4. IMPI ? 5.0.0
 
 # How to build and install the package
 

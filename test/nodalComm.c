@@ -33,7 +33,12 @@ int main(int argc, char** argv) {
   int** recvBuffers;
   int** sendBuffers;
 
+  MPI_Comm commWorld;
   Mashm myMashm;
+
+  /* */
+  double** mashmSendBufferPtrs;
+  double** mashmRecvBufferPtrs;
 
   ierr = MPI_Init(&argc, &argv);
   ierr = MPI_Comm_size(MPI_COMM_WORLD, &numProcs);
@@ -41,7 +46,7 @@ int main(int argc, char** argv) {
 
 
   m = 10;
-  n = 9;
+  n = 10;
 
 #if 0
   numElems = decomp2dRectNumElements(m, n, rank, numProcs);
@@ -115,17 +120,19 @@ int main(int argc, char** argv) {
   ierr = MPI_Waitall(numNeighbors,recvRequests,recvStatuses); 
   ierr = MPI_Waitall(numNeighbors,sendRequests,sendStatuses); 
 
-  /* Okay that was a lot of setup
+  /****************************************************************
+   * Okay that was a lot of setup
    * Now use the MASHM library
-   */
+   ****************************************************************/
 
   /* Initialize the MASHM object */
-  mashmInit(&myMashm, MPI_COMM_WORLD);
+  commWorld = MPI_COMM_WORLD;
+  mashmInit(&myMashm, commWorld);
 
   /* Print nodal comm info */
   mashmPrintInfo(myMashm);
 
-  /* Add communications */
+  /* Add communications calculated above */
   for (i = 0; i < numNeighbors; i++) {
     mashmAddSymComm(myMashm, neighbors[i], msgSizes[i]);
   }
@@ -134,19 +141,35 @@ int main(int argc, char** argv) {
   mashmCommFinish(myMashm);
 
   /* Retrieve pointers for buffers */
+  mashmSendBufferPtrs = (double**) malloc(sizeof(double*)*numNeighbors);
+  mashmRecvBufferPtrs = (double**) malloc(sizeof(double*)*numNeighbors);
+  for (i = 0; i < numNeighbors; i++) {
+    mashmSendBufferPtrs[i] = mashmGetBufferPointer(myMashm, i, MASHM_SEND);
+    mashmRecvBufferPtrs[i] = mashmGetBufferPointer(myMashm, i, MASHM_RECEIVE);
+  }
 
-  /* Allocate shared memory data */
-  //shmMem = mashmAllocateSharedData(&myMashm);
+  /* Fill buffers */
+ 
 
-  /* Fill shared memory */
+  /*************************************************************
+   * Now perform communication 
+   ************************************************************/
+  /* Send internode messages */
+  mashmInterNodeCommBegin(myMashm);
+  /* Messages sent and receives posted 
+   * Can asynchronously do work on nodal data 
+   */
+  /* Send intranode messages */
+  mashmIntraNodeCommBegin(myMashm);
+  mashmIntraNodeCommEnd(myMashm);
+  /* At this stage you have completed the intra-node communication */
 
-  /* Send/Receive cycles */
-  //mashmInterNodeCommBegin(myMashm);
-  //mashmIntraNodeExchange(myMashm);
-  //mashmInterNodeCommEnd(myMashm);
+  /* Asynchronously do work on nodal data */
 
-  //printf("Rank %d of size %d\n", mashmGetRank(myMashm), mashmGetSize(myMashm));
+  /* Now wait on nodal messages */
+  mashmInterNodeCommEnd(myMashm);
 
+  //mashmDestroy(&myMashm);
   decomp2dDestroyGraph(&neighbors, &msgSizes);
 
 }
