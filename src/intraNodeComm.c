@@ -1,6 +1,6 @@
 #include "intraNodeComm.h"
 
-int init(intraNodeComm* intraComm, MPI_Comm in_comm) {
+int intraNodeInit(intraNodeComm* intraComm, MPI_Comm in_comm) {
   int ierr;
 
   /* Store the parent commincator */
@@ -24,28 +24,29 @@ int init(intraNodeComm* intraComm, MPI_Comm in_comm) {
   }
 
   intraComm->parentRanksOnNode = (int *) malloc(sizeof(int)*intraComm->size);
+
   ierr = MPI_Allgather(&(intraComm->parentRank), 1, MPI_INT, 
-                       intraComm->parentRanksOnNode, intraComm->size, MPI_INT, intraComm->comm);
+                       intraComm->parentRanksOnNode, 1, MPI_INT, intraComm->comm);
 
   return 0;
 }
 
-MPI_Comm getComm(const intraNodeComm intraComm) {
+MPI_Comm intraNodeGetComm(const intraNodeComm intraComm) {
   return intraComm.comm;
 }
 
-int getSize(const intraNodeComm intraComm) {
+int intraNodeGetSize(const intraNodeComm intraComm) {
   return intraComm.size;
 }
 
-int getRank(const intraNodeComm intraComm) {
+int intraNodeGetRank(const intraNodeComm intraComm) {
   return intraComm.rank;
 }
 
-int determineGlobalInfo(intraNodeComm* intraComm);
-int determineNodalInfo(intraNodeComm* intraComm);
+int intraNodeDetermineGlobalInfo(intraNodeComm* intraComm);
+int intraNodeDetermineNodalInfo(intraNodeComm* intraComm);
 
-void intraNodeCommPrintInfo(const intraNodeComm intraComm) {
+void intraNodePrintInfo(const intraNodeComm intraComm) {
   if (intraComm.isMasterProc) {
     printf("  Shared memory node has size %d\n", intraComm.size);
   }

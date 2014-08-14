@@ -6,6 +6,8 @@
 #include "intraNodeComm.h"
 #include "mashmCommCycle.h"
 
+#include "mpi.h"
+
 struct MashmPrivate {
   /* Root communicator */
   MPI_Comm comm;
@@ -64,6 +66,7 @@ int mashmInit(Mashm* in_mashm, MPI_Comm in_comm) {
 
   /* Set the communicator and get the size and rank */
   in_mashm->p->comm = in_comm;
+
   ierr = MPI_Comm_size(mashmGetComm(*in_mashm), &(in_mashm->p->size));
   ierr = MPI_Comm_rank(mashmGetComm(*in_mashm), &(in_mashm->p->rank));
 
@@ -75,12 +78,11 @@ int mashmInit(Mashm* in_mashm, MPI_Comm in_comm) {
   }
 
   /* Initialize the intra-node subcommunicator */
-  init(&(in_mashm->p->intraComm),in_mashm->p->comm);
+  intraNodeInit(&(in_mashm->p->intraComm),in_mashm->p->comm);
 
   /* Now calculate the number of shared memory indices */
   ierr = MPI_Comm_split(in_mashm->p->comm, in_mashm->p->intraComm.rank, in_mashm->p->rank, &rankComm);
-  //ierr = MPI_Comm_split(in_comm, in_mashm->p->intraComm.rank, in_mashm->p->rank, &rankComm);
-
+ 
   /* Only the nodal root is participates */
   if (in_mashm->p->intraComm.rank == 0) {
     ierr = MPI_Comm_size(rankComm, &numSharedMemNodes);
@@ -136,7 +138,7 @@ void mashmPrintInfo(const Mashm in_mashm) {
       printf("  Node %d\n", iNode);
     }
     if (in_mashm.p->sharedMemIndex == iNode) {
-      intraNodeCommPrintInfo(in_mashm.p->intraComm);
+      intraNodePrintInfo(in_mashm.p->intraComm);
     }
   }
 }
@@ -215,15 +217,19 @@ void mashmCommFinish(Mashm in_mashm) {
   switch (in_mashm.p->commType) {
     case MASHM_COMM_STANDARD:
       mashmSetupInterNodeComm(in_mashm);
+      break;
 
     case MASHM_COMM_INTRA_MSG:
       mashmSetupIntraNodeComm(in_mashm);
+      break;
 
     case MASHM_COMM_INTRA_SHARED:
       printf("Communication method MASHM_INTRA_SHARED not yet implemented\n");
+      break;
 
     case MASHM_COMM_MIN_AGG:
       printf("Communication method MASHM_MIN_AGG not yet implemented\n");
+      break;
 
   }
 
@@ -312,13 +318,17 @@ void mashmInterNodeCommBegin(Mashm in_mashm) {
   switch (in_mashm.p->commType) {
     case (MASHM_COMM_STANDARD):
       mashmStandardCommBegin(in_mashm); 
+      break;
     case (MASHM_COMM_INTRA_MSG):
       //mashmIntraMsgsCommBegin(in_mashm); 
       tmp = 1;
+      break;
     case (MASHM_COMM_INTRA_SHARED):
       tmp = 1;
+      break;
     case (MASHM_COMM_MIN_AGG):
       tmp = 1;
+      break;
   }
 }
 
@@ -335,13 +345,17 @@ void mashmInterNodeCommEnd(Mashm in_mashm) {
   switch (in_mashm.p->commType) {
     case (MASHM_COMM_STANDARD):
       mashmStandardCommEnd(in_mashm); 
+      break;
     case (MASHM_COMM_INTRA_MSG):
      // mashmIntraMsgsCommEnd(in_mashm); 
       tmp = 1;
+      break;
     case (MASHM_COMM_INTRA_SHARED):
       tmp = 1;
+      break;
     case (MASHM_COMM_MIN_AGG):
       tmp = 1;
+      break;
   }
 }
 

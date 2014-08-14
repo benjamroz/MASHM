@@ -9,6 +9,7 @@ typedef enum { MASHM_COMM_STANDARD, MASHM_COMM_INTRA_MSG, MASHM_COMM_INTRA_SHARE
 
 typedef enum { MASHM_SEND, MASHM_RECEIVE } MashmSendReceive;
 
+struct MashmPrivate;
 typedef struct MashmPrivate _p_mashm;
 
 typedef struct {

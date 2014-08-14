@@ -1,7 +1,7 @@
 #ifndef INTRA_NODE_COMM_H
 #define INTRA_NODE_COMM_H
 
-#include <mpi.h>
+#include "mpi.h"
 
 #include "mashmBool.h"
 
@@ -17,18 +17,18 @@ typedef struct {
   int* parentRanksOnNode;
 } intraNodeComm;
 
-int init(intraNodeComm* intraComm, MPI_Comm in_comm);
+int intraNodeInit(intraNodeComm* intraComm, MPI_Comm in_comm);
 
-MPI_Comm getComm(const intraNodeComm intraComm);
+MPI_Comm intraNodeGetComm(const intraNodeComm intraComm);
 
-int getSize(const intraNodeComm intraComm);
+int intraNodeGetSize(const intraNodeComm intraComm);
 
-int getRank(const intraNodeComm intraComm);
+int intraNodeGetRank(const intraNodeComm intraComm);
 
-int determineGlobalInfo(intraNodeComm* intraComm);
+int intraNodeDetermineGlobalInfo(intraNodeComm* intraComm);
 
-int determineNodalInfo(intraNodeComm* intraComm);
+int intraNodeDetermineNodalInfo(intraNodeComm* intraComm);
 
-void intraNodeCommPrintInfo(const intraNodeComm intraComm);
+void intraNodePrintInfo(const intraNodeComm intraComm);
 
 #endif 

@@ -1,6 +1,6 @@
 #include "stdio.h"
 
-#include <mpi.h>
+#include "mpi.h"
 
 #include "mashm.h"
 
@@ -40,10 +40,9 @@ int main(int argc, char** argv) {
   double** mashmSendBufferPtrs;
   double** mashmRecvBufferPtrs;
 
-  ierr = MPI_Init(&argc, &argv);
+  ierr = MPI_Init(NULL, NULL);
   ierr = MPI_Comm_size(MPI_COMM_WORLD, &numProcs);
   ierr = MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-
 
   m = 10;
   n = 10;
@@ -126,6 +125,7 @@ int main(int argc, char** argv) {
    ****************************************************************/
 
   /* Initialize the MASHM object */
+
   commWorld = MPI_COMM_WORLD;
   mashmInit(&myMashm, commWorld);
 
@@ -151,6 +151,7 @@ int main(int argc, char** argv) {
   /* Fill buffers */
  
 
+  return 0;
   /*************************************************************
    * Now perform communication 
    ************************************************************/
