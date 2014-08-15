@@ -235,8 +235,8 @@ void mashmCommFinish(Mashm in_mashm) {
   switch (in_mashm.p->commType) {
     case MASHM_COMM_STANDARD:
       mashmSetupInterNodeComm(in_mashm);
-      in_mashm.p->p_interNodeCommBegin = mashmStandardCommBegin;
-      in_mashm.p->p_interNodeCommEnd = mashmStandardCommEnd;
+      in_mashm.p->p_interNodeCommBegin = p_mashmStandardCommBegin;
+      in_mashm.p->p_interNodeCommEnd = p_mashmStandardCommEnd;
 
       in_mashm.p->p_intraNodeCommBegin = p_nullFunction;
       in_mashm.p->p_intraNodeCommEnd = p_nullFunction;
@@ -380,7 +380,7 @@ void mashmInterNodeCommEnd(Mashm in_mashm) {
   in_mashm.p->p_interNodeCommEnd(in_mashm.p);
 }
 
-void mashmStandardCommBegin(struct MashmPrivate* p_mashm) {
+void p_mashmStandardCommBegin(struct MashmPrivate* p_mashm) {
   int ierr;
   int iMsg;
   int numMsgs = p_mashm->commCollection.commArraySize;
@@ -437,7 +437,7 @@ void mashmIntraMsgsCommBegin(Mashm in_mashm) {
  *
  * Wait for all internode communication to be completed. Here, we call the MPI_Waitall corresponding to the MPI_Irecv/MPI_Isend calls in mashmInterNodeCommBegin.
  */
-void mashmStandardCommEnd(struct MashmPrivate* p_mashm) {
+void p_mashmStandardCommEnd(struct MashmPrivate* p_mashm) {
   int ierr;
  
   ierr = MPI_Waitall(p_mashm->commCollection.commArraySize, p_mashm->recvRequests, 
@@ -453,14 +453,6 @@ void mashmStandardCommEnd(struct MashmPrivate* p_mashm) {
 void p_nullFunction(struct MashmPrivate* p_mashm) {
 
 }
-
-/* @brief Perform intranode communication
- *
- * @param in_mash
- *
- * Perform intranode communication. Depending upon the method used this will call different algorithms.
- */
-void mashmIntraNodeExchange(Mashm myMashm);
 
 /* @brief determine how many MPI messages that will be sent
  */

@@ -26,10 +26,6 @@ void mashmAddSymComm(Mashm in_mashm, int pairRank, int msgSize);
 void mashmCommFinish(Mashm in_mashm);
 
 
-void mashmInterNodeCommBegin(Mashm myMashm);
-void mashmIntraNodeExchange(Mashm myMashm);
-void mashmInterNodeCommEnd(Mashm myMashm);
-
 void mashmSetCommMethod(Mashm in_mashm, MashmCommType commType);
 MashmCommType mashmGetCommMethod(Mashm in_mashm);
 
@@ -47,18 +43,35 @@ double* mashmGetBufferPointer(Mashm in_mashm, int msgIndex, MashmSendReceive sen
 
 double* mashmGetBufferPointerForDest(Mashm in_mashm, int destRank, MashmSendReceive sendReceive);
 
+/* Set up Intranode Communication */
 void mashmSetupIntraNodeComm(Mashm in_mashm);
+
+/* Set up Internode Communication */
 void mashmSetupInterNodeComm(Mashm in_mashm);
 
-void mashmStandardCommBegin(_p_mashm* p_mashm);
-void mashmStandardCommEnd(_p_mashm* p_mashm);
+/* Internode communication */
+void mashmInterNodeCommBegin(Mashm in_mashm);
+void mashmInterNodeCommEnd(Mashm in_mashm);
 
-void mashmIntraMsgsCommBegin(Mashm in_mashm);
-void mashmIntraMsgsCommEnd(Mashm in_mashm);
-
+/* Intranode communication */
 void mashmIntraNodeCommBegin(Mashm in_mashm);
 void mashmIntraNodeCommEnd(Mashm in_mashm);
 
+/* Private routines */
+void p_mashmStandardCommBegin(_p_mashm* p_mashm);
+void p_mashmStandardCommEnd(_p_mashm* p_mashm);
+
+void p_mashmIntraMsgsCommBegin(_p_mashm* p_mashm);
+void p_mashmIntraMsgsCommEnd(_p_mashm* p_mashm);
+
+void p_mashmIntraSharedCommBegin(_p_mashm* p_mashm);
+void p_mashmIntraSharedCommEnd(_p_mashm* p_mashm);
+
+void p_mashmMinAggCommBegin(_p_mashm* p_mashm);
+void p_mashmMinAggCommEnd(_p_mashm* p_mashm);
+
 double* p_mashmGetBufferPointer(_p_mashm* p_mashm, int msgIndex, MashmSendReceive sendReceive);
+
 void p_nullFunction(_p_mashm* p_mashm);
+
 #endif 

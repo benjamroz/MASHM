@@ -1,4 +1,4 @@
-# Minimal Aggregated SHared memory Messaging - Message Passing Layer (MASHM-MPL)
+# Minimal Aggregated SHared memory Messaging - Message Passing Layer (MASHM - MPL)
 
 # Design decisions
 
