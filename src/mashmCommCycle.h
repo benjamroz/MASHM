@@ -102,4 +102,15 @@ void MashmCommCollectionPrint(const MashmCommCollection commCollection) {
   }
 }
 
+
+void MashmCommCollectionDestroy(MashmCommCollection* commCollection) {
+
+  free(commCollection->commArray);
+  commCollection->isInit = false;
+  commCollection->commArraySize = 0;
+  commCollection->commArrayReserveSize = 0;
+
+}
+
+
 #endif 

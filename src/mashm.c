@@ -54,6 +54,10 @@ struct MashmPrivate {
   MPI_Status* intraRecvStatuses;
   MPI_Status* intraSendStatuses;
 
+  void (* p_interNodeCommBegin)(struct MashmPrivate*);
+  void (* p_interNodeCommEnd)(struct MashmPrivate*);
+  void (* p_intraNodeCommBegin)(struct MashmPrivate*);
+  void (* p_intraNodeCommEnd)(struct MashmPrivate*);
 };
 
 int mashmInit(Mashm* in_mashm, MPI_Comm in_comm) {
@@ -231,18 +235,44 @@ void mashmCommFinish(Mashm in_mashm) {
   switch (in_mashm.p->commType) {
     case MASHM_COMM_STANDARD:
       mashmSetupInterNodeComm(in_mashm);
+      in_mashm.p->p_interNodeCommBegin = mashmStandardCommBegin;
+      in_mashm.p->p_interNodeCommEnd = mashmStandardCommEnd;
+
+      in_mashm.p->p_intraNodeCommBegin = p_nullFunction;
+      in_mashm.p->p_intraNodeCommEnd = p_nullFunction;
+
       break;
 
     case MASHM_COMM_INTRA_MSG:
       mashmSetupIntraNodeComm(in_mashm);
+
+      printf("Communication method MASHM_INTRA_MSGS not yet implemented\n");
+
+      in_mashm.p->p_interNodeCommBegin = p_nullFunction;
+      in_mashm.p->p_interNodeCommEnd = p_nullFunction;
+      in_mashm.p->p_intraNodeCommBegin = p_nullFunction;
+      in_mashm.p->p_intraNodeCommEnd = p_nullFunction;
+
       break;
 
     case MASHM_COMM_INTRA_SHARED:
       printf("Communication method MASHM_INTRA_SHARED not yet implemented\n");
+
+      in_mashm.p->p_interNodeCommBegin = p_nullFunction;
+      in_mashm.p->p_interNodeCommEnd = p_nullFunction;
+      in_mashm.p->p_intraNodeCommBegin = p_nullFunction;
+      in_mashm.p->p_intraNodeCommEnd = p_nullFunction;
+
       break;
 
     case MASHM_COMM_MIN_AGG:
       printf("Communication method MASHM_MIN_AGG not yet implemented\n");
+
+      in_mashm.p->p_interNodeCommBegin = p_nullFunction;
+      in_mashm.p->p_interNodeCommEnd = p_nullFunction;
+      in_mashm.p->p_intraNodeCommBegin = p_nullFunction;
+      in_mashm.p->p_intraNodeCommEnd = p_nullFunction;
+
       break;
 
   }
@@ -268,11 +298,17 @@ void mashmCommFinish(Mashm in_mashm) {
 }
 
 double* mashmGetBufferPointer(Mashm in_mashm, int msgIndex, MashmSendReceive sendReceive) {
+  /* Call the private routine */
+  return p_mashmGetBufferPointer(in_mashm.p, msgIndex, sendReceive);
+}
+
+
+double* p_mashmGetBufferPointer(struct MashmPrivate* p_mashm, int msgIndex, MashmSendReceive sendReceive) {
   if (sendReceive == MASHM_SEND) {
-    return in_mashm.p->sendBufferPointers[msgIndex];
+    return p_mashm->sendBufferPointers[msgIndex];
   }
   else {
-    return in_mashm.p->recvBufferPointers[msgIndex];
+    return p_mashm->recvBufferPointers[msgIndex];
   }
 }
 
@@ -327,92 +363,63 @@ void mashmSetupIntraNodeComm(Mashm in_mashm) {
  *
  * Begin Isend/Irecv communication. The waitalls for these are called with mashmInterNodeCommEnd
  */
+
 void mashmInterNodeCommBegin(Mashm in_mashm) {
-  int tmp;
-  switch (in_mashm.p->commType) {
-    case (MASHM_COMM_STANDARD):
-      mashmStandardCommBegin(in_mashm); 
-      break;
-    case (MASHM_COMM_INTRA_MSG):
-      //mashmIntraMsgsCommBegin(in_mashm); 
-      tmp = 1;
-      break;
-    case (MASHM_COMM_INTRA_SHARED):
-      tmp = 1;
-      break;
-    case (MASHM_COMM_MIN_AGG):
-      tmp = 1;
-      break;
-  }
+  in_mashm.p->p_interNodeCommBegin(in_mashm.p);
 }
 
 void mashmIntraNodeCommBegin(Mashm in_mashm) {
+  in_mashm.p->p_intraNodeCommBegin(in_mashm.p);
 }
 
 void mashmIntraNodeCommEnd(Mashm in_mashm) {
+  in_mashm.p->p_intraNodeCommEnd(in_mashm.p);
 }
-
-
 
 void mashmInterNodeCommEnd(Mashm in_mashm) {
-  int tmp;
-  switch (in_mashm.p->commType) {
-    case (MASHM_COMM_STANDARD):
-      mashmStandardCommEnd(in_mashm); 
-      break;
-    case (MASHM_COMM_INTRA_MSG):
-     // mashmIntraMsgsCommEnd(in_mashm); 
-      tmp = 1;
-      break;
-    case (MASHM_COMM_INTRA_SHARED):
-      tmp = 1;
-      break;
-    case (MASHM_COMM_MIN_AGG):
-      tmp = 1;
-      break;
-  }
+  in_mashm.p->p_interNodeCommEnd(in_mashm.p);
 }
 
-void mashmStandardCommBegin(Mashm in_mashm) {
+void mashmStandardCommBegin(struct MashmPrivate* p_mashm) {
   int ierr;
   int iMsg;
-  int numMsgs = in_mashm.p->commCollection.commArraySize;
+  int numMsgs = p_mashm->commCollection.commArraySize;
   int i;
   double* buf;
 
   /* First do the Irecvs */
-  for (iMsg = 0; iMsg < in_mashm.p->commCollection.commArraySize; iMsg++) {
-    buf = mashmGetBufferPointer(in_mashm, iMsg, MASHM_RECEIVE);
-    for (i = 0; i < in_mashm.p->commCollection.commArray[iMsg].recvSize; i++) {
+  for (iMsg = 0; iMsg < p_mashm->commCollection.commArraySize; iMsg++) {
+    buf = p_mashmGetBufferPointer(p_mashm, iMsg, MASHM_RECEIVE);
+    for (i = 0; i < p_mashm->commCollection.commArray[iMsg].recvSize; i++) {
       if (buf[i] != 667 && buf[i] != 669) {
-        printf("Error with recv buffer %d rank %d, bufVal %f\n", iMsg, in_mashm.p->rank, buf[i]);
+        printf("Error with recv buffer %d rank %d, bufVal %f\n", iMsg, p_mashm->rank, buf[i]);
       }
     }
 
-    ierr = MPI_Irecv(mashmGetBufferPointer(in_mashm, iMsg, MASHM_RECEIVE), 
-                     in_mashm.p->commCollection.commArray[iMsg].recvSize, 
+    ierr = MPI_Irecv(p_mashmGetBufferPointer(p_mashm, iMsg, MASHM_RECEIVE), 
+                     p_mashm->commCollection.commArray[iMsg].recvSize, 
                      MPI_DOUBLE,
-                     in_mashm.p->commCollection.commArray[iMsg].pairRank, 
-                     1, in_mashm.p->comm, &(in_mashm.p->recvRequests[iMsg]));
+                     p_mashm->commCollection.commArray[iMsg].pairRank, 
+                     1, p_mashm->comm, &(p_mashm->recvRequests[iMsg]));
     if (ierr != 0) {
       printf("Error in receiving message %d\n", iMsg);
     }
 
   }
   /* Next do the Isends */
-  for (iMsg = 0; iMsg < in_mashm.p->commCollection.commArraySize; iMsg++) {
-    buf = mashmGetBufferPointer(in_mashm, iMsg, MASHM_SEND);
-    for (i = 0; i < in_mashm.p->commCollection.commArray[iMsg].recvSize; i++) {
+  for (iMsg = 0; iMsg < p_mashm->commCollection.commArraySize; iMsg++) {
+    buf = p_mashmGetBufferPointer(p_mashm, iMsg, MASHM_SEND);
+    for (i = 0; i < p_mashm->commCollection.commArray[iMsg].recvSize; i++) {
       if (buf[i] != 666 && buf[i] != 668) {
-        printf("Error with send buffer %d rank %d, bufVal %f\n", iMsg, in_mashm.p->rank, buf[i]);
+        printf("Error with send buffer %d rank %d, bufVal %f\n", iMsg, p_mashm->rank, buf[i]);
       }
     }
 
-    ierr = MPI_Isend(mashmGetBufferPointer(in_mashm, iMsg, MASHM_SEND), 
-                     in_mashm.p->commCollection.commArray[iMsg].sendSize, 
+    ierr = MPI_Isend(p_mashmGetBufferPointer(p_mashm, iMsg, MASHM_SEND), 
+                     p_mashm->commCollection.commArray[iMsg].sendSize, 
                      MPI_DOUBLE,
-                     in_mashm.p->commCollection.commArray[iMsg].pairRank, 
-                     1, in_mashm.p->comm, &(in_mashm.p->sendRequests[iMsg]));
+                     p_mashm->commCollection.commArray[iMsg].pairRank, 
+                     1, p_mashm->comm, &(p_mashm->sendRequests[iMsg]));
     if (ierr != 0) {
       printf("Error in sending message %d\n", iMsg);
     }
@@ -430,13 +437,21 @@ void mashmIntraMsgsCommBegin(Mashm in_mashm) {
  *
  * Wait for all internode communication to be completed. Here, we call the MPI_Waitall corresponding to the MPI_Irecv/MPI_Isend calls in mashmInterNodeCommBegin.
  */
-void mashmStandardCommEnd(Mashm in_mashm) {
+void mashmStandardCommEnd(struct MashmPrivate* p_mashm) {
   int ierr;
  
-  ierr = MPI_Waitall(in_mashm.p->commCollection.commArraySize, in_mashm.p->recvRequests, 
-                     in_mashm.p->recvStatuses);
-  ierr = MPI_Waitall(in_mashm.p->commCollection.commArraySize, in_mashm.p->sendRequests, 
-                     in_mashm.p->sendStatuses);
+  ierr = MPI_Waitall(p_mashm->commCollection.commArraySize, p_mashm->recvRequests, 
+                     p_mashm->recvStatuses);
+  ierr = MPI_Waitall(p_mashm->commCollection.commArraySize, p_mashm->sendRequests, 
+                     p_mashm->sendStatuses);
+}
+
+/* @brief Blank function for function pointers
+ *
+ * This will be called for communication methods that do no nothing in certain steps
+ */
+void p_nullFunction(struct MashmPrivate* p_mashm) {
+
 }
 
 /* @brief Perform intranode communication
@@ -538,10 +553,10 @@ int mashmDestroy(Mashm* in_mashm) {
 
   /* Destroy the MashmCommCollection 
    * TODO: this should be destroyed in the finish method */
-  //MashmCommCollectionDestroy(&(in_mashm->p->commCollection));
+  MashmCommCollectionDestroy(&(in_mashm->p->commCollection));
 
   /* Destroy the intra-node subcommunicator */
-  //intraNodeDestroy(&(in_mashm->p->intraComm));
+  intraNodeDestroy(&(in_mashm->p->intraComm));
  
   if (in_mashm->p->buffersInit) {
     free(in_mashm->p->sendBufferPointers);
@@ -558,3 +573,4 @@ int mashmDestroy(Mashm* in_mashm) {
 
   return 0;
 }
+

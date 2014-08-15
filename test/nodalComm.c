@@ -169,8 +169,12 @@ int main(int argc, char** argv) {
   /* Now wait on nodal messages */
   mashmInterNodeCommEnd(myMashm);
 
+  /* Destroy the Mashm object */
   mashmDestroy(&myMashm);
+
   decomp2dDestroyGraph(&neighbors, &msgSizes);
+
   ierr = MPI_Finalize();
+
   return 0;
 }

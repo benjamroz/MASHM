@@ -51,3 +51,13 @@ void intraNodePrintInfo(const intraNodeComm intraComm) {
     printf("  Shared memory node has size %d\n", intraComm.size);
   }
 }
+
+
+int intraNodeDestroy(intraNodeComm* intraComm) {
+  int ierr;
+
+  /* Free the shared memory subcommunicator groups */
+  ierr = MPI_Comm_free(&(intraComm->comm));
+
+  return 0;
+}

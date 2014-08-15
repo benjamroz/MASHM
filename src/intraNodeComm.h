@@ -5,8 +5,6 @@
 
 #include "mashmBool.h"
 
-/* */
-
 typedef struct {
   MPI_Comm comm;
   MPI_Comm parentComm;
@@ -30,5 +28,7 @@ int intraNodeDetermineGlobalInfo(intraNodeComm* intraComm);
 int intraNodeDetermineNodalInfo(intraNodeComm* intraComm);
 
 void intraNodePrintInfo(const intraNodeComm intraComm);
+
+int intraNodeDestroy(intraNodeComm* intraComm);
 
 #endif 

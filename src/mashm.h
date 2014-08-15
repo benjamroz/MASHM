@@ -50,8 +50,8 @@ double* mashmGetBufferPointerForDest(Mashm in_mashm, int destRank, MashmSendRece
 void mashmSetupIntraNodeComm(Mashm in_mashm);
 void mashmSetupInterNodeComm(Mashm in_mashm);
 
-void mashmStandardCommBegin(Mashm in_mashm);
-void mashmStandardCommEnd(Mashm in_mashm);
+void mashmStandardCommBegin(_p_mashm* p_mashm);
+void mashmStandardCommEnd(_p_mashm* p_mashm);
 
 void mashmIntraMsgsCommBegin(Mashm in_mashm);
 void mashmIntraMsgsCommEnd(Mashm in_mashm);
@@ -59,4 +59,6 @@ void mashmIntraMsgsCommEnd(Mashm in_mashm);
 void mashmIntraNodeCommBegin(Mashm in_mashm);
 void mashmIntraNodeCommEnd(Mashm in_mashm);
 
+double* p_mashmGetBufferPointer(_p_mashm* p_mashm, int msgIndex, MashmSendReceive sendReceive);
+void p_nullFunction(_p_mashm* p_mashm);
 #endif 
