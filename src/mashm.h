@@ -5,6 +5,12 @@
 
 #include "mashmBool.h"
 
+
+#include "cmake_fortran_c_interface.h"
+
+#define mashmInitF2C FCI_GLOBAL(mashminit,MASHMINIT)
+#define mashmDestroy FCI_GLOBAL(mashmdestroy,MASHMDESTROY)
+
 typedef enum { MASHM_COMM_STANDARD, MASHM_COMM_INTRA_MSG, MASHM_COMM_INTRA_SHARED, MASHM_COMM_MIN_AGG } MashmCommType;
 
 typedef enum { MASHM_SEND, MASHM_RECEIVE } MashmSendReceive;
@@ -17,7 +23,7 @@ typedef struct {
 } Mashm;
 
 
-int mashmInit(Mashm* in_mashm, MPI_Comm in_comm);
+void mashmInit(Mashm* in_mashm, MPI_Comm in_comm);
 MPI_Comm mashmGetComm(const Mashm in_mashm);
 int mashmGetSize(const Mashm in_mashm);
 int mashmGetRank(const Mashm in_mashm);
@@ -56,6 +62,11 @@ void mashmInterNodeCommEnd(Mashm in_mashm);
 /* Intranode communication */
 void mashmIntraNodeCommBegin(Mashm in_mashm);
 void mashmIntraNodeCommEnd(Mashm in_mashm);
+
+void mashmDestroy(Mashm* in_mashm);
+
+/* Ugly fortran interoperability */
+void mashmInitF2C(Mashm* in_mashm, MPI_Fint f_comm); 
 
 /* Private routines */
 void p_mashmStandardCommBegin(_p_mashm* p_mashm);

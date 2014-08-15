@@ -60,7 +60,14 @@ struct MashmPrivate {
   void (* p_intraNodeCommEnd)(struct MashmPrivate*);
 };
 
-int mashmInit(Mashm* in_mashm, MPI_Comm in_comm) {
+void mashmInitF2C(Mashm* in_mashm, MPI_Fint f_comm) {
+  MPI_Comm c_comm;
+  c_comm = MPI_Comm_f2c(f_comm);
+  printf("Calling MPI_Comm_f2c\n");
+  mashmInit(in_mashm, c_comm);
+}
+
+void mashmInit(Mashm* in_mashm, MPI_Comm in_comm) {
   int ierr;
   int numSharedMemNodes, sharedMemNodeRank;
 
@@ -117,7 +124,7 @@ int mashmInit(Mashm* in_mashm, MPI_Comm in_comm) {
   in_mashm->p->isInit = true;
   in_mashm->p->buffersInit = false;
 
-  return 0;
+  //return 0;
 }
 
 MPI_Comm mashmGetComm(const Mashm in_mashm) {
@@ -451,7 +458,6 @@ void p_mashmStandardCommEnd(struct MashmPrivate* p_mashm) {
  * This will be called for communication methods that do no nothing in certain steps
  */
 void p_nullFunction(struct MashmPrivate* p_mashm) {
-
 }
 
 /* @brief determine how many MPI messages that will be sent
@@ -541,7 +547,7 @@ void mashmCalcNumConnectedNodes(Mashm in_mashm) {
 }
 
 
-int mashmDestroy(Mashm* in_mashm) {
+void mashmDestroy(Mashm* in_mashm) {
 
   /* Destroy the MashmCommCollection 
    * TODO: this should be destroyed in the finish method */
@@ -563,6 +569,6 @@ int mashmDestroy(Mashm* in_mashm) {
   /* Destroy the MashmPrivate data */
   free(in_mashm->p);
 
-  return 0;
+  //return 0;
 }
 
