@@ -32,6 +32,7 @@ struct MashmPrivate {
   double* p_sharedSendBuffer;
   double* p_sharedRecvBuffer;
   MashmBool p_sharedIsAlloc;
+  MashmBool buffersInit;
 
   int numOrigMessages;
   int numMpiMsgs;
@@ -100,9 +101,9 @@ int mashmInit(Mashm* in_mashm, MPI_Comm in_comm) {
   ierr = MPI_Comm_free(&rankComm);
 
   /* Broadcast (to the shared sub comm) the number of shared memory nodes */
-  ierr = MPI_Bcast(&(in_mashm->p->numSharedMemNodes), 1, MPI_INT, 0, in_mashm->p->comm);
+  ierr = MPI_Bcast(&(in_mashm->p->numSharedMemNodes), 1, MPI_INT, 0, in_mashm->p->intraComm.comm);
   /* Broadcast (to the shared sub comm) the index of each shared memory nodes */
-  ierr = MPI_Bcast(&(in_mashm->p->sharedMemIndex), 1, MPI_INT, 0, in_mashm->p->comm);
+  ierr = MPI_Bcast(&(in_mashm->p->sharedMemIndex), 1, MPI_INT, 0, in_mashm->p->intraComm.comm);
 
   /* Initialize the MashmCommCollection */
   MashmCommCollectionInit(&(in_mashm->p->commCollection));
@@ -110,6 +111,7 @@ int mashmInit(Mashm* in_mashm, MPI_Comm in_comm) {
   in_mashm->p->commType = MASHM_COMM_STANDARD;
 
   in_mashm->p->isInit = true;
+  in_mashm->p->buffersInit = false;
 
   return 0;
 }
@@ -196,9 +198,11 @@ MashmCommType mashmGetCommMethod(Mashm in_mashm) {
 void mashmCommFinish(Mashm in_mashm) {
   int regularBufferOffset, sharedBufferOffset;
   int iMsg, msgDestRank;
+  int i;
   
   /* Allocate data for the number of messages */
   in_mashm.p->numOrigMessages = in_mashm.p->commCollection.commArraySize;
+
   in_mashm.p->sendBufferPointers = (double**) malloc(sizeof(double*)*in_mashm.p->numOrigMessages);
   in_mashm.p->recvBufferPointers = (double**) malloc(sizeof(double*)*in_mashm.p->numOrigMessages);
 
@@ -209,9 +213,19 @@ void mashmCommFinish(Mashm in_mashm) {
   /* Allocate MPI buffer */
   in_mashm.p->p_regularSendBuffer = (double*) malloc(sizeof(double)*in_mashm.p->bufferSize);
   in_mashm.p->p_regularRecvBuffer = (double*) malloc(sizeof(double)*in_mashm.p->bufferSize);
+  for (i = 0; i < in_mashm.p->bufferSize; i++) {
+    in_mashm.p->p_regularSendBuffer[i] = 666;
+    in_mashm.p->p_regularRecvBuffer[i] = 667;
+  }
+
   /* Allocate MPI shared memory */
   in_mashm.p->p_sharedSendBuffer = (double*) malloc(sizeof(double)*in_mashm.p->sharedBufferSize);
   in_mashm.p->p_sharedRecvBuffer = (double*) malloc(sizeof(double)*in_mashm.p->sharedBufferSize);
+  for (i = 0; i < in_mashm.p->sharedBufferSize; i++) {
+    in_mashm.p->p_sharedSendBuffer[i] = 668;
+    in_mashm.p->p_sharedRecvBuffer[i] = 669;
+  }
+  in_mashm.p->buffersInit = true;
 
   /* Note that this depends upon which communication method we choose */
   switch (in_mashm.p->commType) {
@@ -362,26 +376,48 @@ void mashmInterNodeCommEnd(Mashm in_mashm) {
 void mashmStandardCommBegin(Mashm in_mashm) {
   int ierr;
   int iMsg;
+  int numMsgs = in_mashm.p->commCollection.commArraySize;
+  int i;
+  double* buf;
 
   /* First do the Irecvs */
   for (iMsg = 0; iMsg < in_mashm.p->commCollection.commArraySize; iMsg++) {
+    buf = mashmGetBufferPointer(in_mashm, iMsg, MASHM_RECEIVE);
+    for (i = 0; i < in_mashm.p->commCollection.commArray[iMsg].recvSize; i++) {
+      if (buf[i] != 667 && buf[i] != 669) {
+        printf("Error with recv buffer %d rank %d, bufVal %f\n", iMsg, in_mashm.p->rank, buf[i]);
+      }
+    }
+
     ierr = MPI_Irecv(mashmGetBufferPointer(in_mashm, iMsg, MASHM_RECEIVE), 
                      in_mashm.p->commCollection.commArray[iMsg].recvSize, 
                      MPI_DOUBLE,
                      in_mashm.p->commCollection.commArray[iMsg].pairRank, 
                      1, in_mashm.p->comm, &(in_mashm.p->recvRequests[iMsg]));
+    if (ierr != 0) {
+      printf("Error in receiving message %d\n", iMsg);
+    }
 
   }
   /* Next do the Isends */
   for (iMsg = 0; iMsg < in_mashm.p->commCollection.commArraySize; iMsg++) {
+    buf = mashmGetBufferPointer(in_mashm, iMsg, MASHM_SEND);
+    for (i = 0; i < in_mashm.p->commCollection.commArray[iMsg].recvSize; i++) {
+      if (buf[i] != 666 && buf[i] != 668) {
+        printf("Error with send buffer %d rank %d, bufVal %f\n", iMsg, in_mashm.p->rank, buf[i]);
+      }
+    }
+
     ierr = MPI_Isend(mashmGetBufferPointer(in_mashm, iMsg, MASHM_SEND), 
                      in_mashm.p->commCollection.commArray[iMsg].sendSize, 
                      MPI_DOUBLE,
                      in_mashm.p->commCollection.commArray[iMsg].pairRank, 
                      1, in_mashm.p->comm, &(in_mashm.p->sendRequests[iMsg]));
+    if (ierr != 0) {
+      printf("Error in sending message %d\n", iMsg);
+    }
 
   }
-
 }
 
 
@@ -483,7 +519,7 @@ void mashmCalcMsgBufferSize(Mashm in_mashm) {
     }
   }
   /* If MIN_AGG then all memory is shared */
-  if (MASHM_COMM_MIN_AGG) {
+  if (in_mashm.p->commType == MASHM_COMM_MIN_AGG) {
     tmpSize = bufferSize;
     bufferSize = sharedBufferSize;
     sharedBufferSize = tmpSize;
@@ -495,4 +531,30 @@ void mashmCalcMsgBufferSize(Mashm in_mashm) {
 
 void mashmCalcNumConnectedNodes(Mashm in_mashm) {
   in_mashm.p->numConnectedNodes = -1;
+}
+
+
+int mashmDestroy(Mashm* in_mashm) {
+
+  /* Destroy the MashmCommCollection 
+   * TODO: this should be destroyed in the finish method */
+  //MashmCommCollectionDestroy(&(in_mashm->p->commCollection));
+
+  /* Destroy the intra-node subcommunicator */
+  //intraNodeDestroy(&(in_mashm->p->intraComm));
+ 
+  if (in_mashm->p->buffersInit) {
+    free(in_mashm->p->sendBufferPointers);
+    free(in_mashm->p->recvBufferPointers);
+    free(in_mashm->p->p_regularSendBuffer);
+    free(in_mashm->p->p_regularRecvBuffer);
+    free(in_mashm->p->p_sharedSendBuffer);
+    free(in_mashm->p->p_sharedRecvBuffer);
+  }
+
+
+  /* Destroy the MashmPrivate data */
+  free(in_mashm->p);
+
+  return 0;
 }

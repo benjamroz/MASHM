@@ -139,7 +139,6 @@ int main(int argc, char** argv) {
 
   /* Perform precalculation */
   mashmCommFinish(myMashm);
-
   /* Retrieve pointers for buffers */
   mashmSendBufferPtrs = (double**) malloc(sizeof(double*)*numNeighbors);
   mashmRecvBufferPtrs = (double**) malloc(sizeof(double*)*numNeighbors);
@@ -150,13 +149,13 @@ int main(int argc, char** argv) {
 
   /* Fill buffers */
  
-
-  return 0;
   /*************************************************************
    * Now perform communication 
    ************************************************************/
+
   /* Send internode messages */
   mashmInterNodeCommBegin(myMashm);
+
   /* Messages sent and receives posted 
    * Can asynchronously do work on nodal data 
    */
@@ -170,7 +169,8 @@ int main(int argc, char** argv) {
   /* Now wait on nodal messages */
   mashmInterNodeCommEnd(myMashm);
 
-  //mashmDestroy(&myMashm);
+  mashmDestroy(&myMashm);
   decomp2dDestroyGraph(&neighbors, &msgSizes);
-
+  ierr = MPI_Finalize();
+  return 0;
 }
