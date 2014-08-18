@@ -2,7 +2,7 @@
 
 #include "mpi.h"
 
-#include "mashm.h"
+#include "Mashm.h"
 
 #include "decomp2d.h"
 
@@ -127,24 +127,24 @@ int main(int argc, char** argv) {
   /* Initialize the MASHM object */
 
   commWorld = MPI_COMM_WORLD;
-  mashmInit(&myMashm, commWorld);
+  MashmInit(&myMashm, commWorld);
 
   /* Print nodal comm info */
-  mashmPrintInfo(myMashm);
+  MashmPrintInfo(myMashm);
 
   /* Add communications calculated above */
   for (i = 0; i < numNeighbors; i++) {
-    mashmAddSymComm(myMashm, neighbors[i], msgSizes[i]);
+    MashmAddSymComm(myMashm, neighbors[i], msgSizes[i]);
   }
 
   /* Perform precalculation */
-  mashmCommFinish(myMashm);
+  MashmCommFinish(myMashm);
   /* Retrieve pointers for buffers */
   mashmSendBufferPtrs = (double**) malloc(sizeof(double*)*numNeighbors);
   mashmRecvBufferPtrs = (double**) malloc(sizeof(double*)*numNeighbors);
   for (i = 0; i < numNeighbors; i++) {
-    mashmSendBufferPtrs[i] = mashmGetBufferPointer(myMashm, i, MASHM_SEND);
-    mashmRecvBufferPtrs[i] = mashmGetBufferPointer(myMashm, i, MASHM_RECEIVE);
+    mashmSendBufferPtrs[i] = MashmGetBufferPointer(myMashm, i, MASHM_SEND);
+    mashmRecvBufferPtrs[i] = MashmGetBufferPointer(myMashm, i, MASHM_RECEIVE);
   }
 
   /* Fill buffers */
@@ -154,23 +154,23 @@ int main(int argc, char** argv) {
    ************************************************************/
 
   /* Send internode messages */
-  mashmInterNodeCommBegin(myMashm);
+  MashmInterNodeCommBegin(myMashm);
 
   /* Messages sent and receives posted 
    * Can asynchronously do work on nodal data 
    */
   /* Send intranode messages */
-  mashmIntraNodeCommBegin(myMashm);
-  mashmIntraNodeCommEnd(myMashm);
+  MashmIntraNodeCommBegin(myMashm);
+  MashmIntraNodeCommEnd(myMashm);
   /* At this stage you have completed the intra-node communication */
 
   /* Asynchronously do work on nodal data */
 
   /* Now wait on nodal messages */
-  mashmInterNodeCommEnd(myMashm);
+  MashmInterNodeCommEnd(myMashm);
 
   /* Destroy the Mashm object */
-  mashmDestroy(&myMashm);
+  MashmDestroy(&myMashm);
 
   decomp2dDestroyGraph(&neighbors, &msgSizes);
 

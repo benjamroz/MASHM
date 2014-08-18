@@ -1,6 +1,6 @@
 #include "math.h"
 
-#include "mashmBool.h"
+#include "MashmBool.h"
 
 /**
  * @brief Take a two-dimensional rectagular domain of elements and map the elements to processes

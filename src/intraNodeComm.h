@@ -3,7 +3,7 @@
 
 #include "mpi.h"
 
-#include "mashmBool.h"
+#include "MashmBool.h"
 
 typedef struct {
   MPI_Comm comm;

@@ -1,8 +1,8 @@
 
 
 program nodalCommFtn
-#include "mashmf.h"
-use mashm_mod
+#include "Mashmf.h"
+use Mashm_mod
 use mpi
 implicit none
 Mashm :: myMashm
@@ -16,18 +16,18 @@ integer :: neighbors, msgSizes
 call MPI_Init(ierr)
 
 myComm = MPI_COMM_WORLD
-call mashmInit(myMashm, MPI_COMM_WORLD)
+call MashmInit(myMashm, MPI_COMM_WORLD)
 
 !/* Print nodal comm info */
-call mashmPrintInfo(myMashm)
+call MashmPrintInfo(myMashm)
 
 !/* Add communications calculated above */
 do i = 1, numNeighbors
-  call mashmAddSymComm(myMashm, neighbors(i), msgSizes(i))
+  call MashmAddSymComm(myMashm, neighbors(i), msgSizes(i))
 enddo
 
 !/* Perform precalculation */
-call mashmCommFinish(myMashm)
+call MashmCommFinish(myMashm)
 !/* Retrieve pointers for buffers */
 allocate(mashmSendBufferPtrs(numNeighbors))
 allocate(mashmRecvBufferPtrs(numNeighbors))
@@ -44,23 +44,23 @@ allocate(mashmRecvBufferPtrs(numNeighbors))
 ! ************************************************************/
 
 !/* Send internode messages */
-call mashmInterNodeCommBegin(myMashm)
+call MashmInterNodeCommBegin(myMashm)
 
 !/* Messages sent and receives posted 
 ! * Can asynchronously do work on nodal data 
 ! */
 !/* Send intranode messages */
-call mashmIntraNodeCommBegin(myMashm)
-call mashmIntraNodeCommEnd(myMashm)
+call MashmIntraNodeCommBegin(myMashm)
+call MashmIntraNodeCommEnd(myMashm)
 !/* At this stage you have completed the intra-node communication */
 
 !/* Asynchronously do work on nodal data */
 
 !/* Now wait on nodal messages */
-call mashmInterNodeCommEnd(myMashm)
+call MashmInterNodeCommEnd(myMashm)
 
 !/* Destroy the Mashm object */
-call mashmDestroy(myMashm)
+call MashmDestroy(myMashm)
 
 !decomp2dDestroyGraph(neighbors, &msgSizes)
 
