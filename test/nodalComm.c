@@ -137,6 +137,9 @@ int main(int argc, char** argv) {
     MashmAddSymComm(myMashm, neighbors[i], msgSizes[i]);
   }
 
+  //MashmSetCommMethod(myMashm, MASHM_COMM_STANDARD);
+  MashmSetCommMethod(myMashm, MASHM_COMM_INTRA_MSG);
+
   /* Perform precalculation */
   MashmCommFinish(myMashm);
   /* Retrieve pointers for buffers */
@@ -147,11 +150,17 @@ int main(int argc, char** argv) {
     mashmRecvBufferPtrs[i] = MashmGetBufferPointer(myMashm, i, MASHM_RECEIVE);
   }
 
-  /* Fill buffers */
  
   /*************************************************************
    * Now perform communication 
    ************************************************************/
+
+  /* Fill internode buffers */
+  for (i = 0; i < numNeighbors; i++) {
+    if (! MashmIsMsgOnNode(myMashm, i)) {
+      /* Fill individual buffer */
+    }
+  }
 
   /* Send internode messages */
   MashmInterNodeCommBegin(myMashm);
@@ -159,16 +168,32 @@ int main(int argc, char** argv) {
   /* Messages sent and receives posted 
    * Can asynchronously do work on nodal data 
    */
+  for (i = 0; i < numNeighbors; i++) {
+    if (MashmIsMsgOnNode(myMashm, i)) {
+      /* Fill individual buffer */
+    }
+  }
+
   /* Send intranode messages */
   MashmIntraNodeCommBegin(myMashm);
   MashmIntraNodeCommEnd(myMashm);
   /* At this stage you have completed the intra-node communication */
 
   /* Asynchronously do work on nodal data */
+  for (i = 0; i < numNeighbors; i++) {
+    if (MashmIsMsgOnNode(myMashm, i)) {
+      /* Unpack individual buffer */
+    }
+  }
 
   /* Now wait on nodal messages */
   MashmInterNodeCommEnd(myMashm);
 
+  for (i = 0; i < numNeighbors; i++) {
+    if (! MashmIsMsgOnNode(myMashm, i)) {
+      /* Unpack individual buffer */
+    }
+  }
   /* Destroy the Mashm object */
   MashmDestroy(&myMashm);
 

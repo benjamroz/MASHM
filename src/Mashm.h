@@ -41,6 +41,9 @@ void MashmCommFinish(Mashm in_mashm);
 #define MashmPrintInfo FCI_GLOBAL(mashmprintinfo,MASHMPRINTINFO)
 void MashmPrintInfo(const Mashm in_mashm);
 
+#define MashmIsMsgOnNode FCI_GLOBAL(mashmismsgonnode,MASHMISMSGONNODE)
+MashmBool MashmIsMsgOnNode(Mashm in_mashm, int msgIndex);
+
 #define MashmSetCommMethod FCI_GLOBAL(mashmsetcommmethod,MASHMSETCOMMMETHOD)
 void MashmSetCommMethod(Mashm in_mashm, MashmCommType commType);
 
