@@ -1,3 +1,4 @@
-#define FortranAddr integer*8
+#define FortranAddr integer*4
 #define Mashm FortranAddr
 
+!#define Mashm type(c_ptr)

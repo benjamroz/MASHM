@@ -60,10 +60,11 @@ struct MashmPrivate {
   void (* p_intraNodeCommEnd)(struct MashmPrivate*);
 };
 
+/* Need a method to convert a Fortran MPI_Comm (integer) to  
+ *   a C MPI_Comm type */
 void mashmInitF2C(Mashm* in_mashm, MPI_Fint f_comm) {
   MPI_Comm c_comm;
   c_comm = MPI_Comm_f2c(f_comm);
-  printf("Calling MPI_Comm_f2c\n");
   mashmInit(in_mashm, c_comm);
 }
 
@@ -570,5 +571,15 @@ void mashmDestroy(Mashm* in_mashm) {
   free(in_mashm->p);
 
   //return 0;
+}
+
+
+void mashmInitTmp(MPI_Fint f_comm) {
+  int ierr;
+  int tmpSize;
+  MPI_Comm c_comm;
+  c_comm = MPI_Comm_f2c(f_comm);
+  ierr = MPI_Comm_size(c_comm, &tmpSize);
+  printf("mashmInitTmp size = %d\n", tmpSize);
 }
 
