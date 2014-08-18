@@ -24,17 +24,17 @@ By default, this package requires the use of MPI and specifically requires a ver
 1. MPI_Comm_split_type - MPI_COMM_TYPE_SHARED
 2. MPI_Win_allocate_shared
 
-To use the Fortran bindings of this library one must have a Fortran compiler which supports the 2003 standard. In particular, the Fortran implementation must support the following.
-
-1. iso_c_binding, c_ptr
-2. c_f_pointer
-
 These are required by the library to implement the shared memory messaging. These features have been found to be supported in the following implementations and versions
 
 1. OpenMPI >= 1.7.5
 2. MVAPICH >= 2.0
 3. MPICH >= 6.0.2
 4. IMPI ? 5.0.0
+
+To use the Fortran bindings of this library one must have a Fortran compiler which supports the 2003 standard. In particular, the Fortran implementation must support the following.
+
+1. iso_c_binding, c_ptr
+2. c_f_pointer
 
 # How to build and install the package
 
