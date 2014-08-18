@@ -4,6 +4,15 @@
 
 The following library is designed to facilitate the use of MPI 3.0 shared memory features in user codes. Here, we specifically target nearest neighbor communication patterns which are common in high-performance scientific applications. 
 
+The design of the API was chosen to balance simplifying the setup of shared memory communication schemes with the flexibility to allow for the overlap of computation and communication. The API calls handle many of the gory details of the setup and implementation of shared memory communication schemes, however the user needs to be aware of the order of API calls. In particular, since the intranodal communication can be separated from the internodal communication, once set up, a full communication exchange has the following form.
+
+1. MashmInterNodeCommBegin(myMashm);
+2. MashmIntraNodeCommBegin(myMashm);
+3. MashmIntraNodeCommEnd(myMashm);
+4. MashmInterNodeCommEnd(myMashm);
+
+Although this requires four API calls, it provides the user the maximal opportunities to perform computation overlapped with communication.
+
 # Usage
 
 The assumptions of user codes are the following:
