@@ -138,7 +138,8 @@ int main(int argc, char** argv) {
   }
 
   //MashmSetCommMethod(myMashm, MASHM_COMM_STANDARD);
-  MashmSetCommMethod(myMashm, MASHM_COMM_INTRA_MSG);
+  //MashmSetCommMethod(myMashm, MASHM_COMM_INTRA_MSG);
+  MashmSetCommMethod(myMashm, MASHM_COMM_INTRA_SHARED);
 
   /* Perform precalculation */
   MashmCommFinish(myMashm);

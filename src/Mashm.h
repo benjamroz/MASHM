@@ -66,12 +66,6 @@ double* MashmGetBufferPointer(Mashm in_mashm, int msgIndex, MashmSendReceive sen
 
 double* MashmGetBufferPointerForDest(Mashm in_mashm, int destRank, MashmSendReceive sendReceive);
 
-/* Set up Intranode Communication */
-void MashmSetupIntraNodeComm(Mashm in_mashm);
-
-/* Set up Internode Communication */
-void MashmSetupInterNodeComm(Mashm in_mashm);
-
 /* Internode communication */
 #define MashmInterNodeCommBegin FCI_GLOBAL(mashminternodecommbegin,MASHMINTERNODECOMMBEGIN)
 void MashmInterNodeCommBegin(Mashm in_mashm);
@@ -104,5 +98,14 @@ void p_mashmMinAggCommEnd(_p_mashm* p_mashm);
 double* p_mashmGetBufferPointer(_p_mashm* p_mashm, int msgIndex, MashmSendReceive sendReceive);
 
 void p_nullFunction(_p_mashm* p_mashm);
+
+void p_mashmAllocateSharedMemory(struct MashmPrivate* p_mashm, int bufferSize);
+
+/* Set up Intranode Communication */
+void p_mashmSetupIntraMsgComm(struct MashmPrivate* p_mashm);
+void p_mashmSetupIntraSharedComm(struct MashmPrivate* p_mashm);
+
+/* Set up Internode Communication */
+void p_mashmSetupInterNodeComm(_p_mashm* p_mashm);
 
 #endif 
