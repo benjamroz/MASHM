@@ -1,4 +1,2 @@
-#define FortranAddr integer*4
-#define Mashm FortranAddr
-
-!#define Mashm type(c_ptr)
+use, intrinsic :: iso_c_binding
+#define Mashm type(c_ptr)
