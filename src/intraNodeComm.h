@@ -25,6 +25,8 @@ int intraNodeGetRank(const intraNodeComm intraComm);
 
 int intraNodeDetermineGlobalInfo(intraNodeComm* intraComm);
 
+int intraNodeGetSharedRank(const intraNodeComm intraComm, int pairRank);
+
 int intraNodeDetermineNodalInfo(intraNodeComm* intraComm);
 
 void intraNodePrintInfo(const intraNodeComm intraComm);

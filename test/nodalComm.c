@@ -143,6 +143,7 @@ int main(int argc, char** argv) {
 
   /* Perform precalculation */
   MashmCommFinish(myMashm);
+
   /* Retrieve pointers for buffers */
   mashmSendBufferPtrs = (double**) malloc(sizeof(double*)*numNeighbors);
   mashmRecvBufferPtrs = (double**) malloc(sizeof(double*)*numNeighbors);
@@ -155,7 +156,6 @@ int main(int argc, char** argv) {
   /*************************************************************
    * Now perform communication 
    ************************************************************/
-
   /* Fill internode buffers */
   for (i = 0; i < numNeighbors; i++) {
     if (! MashmIsMsgOnNode(myMashm, i)) {

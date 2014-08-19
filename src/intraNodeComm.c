@@ -52,6 +52,15 @@ void intraNodePrintInfo(const intraNodeComm intraComm) {
   }
 }
 
+int intraNodeGetSharedRank(const intraNodeComm intraComm, int pairRank) {
+  int i;
+  for (i = 0; i < intraComm.size; i++) {
+    if (pairRank == intraComm.parentRanksOnNode[i]) {
+      return i;
+    }
+  }
+  return -1;
+}
 
 int intraNodeDestroy(intraNodeComm* intraComm) {
   int ierr;
