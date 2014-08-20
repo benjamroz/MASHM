@@ -139,11 +139,12 @@ int main(int argc, char** argv) {
 
   //MashmSetCommMethod(myMashm, MASHM_COMM_STANDARD);
   //MashmSetCommMethod(myMashm, MASHM_COMM_INTRA_MSG);
-  MashmSetCommMethod(myMashm, MASHM_COMM_INTRA_SHARED);
+  //MashmSetCommMethod(myMashm, MASHM_COMM_INTRA_SHARED);
+  MashmSetCommMethod(myMashm, MASHM_COMM_MIN_AGG);
 
   /* Perform precalculation */
   MashmCommFinish(myMashm);
-
+  return 0;
   /* Retrieve pointers for buffers */
   mashmSendBufferPtrs = (double**) malloc(sizeof(double*)*numNeighbors);
   mashmRecvBufferPtrs = (double**) malloc(sizeof(double*)*numNeighbors);

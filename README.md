@@ -56,3 +56,4 @@ cmake /path/to/source
 1. Documentation - Doxygen
 2. Compiler checks in CMake (MPI, F2003)
 3. More robust examples
+4. Refactor to eliminate dynamic message memory (require user to allocate number of MPI messages)

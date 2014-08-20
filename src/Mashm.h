@@ -108,4 +108,6 @@ void p_mashmSetupIntraSharedComm(struct MashmPrivate* p_mashm);
 /* Set up Internode Communication */
 void p_mashmSetupInterNodeComm(_p_mashm* p_mashm);
 
+/* Figure out nodal message scheduling for MASHM_COMM_MIN_AGG */
+void p_mashmCalculateNodalMsgSchedule(struct MashmPrivate* p_mashm);
 #endif 
