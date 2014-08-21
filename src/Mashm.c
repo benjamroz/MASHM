@@ -125,6 +125,9 @@ struct MashmPrivate {
 
   int* msgOffsets;
   int* msgNodeIndices;
+  int numNodalSubMsgs;
+  int* nodalMsgSizes;
+
 };
 
 /* Need a method to convert a Fortran MPI_Comm (integer) to  
@@ -796,7 +799,8 @@ void MashmCalcMsgBufferSize(Mashm in_mashm) {
    */
   for (iMsg = 0; iMsg < in_mashm.p->commCollection.commArraySize; iMsg++) {
     msgDestRank = (in_mashm.p->commCollection.commArray[iMsg]).pairRank;
-    if (in_mashm.p->commType == MASHM_COMM_INTRA_SHARED && 
+    if ((in_mashm.p->commType == MASHM_COMM_INTRA_SHARED ||
+         in_mashm.p->commType == MASHM_COMM_MIN_AGG) &&
         MashmIsIntraNodeRank(in_mashm, msgDestRank)) {
       sharedBufferSize = sharedBufferSize + (in_mashm.p->commCollection.commArray[iMsg]).sendSize;
       numIntraNodePtrs = numIntraNodePtrs + 1;
@@ -809,6 +813,7 @@ void MashmCalcMsgBufferSize(Mashm in_mashm) {
   }
 
   /* If MIN_AGG then all memory is shared */
+#if 0
   if (in_mashm.p->commType == MASHM_COMM_MIN_AGG) {
     /* Swap the buffer sizes */
     tmpSize = bufferSize;
@@ -820,7 +825,7 @@ void MashmCalcMsgBufferSize(Mashm in_mashm) {
     numInterNodePtrs = numIntraNodePtrs;
     numIntraNodePtrs = tmpSize;
   }
-
+#endif
   in_mashm.p->bufferSize = bufferSize;
   in_mashm.p->sharedBufferSize = sharedBufferSize;
   in_mashm.p->numInterNodePtrs = numInterNodePtrs;
@@ -888,6 +893,30 @@ void p_mashmAllocateSharedMemory(struct MashmPrivate* p_mashm, int bufferSize) {
 
 }
 
+#if 0
+void p_mashmAllocateSharedMemoryMinAgg(struct MashmPrivate* p_mashm) {
+  int ierr;
+  ierr = MPI_Win_allocate_shared(sizeof(double)*bufferSize, sizeof(double),
+                                 MPI_INFO_NULL, p_mashm->intraComm.comm,
+                                 &(p_mashm->p_sharedSendBuffer),&(p_mashm->sendSharedMemWindow));
+  if (ierr != 0) {
+    printf("Error in MPI_Win_allocate_shared1\n");
+  }
+
+  ierr = MPI_Win_allocate_shared(sizeof(double)*bufferSize, sizeof(double),
+                                 MPI_INFO_NULL, p_mashm->intraComm.comm,
+                                 &(p_mashm->p_sharedRecvBuffer),&(p_mashm->recvSharedMemWindow));
+  if (ierr != 0) {
+    printf("Error in MPI_Win_allocate_shared2\n");
+  }
+
+  /* Initial synchronization of this memory */
+  ierr = MPI_Win_fence(0,p_mashm->sendSharedMemWindow);
+  ierr = MPI_Win_fence(0,p_mashm->recvSharedMemWindow);
+
+}
+#endif
+
 void p_mashmCalculateNodalMsgSchedule(struct MashmPrivate* p_mashm) {
   int i;
   int ierr;
@@ -920,8 +949,9 @@ void p_mashmCalculateNodalMsgSchedule(struct MashmPrivate* p_mashm) {
 
   commTuple* commArray;
   int* msgOffsets;
-  int* nodalMsgSizes;
   int tmpMsgSize, j;
+  int commArrayOffset;
+  int iOffset;
 
 
   numOrigMsgs = p_mashm->commCollection.commArraySize;
@@ -1024,19 +1054,27 @@ void p_mashmCalculateNodalMsgSchedule(struct MashmPrivate* p_mashm) {
              commArray[i].destGlobalRank, commArray[i].msgSize);
     }
 
+    /* Now advance the commArray to the first non-self node */
+    for (i = 0; i < sumNumMsgs; i++) {
+      if (commArray[i].destNodeIndex != p_mashm->sharedMemIndex) {
+        commArrayOffset = i;
+        break;
+      }
+    }
+
     /* Count unique nodes to which we'll be messaging */
     nodeCounter = 0;
-    for (i = 0; i < sumNumMsgs; i++) {
-      if (commArray[i].destNodeIndex == p_mashm->sharedMemIndex) {
-        continue;
-      }
-      else if (i == 0) {
+    for (i = commArrayOffset; i < sumNumMsgs; i++) {
+      if (i == commArrayOffset) {
         nodeCounter += 1;
       }
       else if (commArray[i].destNodeIndex != commArray[i-1].destNodeIndex) {
         nodeCounter += 1;
       }
     }
+    p_mashm->numNodalSubMsgs = sumNumMsgs - commArrayOffset;
+    printf("Rank %d, commArrayOffset %d, numNodalSubMsgs %d\n", p_mashm->rank,
+           commArrayOffset, p_mashm->numNodalSubMsgs);
 
     p_mashm->numNodalMsgs = nodeCounter;
     numNodes = p_mashm->numNodalMsgs;
@@ -1061,7 +1099,7 @@ void p_mashmCalculateNodalMsgSchedule(struct MashmPrivate* p_mashm) {
     uniqueNodeIndices[nodeCounter] = commArray[i].destNodeIndex;
     nodeCounter = nodeCounter + 1;
     for (i = 1; i < sumNumMsgs; i++) {
-      if (allMsgNodeIndices[i] != allMsgNodeIndices[i-1]) {
+      if (commArray[i].destNodeIndex != commArray[i-1].destNodeIndex) {
         uniqueNodeIndices[nodeCounter] = commArray[i].destNodeIndex;
         nodeCounter = nodeCounter + 1;
       }
@@ -1069,25 +1107,37 @@ void p_mashmCalculateNodalMsgSchedule(struct MashmPrivate* p_mashm) {
 
     /* Calculate the offsets into each nodal message */
     /* Also calculate the size of each nodal message */
-    msgOffsets = (int*) malloc(sizeof(int)*sumNumMsgs);
+    msgOffsets = (int*) malloc(sizeof(int)*p_mashm->numNodalSubMsgs);
+    //for (i = 0; i < commArrayOffset; i++) {
+    //  msgOffsets[i] = -1;
+    //}
 
-    nodalMsgSizes = (int*) malloc(sizeof(int)*p_mashm->numCommNodes);
+    p_mashm->nodalMsgSizes = (int*) malloc(sizeof(int)*p_mashm->numNodalMsgs);
 
     nodeCounter = 0;
     msgOffsets[0] = 0;
-    tmpMsgSize = commArray[0].msgSize;
-    for (i = 1; i < sumNumMsgs; i++) {
-      if (allMsgNodeIndices[i] == allMsgNodeIndices[i-1]) {
+    tmpMsgSize = commArray[commArrayOffset].msgSize;
+    for (i = 1; i < p_mashm->numNodalSubMsgs; i++) {
+      iOffset = i+commArrayOffset;
+      if (commArray[iOffset].destNodeIndex == commArray[iOffset-1].destNodeIndex) {
         msgOffsets[i] = tmpMsgSize;
-        tmpMsgSize += commArray[i].msgSize;
+        tmpMsgSize += commArray[iOffset].msgSize;
       }
       else {
-        tmpMsgSize = 0;
+        printf("Okay %d, %d\n", commArray[iOffset].destNodeIndex, commArray[iOffset-1].destNodeIndex);
+        printf("  Okay2 %d, %d\n", iOffset, iOffset-1);
+        p_mashm->nodalMsgSizes[nodeCounter] = tmpMsgSize;
+
+        tmpMsgSize = 667;
         msgOffsets[i] = tmpMsgSize;
 
-        nodalMsgSizes[nodeCounter] = tmpMsgSize;
         nodeCounter += 1;
       }
+    }
+    p_mashm->nodalMsgSizes[nodeCounter] = tmpMsgSize;
+    for (i = 0; i < p_mashm->numNodalMsgs; i++) {
+      printf("Rankn %d nodal msg %d size %d\n", p_mashm->rank, i, p_mashm->nodalMsgSizes[i]);
+
     }
 
     for (i = 0; i < sumNumMsgs; i++) {
@@ -1095,43 +1145,57 @@ void p_mashmCalculateNodalMsgSchedule(struct MashmPrivate* p_mashm) {
       allDestGlobalRanks[i] = commArray[i].destGlobalRank;
       allMsgNodeIndices[i] = commArray[i].destNodeIndex;
     }
+
+    if (p_mashm->intraComm.isMasterProc) {
+      /* Print the comm Schedule */
+      for (i = 0; i < sumNumMsgs; i++) {
+        printf("Rankm %d: msg %i: srcRank %d, nodeIndex %d, destRank %d, size %d\n",
+               p_mashm->rank, i, commArray[i].srcSharedMemRank, commArray[i].destNodeIndex,
+               commArray[i].destGlobalRank, commArray[i].msgSize);
+        if (i >= commArrayOffset) {
+          printf("  offset %d\n", msgOffsets[i-commArrayOffset]);
+          printf("    um %d, %d\n", allMsgNodeIndices[i], allMsgNodeIndices[i-1]);
+        }
+      }
+    }
+
   }
 
   /* Now scatter the sorted list of srcSharedRanks and destGlobalRanks */
   ierr = MPI_Bcast(&sumNumMsgs, 1, MPI_INT, 0, p_mashm->intraComm.comm);
+  ierr = MPI_Bcast(&commArrayOffset, 1, MPI_INT, 0, p_mashm->intraComm.comm);
+  ierr = MPI_Bcast(&p_mashm->numNodalSubMsgs, 1, MPI_INT, 0, p_mashm->intraComm.comm);
   ierr = MPI_Bcast(&p_mashm->numNodalMsgs, 1, MPI_INT, 0, p_mashm->intraComm.comm);
   ierr = MPI_Bcast(&p_mashm->numCommNodes, 1, MPI_INT, 0, p_mashm->intraComm.comm);
 
   if (!p_mashm->intraComm.isMasterProc) {
     allSrcSharedMemRanks = (int*) malloc(sizeof(int)*sumNumMsgs);
     allDestGlobalRanks = (int*) malloc(sizeof(int)*sumNumMsgs);
-    msgOffsets = (int*) malloc(sizeof(int)*sumNumMsgs);
-    nodalMsgSizes = (int*) malloc(sizeof(int)*sumNumMsgs);
     allMsgNodeIndices = (int*) malloc(sizeof(int)*sumNumMsgs);
+    msgOffsets = (int*) malloc(sizeof(int)*p_mashm->numNodalSubMsgs);
+    p_mashm->nodalMsgSizes = (int*) malloc(sizeof(int)*p_mashm->numNodalMsgs);
     uniqueNodeIndices = (int*) malloc(sizeof(int)*(p_mashm->numCommNodes));
   }
 
   /* Broadcast the msgOffsets and the nodalMsgsSizes */
   ierr = MPI_Bcast(allSrcSharedMemRanks, sumNumMsgs, MPI_INT, 0, p_mashm->intraComm.comm);
   ierr = MPI_Bcast(allDestGlobalRanks, sumNumMsgs, MPI_INT, 0, p_mashm->intraComm.comm);
-  ierr = MPI_Bcast(msgOffsets, sumNumMsgs, MPI_INT, 0, p_mashm->intraComm.comm);
   ierr = MPI_Bcast(allMsgNodeIndices, sumNumMsgs, MPI_INT, 0, p_mashm->intraComm.comm);
-  ierr = MPI_Bcast(nodalMsgSizes, p_mashm->numCommNodes, MPI_INT, 0, p_mashm->intraComm.comm);
+  ierr = MPI_Bcast(msgOffsets, p_mashm->numNodalSubMsgs, MPI_INT, 0, p_mashm->intraComm.comm);
+  ierr = MPI_Bcast(p_mashm->nodalMsgSizes, p_mashm->numNodalMsgs, MPI_INT, 0, p_mashm->intraComm.comm);
   ierr = MPI_Bcast(uniqueNodeIndices, p_mashm->numCommNodes, MPI_INT, 0, p_mashm->intraComm.comm);
 
-  p_mashm->msgOffsets = (int*) malloc(sizeof(int)*p_mashm->numOrigMessages);
+  p_mashm->msgOffsets = (int*) malloc(sizeof(int)*p_mashm->numNodalSubMsgs);
 
   /* Each rank goes through the lists, finds their message, and the appropriate offset */
-  for (i = 0; i < sumNumMsgs; i++) {
+  for (i = commArrayOffset; i < sumNumMsgs; i++) {
     if (allSrcSharedMemRanks[i] == p_mashm->intraComm.rank) {
       for (j = 0; j < p_mashm->numOrigMessages; j++) {
         if (p_mashm->commCollection.commArray[j].pairRank == allDestGlobalRanks[i]) {
           p_mashm->msgOffsets[j] = msgOffsets[i];
-          p_mashm->msgNodeIndices[j] = allMsgNodeIndices[i];
         }
       }
     }
   }
-
   return;
 }
