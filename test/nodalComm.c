@@ -40,7 +40,10 @@ int main(int argc, char** argv) {
   double** mashmSendBufferPtrs;
   double** mashmRecvBufferPtrs;
 
-  ierr = MPI_Init(NULL, NULL);
+  int commMethodInt;
+  MashmCommType commType;
+
+  ierr = MPI_Init(&argc,&argv);
   ierr = MPI_Comm_size(MPI_COMM_WORLD, &numProcs);
   ierr = MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
@@ -64,6 +67,9 @@ int main(int argc, char** argv) {
 #endif
 
   decomp2dCreateGraph(m, n, rank, numProcs, &numElems, &elements, &neighbors, &msgSizes, &numNeighbors);
+  printf("Process %d returned from decomp2dCreateGraph\n", rank);
+  ierr = MPI_Finalize();
+  return 0;
 
   /* Print element to process map */
   for (iRank = 0; iRank < numProcs; iRank++) {
@@ -137,14 +143,40 @@ int main(int argc, char** argv) {
     MashmAddSymComm(myMashm, neighbors[i], msgSizes[i]);
   }
 
-  //MashmSetCommMethod(myMashm, MASHM_COMM_STANDARD);
-  //MashmSetCommMethod(myMashm, MASHM_COMM_INTRA_MSG);
-  //MashmSetCommMethod(myMashm, MASHM_COMM_INTRA_SHARED);
-  MashmSetCommMethod(myMashm, MASHM_COMM_MIN_AGG);
+  if (argc > 1) {
+    commMethodInt = atoi(argv[1]);
+    if (commMethodInt > 4 || commMethodInt < 0) {
+      printf("Error: commMethodInt >= 0 <= 3. User supplied %s\n", argv[1]);
+    }
+  }
+  else {
+    commMethodInt = 0;
+
+  }
+
+  switch (commMethodInt) {
+    case (0):
+      printf("Using commType = MASHM_COMM_STANDARD\n");
+      commType = MASHM_COMM_STANDARD;
+      break;
+    case (1): 
+      printf("Using commType = MASHM_COMM_INTRA_MSG\n");
+      commType = MASHM_COMM_INTRA_MSG;
+      break;
+    case (2): 
+      printf("Using commType = MASHM_COMM_INTRA_SHARED\n");
+      commType = MASHM_COMM_INTRA_SHARED;
+      break;
+    case (3): 
+      printf("Using commType = MASHM_COMM_MIN_AGG\n");
+      commType = MASHM_COMM_MIN_AGG;
+      break;
+  }
+
+  MashmSetCommMethod(myMashm, commType);
 
   /* Perform precalculation */
   MashmCommFinish(myMashm);
-  return 0;
   /* Retrieve pointers for buffers */
   mashmSendBufferPtrs = (double**) malloc(sizeof(double*)*numNeighbors);
   mashmRecvBufferPtrs = (double**) malloc(sizeof(double*)*numNeighbors);
@@ -157,10 +189,18 @@ int main(int argc, char** argv) {
   /*************************************************************
    * Now perform communication 
    ************************************************************/
+
+  for (i = 0; i < numNeighbors; i++) {
+    /* Fill individual buffer */
+    for (j = 0; j < msgSizes[i]; j++) {
+      mashmSendBufferPtrs[i][j] = i + j*numNeighbors;
+    }
+  }
+
+
   /* Fill internode buffers */
   for (i = 0; i < numNeighbors; i++) {
     if (! MashmIsMsgOnNode(myMashm, i)) {
-      /* Fill individual buffer */
     }
   }
 
@@ -172,7 +212,6 @@ int main(int argc, char** argv) {
    */
   for (i = 0; i < numNeighbors; i++) {
     if (MashmIsMsgOnNode(myMashm, i)) {
-      /* Fill individual buffer */
     }
   }
 
@@ -203,5 +242,6 @@ int main(int argc, char** argv) {
 
   ierr = MPI_Finalize();
 
+  printf("Rank %d exiting normally\n", rank);
   return 0;
 }

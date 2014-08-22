@@ -1,5 +1,5 @@
 #include "math.h"
-
+#include "stdlib.h"
 #include "MashmBool.h"
 
 /**
@@ -41,8 +41,8 @@ void decomp2dRectGetElements(int m, int n, int rank, int totalNumRanks, int* ele
   int offset;
   int i;
 
-  floorElementsPerRank = floor(((double)totalNumElements)/totalNumRanks);
-  ceilElementsPerRank = ceil(((double)totalNumElements)/totalNumRanks);
+  floorElementsPerRank = (int) floor(((double)totalNumElements)/totalNumRanks);
+  ceilElementsPerRank = (int) ceil(((double)totalNumElements)/totalNumRanks);
 
   numCeil = totalNumElements % totalNumRanks;
 
@@ -110,13 +110,28 @@ void decomp2dCreateGraph(int m, int n, int rank, int totalNumRanks, int* numElem
   MashmBool found;
   int mIndexOther, nIndexOther;
   int neighborCounter;
+  int numberOfElements;
 
   /* Determine the number of elements */
-  *numElements = decomp2dRectNumElements(m, n, rank, totalNumRanks);
+  numberOfElements = decomp2dRectNumElements(m, n, rank, totalNumRanks);
+  *numElements = numberOfElements;
+  printf("Rank %d numElements %d\n", rank, *numElements);
 
-  *elements = (int*) malloc(sizeof(int)*(*numElements));
+  *elements = (int*) malloc(sizeof(int)*(numberOfElements));
+
+  printf("Rank %d after allocating numElements %d\n", rank, *numElements);
+  printf("Rank %d after allocating numElements %d, ptrVal = %p\n", rank, *numElements, *elements);
+  if ( (*elements) == NULL ) {
+    printf("Error 123: Rank %d, malloc failed\n", rank);
+  }
+  for (i = 0; i < numberOfElements; i++) {
+    (*elements)[i] = 0;
+  }
+  for (i = 0; i < numberOfElements; i++) {
+    printf("Test 456: Rank %d, Elements %i = %d\n", rank, i, (*elements)[i]);
+  }
   decomp2dRectGetElements(m, n, rank, totalNumRanks, *elements);
-
+  return;
   /* Allocate the maximum possible number of elements */
   neighborsMaxSize = 8*(*numElements);
   neighborsMax = (int*) malloc(sizeof(int)*neighborsMaxSize);

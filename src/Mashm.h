@@ -11,6 +11,8 @@ typedef enum { MASHM_COMM_STANDARD, MASHM_COMM_INTRA_MSG, MASHM_COMM_INTRA_SHARE
 
 typedef enum { MASHM_SEND, MASHM_RECEIVE } MashmSendReceive;
 
+typedef enum { MASHM_MIN_AGG_ROUND_ROBIN, MASHM_MIN_AGG_ROOT_PROC } MashmMinAggType;
+
 struct MashmPrivate;
 typedef struct MashmPrivate _p_mashm;
 
@@ -110,4 +112,11 @@ void p_mashmSetupInterNodeComm(_p_mashm* p_mashm);
 
 /* Figure out nodal message scheduling for MASHM_COMM_MIN_AGG */
 void p_mashmCalculateNodalMsgSchedule(struct MashmPrivate* p_mashm);
+
+/** How to map the nodal messages to processes
+ *    For the MIN_AGG scheme only
+ */
+void p_mashmSetupAggType(struct MashmPrivate* p_mashm);
+void p_mashmAllocateSharedMemoryMinAgg(struct MashmPrivate* p_mashm);
+void p_mashmCalcMsgIndices(struct MashmPrivate* p_mashm);
 #endif 
