@@ -21,6 +21,7 @@ int main(int argc, char** argv) {
   int* elements;
   int* neighbors;
   int* msgSizes;
+  int sumMsgSizes;
   int numNeighbors;
 
   /* MPI Communication boilerplate */
@@ -30,8 +31,8 @@ int main(int argc, char** argv) {
   MPI_Status* sendStatuses;
 
   /* Send, Recv buffers */
-  int** recvBuffers;
-  int** sendBuffers;
+  double** recvBuffers;
+  double** sendBuffers;
 
   MPI_Comm commWorld;
   Mashm myMashm;
@@ -42,6 +43,11 @@ int main(int argc, char** argv) {
 
   int commMethodInt;
   MashmCommType commType;
+
+  int counter;
+  double* origBuffer;
+  double* mashmData;
+  MashmBool testFailed = false;
 
   ierr = MPI_Init(&argc,&argv);
   ierr = MPI_Comm_size(MPI_COMM_WORLD, &numProcs);
@@ -67,9 +73,6 @@ int main(int argc, char** argv) {
 #endif
 
   decomp2dCreateGraph(m, n, rank, numProcs, &numElems, &elements, &neighbors, &msgSizes, &numNeighbors);
-  printf("Process %d returned from decomp2dCreateGraph\n", rank);
-  ierr = MPI_Finalize();
-  return 0;
 
   /* Print element to process map */
   for (iRank = 0; iRank < numProcs; iRank++) {
@@ -96,10 +99,15 @@ int main(int argc, char** argv) {
     ierr = MPI_Barrier(MPI_COMM_WORLD);
     ierr = MPI_Barrier(MPI_COMM_WORLD);
   }
+  /* Determine the total size of all messages to be sent */
+  sumMsgSizes = 0;
+  for (i = 0; i < numNeighbors; i++) {
+    sumMsgSizes += msgSizes[i]; 
+  }
 
   /* Allocate send and receive buffers */
-  recvBuffers = (int**) malloc(sizeof(int*)*numNeighbors);
-  sendBuffers = (int**) malloc(sizeof(int*)*numNeighbors);
+  recvBuffers = (double**) malloc(sizeof(double*)*numNeighbors);
+  sendBuffers = (double**) malloc(sizeof(double*)*numNeighbors);
 
   recvRequests = (MPI_Request*) malloc(sizeof(MPI_Request)*numNeighbors);
   sendRequests = (MPI_Request*) malloc(sizeof(MPI_Request)*numNeighbors);
@@ -108,18 +116,23 @@ int main(int argc, char** argv) {
 
   /* Symmetric */
   for (i = 0; i < numNeighbors; i++) {
-    recvBuffers[i] = (int*) malloc(sizeof(int)*msgSizes[i]);
-    sendBuffers[i] = (int*) malloc(sizeof(int)*msgSizes[i]);
+    recvBuffers[i] = (double*) malloc(sizeof(double)*msgSizes[i]);
+    sendBuffers[i] = (double*) malloc(sizeof(double)*msgSizes[i]);
   }
 
   /* Now fill the buffers */
+  for (i = 0; i < numNeighbors; i++) {
+    for (j = 0; j < msgSizes[i]; j++) {
+      sendBuffers[i][j] = rank*msgSizes[i]+j;
+    }
+  }
 
   /* Usual point to point communication */
   for (i = 0; i < numNeighbors; i++) {
-    ierr = MPI_Irecv(recvBuffers[i], msgSizes[i], MPI_INT, neighbors[i], 0, MPI_COMM_WORLD, &recvRequests[i]);
+    ierr = MPI_Irecv(recvBuffers[i], msgSizes[i], MPI_DOUBLE, neighbors[i], 0, MPI_COMM_WORLD, &recvRequests[i]);
   }
   for (i = 0; i < numNeighbors; i++) {
-    ierr = MPI_Isend(recvBuffers[i], msgSizes[i], MPI_INT, neighbors[i], 0, MPI_COMM_WORLD, &sendRequests[i]);
+    ierr = MPI_Isend(sendBuffers[i], msgSizes[i], MPI_DOUBLE, neighbors[i], 0, MPI_COMM_WORLD, &sendRequests[i]);
   }
 
   ierr = MPI_Waitall(numNeighbors,recvRequests,recvStatuses); 
@@ -152,7 +165,6 @@ int main(int argc, char** argv) {
   }
   else {
     commMethodInt = 0;
-
   }
 
   switch (commMethodInt) {
@@ -181,9 +193,15 @@ int main(int argc, char** argv) {
   /* Retrieve pointers for buffers */
   mashmSendBufferPtrs = (double**) malloc(sizeof(double*)*numNeighbors);
   mashmRecvBufferPtrs = (double**) malloc(sizeof(double*)*numNeighbors);
+
+
+  /* Initialize the data to be sent */
   for (i = 0; i < numNeighbors; i++) {
     mashmSendBufferPtrs[i] = MashmGetBufferPointer(myMashm, i, MASHM_SEND);
     mashmRecvBufferPtrs[i] = MashmGetBufferPointer(myMashm, i, MASHM_RECEIVE);
+    for (j = 0; j < msgSizes[i]; j++) {
+      mashmSendBufferPtrs[i][j] = rank*msgSizes[i]+j;
+    }
   }
 
  
@@ -194,7 +212,6 @@ int main(int argc, char** argv) {
   for (i = 0; i < numNeighbors; i++) {
     /* Fill individual buffer */
     for (j = 0; j < msgSizes[i]; j++) {
-      mashmSendBufferPtrs[i][j] = i + j*numNeighbors;
     }
   }
 
@@ -236,13 +253,69 @@ int main(int argc, char** argv) {
       /* Unpack individual buffer */
     }
   }
+
+
+  /****************************************************************
+   * All communication has been performed
+   * 
+   * Now compare unpacked buffers
+   */
+  origBuffer = (double*) malloc(sizeof(double)*sumMsgSizes);
+  for (i = 0; i < sumMsgSizes; i++) {
+    origBuffer[i] = 666.0;
+  }
+
+  counter = 0;
+  for (i = 0; i < numNeighbors; i++) {
+    for (j = 0; j < msgSizes[i]; j++) {
+      origBuffer[counter] = recvBuffers[i][j];
+      counter += 1;
+    }
+  }
+
+  mashmData = (double*) malloc(sizeof(double)*sumMsgSizes);
+  for (i = 0; i < sumMsgSizes; i++) {
+    mashmData[i] = 666.0;
+  }
+
+
+  counter = 0;
+  for (i = 0; i < numNeighbors; i++) {
+    for (j = 0; j < msgSizes[i]; j++) {
+      mashmData[counter] = mashmRecvBufferPtrs[i][j];
+      counter += 1;
+    }
+  }
+
+  /* Test that the original buffer and the Mashm data are the same */
+  for (iRank = 0; iRank < numProcs; iRank++) {
+    if (iRank == rank) {
+      printf("Process %d (orig, mashm, diff): \n", rank);
+      for (i = 0; i < sumMsgSizes; i++) {
+        printf(  "%f, %f, %f\n", origBuffer[i], mashmData[i], origBuffer[i] - mashmData[i]);
+        /* Non-equivalence to zero is okay here */
+        if (origBuffer[i] - mashmData[i] != 0.0) {
+          printf("  Difference is significant! Test failed.\n");
+          testFailed = true;
+        }
+      }
+
+    }
+    ierr = MPI_Barrier(MPI_COMM_WORLD);
+    ierr = MPI_Barrier(MPI_COMM_WORLD);
+  }
+
   /* Destroy the Mashm object */
   MashmDestroy(&myMashm);
 
   decomp2dDestroyGraph(&neighbors, &msgSizes);
 
+  /* Hacky failure for now */
+  if (testFailed) {
+    return -1;
+  }
+  
   ierr = MPI_Finalize();
 
-  printf("Rank %d exiting normally\n", rank);
   return 0;
 }

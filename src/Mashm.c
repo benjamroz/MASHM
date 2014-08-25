@@ -243,7 +243,7 @@ void MashmPrintInfo(const Mashm in_mashm) {
   }
 }
 
-void MashmSetNumComm(Mashm in_mashm, int numComms) {
+void MashmSetNumComms(Mashm in_mashm, int numComms) {
   MashmCommCollectionSetSize(&(in_mashm.p->commCollection), numComms);
 }
 

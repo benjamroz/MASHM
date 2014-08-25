@@ -49,6 +49,8 @@ MashmBool MashmIsMsgOnNode(Mashm in_mashm, int msgIndex);
 #define MashmSetCommMethod FCI_GLOBAL(mashmsetcommmethod,MASHMSETCOMMMETHOD)
 void MashmSetCommMethod(Mashm in_mashm, MashmCommType commType);
 
+#define MashmSetNumComms FCI_GLOBAL(mashmsetnumcomms,MASHMSETNUMCOMMS)
+void MashmSetNumComms(Mashm in_mashm, int numNeighbors);
 
 MashmCommType MashmGetCommMethod(Mashm in_mashm);
 
