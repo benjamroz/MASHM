@@ -293,7 +293,7 @@ int main(int argc, char** argv) {
       printf("Process %d (orig, mashm, diff): \n", rank);
         counter = 0;
         for (i = 0; i < numNeighbors; i++) {
-          printf("  Message to process %d:\n", neighbors[i]);
+          printf("  Message from %d to process %d:\n", rank, neighbors[i]);
           for (j = 0; j < msgSizes[i]; j++) {
             printf(  "%f, %f, %f\n", origBuffer[counter], mashmData[counter], origBuffer[counter] - mashmData[counter]);
             if (origBuffer[counter] - mashmData[counter] != 0.0) {
