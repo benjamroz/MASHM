@@ -291,6 +291,19 @@ int main(int argc, char** argv) {
   for (iRank = 0; iRank < numProcs; iRank++) {
     if (iRank == rank) {
       printf("Process %d (orig, mashm, diff): \n", rank);
+        counter = 0;
+        for (i = 0; i < numNeighbors; i++) {
+          printf("  Message to process %d:\n", neighbors[i]);
+          for (j = 0; j < msgSizes[i]; j++) {
+            printf(  "%f, %f, %f\n", origBuffer[counter], mashmData[counter], origBuffer[counter] - mashmData[counter]);
+            if (origBuffer[counter] - mashmData[counter] != 0.0) {
+              printf("  Difference is significant! Test failed.\n");
+              testFailed = true;
+            }
+            counter += 1;
+          }
+        }
+#if 0
       for (i = 0; i < sumMsgSizes; i++) {
         printf(  "%f, %f, %f\n", origBuffer[i], mashmData[i], origBuffer[i] - mashmData[i]);
         /* Non-equivalence to zero is okay here */
@@ -299,7 +312,7 @@ int main(int argc, char** argv) {
           testFailed = true;
         }
       }
-
+#endif
     }
     ierr = MPI_Barrier(MPI_COMM_WORLD);
     ierr = MPI_Barrier(MPI_COMM_WORLD);

@@ -121,4 +121,6 @@ void p_mashmCalculateNodalMsgSchedule(struct MashmPrivate* p_mashm);
 void p_mashmSetupAggType(struct MashmPrivate* p_mashm);
 void p_mashmAllocateSharedMemoryMinAgg(struct MashmPrivate* p_mashm);
 void p_mashmCalcMsgIndicesMinAgg(struct MashmPrivate* p_mashm);
+
+MashmBool p_MashmIsIntraNodeRank(struct MashmPrivate* p_mashm, int pairRank);
 #endif 
