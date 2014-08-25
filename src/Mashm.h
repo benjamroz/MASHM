@@ -118,5 +118,5 @@ void p_mashmCalculateNodalMsgSchedule(struct MashmPrivate* p_mashm);
  */
 void p_mashmSetupAggType(struct MashmPrivate* p_mashm);
 void p_mashmAllocateSharedMemoryMinAgg(struct MashmPrivate* p_mashm);
-void p_mashmCalcMsgIndices(struct MashmPrivate* p_mashm);
+void p_mashmCalcMsgIndicesMinAgg(struct MashmPrivate* p_mashm);
 #endif 

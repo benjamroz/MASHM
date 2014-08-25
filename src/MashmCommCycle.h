@@ -42,53 +42,52 @@ void MashmCommPrint(const MashmComm in_comm) {
   printf("Comm dest %d, send size %d, recv size %d\n", in_comm.pairRank, in_comm.sendSize, in_comm.recvSize);
 }
 
+/**
+ * @brief Basically a struct to keep information relevant to one message 
+ */
 typedef struct {
   MashmComm* commArray;
   int commArraySize;
-  int commArrayReserveSize;
   MashmBool isInit;
+  MashmBool isAllocated;
 } MashmCommCollection;
 
+/** 
+ * @brief Do nothing routine for now
+ */
 void MashmCommCollectionInit(MashmCommCollection* commCollection) {
 
-  /* Allocate at least two */
-  commCollection->commArrayReserveSize = 2;
-  commCollection->commArray = (MashmComm*) malloc(commCollection->commArrayReserveSize * sizeof(MashmComm));
   commCollection->commArraySize = 0;
-
+  commCollection->commArray = NULL;
   commCollection->isInit = true;
+  commCollection->isAllocated = false;
 }
 
-void MashmCommCollectionExtend(MashmCommCollection* commCollection) {
-  MashmComm* tempCollection;
-  int i;
-  int commArrayNewReserveSize = 2*commCollection->commArrayReserveSize;
+/**
+ * Set the size of the comm collection
+ */
+void MashmCommCollectionSetSize(MashmCommCollection* commCollection, int numComms) {
 
-  tempCollection = (MashmComm*) malloc(commArrayNewReserveSize*sizeof(MashmComm));
-
-  for (i = 0; i < commCollection->commArraySize; i++) {
-    MashmCommCopy(commCollection->commArray[i],&(tempCollection[i]));
+  /* Allocate at least two */
+  if (commCollection->isAllocated) {
+    free(commCollection->commArray);
+    commCollection->isAllocated = false;
   }
-  
-  free(commCollection->commArray);
-  commCollection->commArray = tempCollection;
-  commCollection->commArrayReserveSize = commArrayNewReserveSize;
-
+  commCollection->commArraySize = numComms;
+  commCollection->commArray = (MashmComm*) malloc(commCollection->commArraySize * sizeof(MashmComm));
+  commCollection->isAllocated = true;
 }
 
-void MashmCommCollectionAddComm(MashmCommCollection* commCollection, int pairRank, int sendSize, int recvSize) {
-  int commIndex;
+void MashmCommCollectionAddComm(MashmCommCollection* commCollection, int commIndex, int pairRank, int sendSize, int recvSize) {
 
-  if (commCollection->commArraySize == commCollection->commArrayReserveSize) {
+  if (commIndex >= commCollection->commArraySize) {
     /* Comm Collection array is at maximum size
      * Need to extend the memory */
-    MashmCommCollectionExtend(commCollection);
+    printf("Error: Index %d outside of bounds of MashmCommCollection size %d\n", commIndex, commCollection->commArraySize);
   }
-  commIndex = commCollection->commArraySize;
   (commCollection->commArray[commIndex]).pairRank = pairRank; 
   (commCollection->commArray[commIndex]).sendSize = sendSize;
   (commCollection->commArray[commIndex]).recvSize = recvSize;
-  commCollection->commArraySize = commCollection->commArraySize + 1;
 }
 
 void MashmCommCollectionPrint(const MashmCommCollection commCollection) {
@@ -102,13 +101,21 @@ void MashmCommCollectionPrint(const MashmCommCollection commCollection) {
   }
 }
 
+void MashmCommCollectionReset(MashmCommCollection* commCollection) {
+
+  commCollection->commArraySize = 0;
+  free(commCollection->commArray);
+
+  commCollection->isInit = true;
+  commCollection->isAllocated = false;
+}
 
 void MashmCommCollectionDestroy(MashmCommCollection* commCollection) {
 
   free(commCollection->commArray);
   commCollection->isInit = false;
+  commCollection->isAllocated = false;
   commCollection->commArraySize = 0;
-  commCollection->commArrayReserveSize = 0;
 
 }
 

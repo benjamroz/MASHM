@@ -139,8 +139,9 @@ int main(int argc, char** argv) {
   MashmPrintInfo(myMashm);
 
   /* Add communications calculated above */
+  MashmSetNumComms(myMashm, numNeighbors);
   for (i = 0; i < numNeighbors; i++) {
-    MashmAddSymComm(myMashm, neighbors[i], msgSizes[i]);
+    MashmSetComm(myMashm, i, neighbors[i], msgSizes[i]);
   }
 
   if (argc > 1) {

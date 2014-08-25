@@ -243,8 +243,12 @@ void MashmPrintInfo(const Mashm in_mashm) {
   }
 }
 
-void MashmAddSymComm(Mashm in_mashm, int pairRank, int msgSize) {
-  MashmCommCollectionAddComm(&(in_mashm.p->commCollection), pairRank, msgSize, msgSize);
+void MashmSetNumComm(Mashm in_mashm, int numComms) {
+  MashmCommCollectionSetSize(&(in_mashm.p->commCollection), numComms);
+}
+
+void MashmSetComm(Mashm in_mashm, int commIndex, int pairRank, int msgSize) {
+  MashmCommCollectionAddComm(&(in_mashm.p->commCollection), commIndex, pairRank, msgSize, msgSize);
 }
 
 /**
@@ -350,7 +354,7 @@ void MashmCommFinish(Mashm in_mashm) {
     p_mashmCalculateNodalMsgSchedule(in_mashm.p);
     p_mashmSetupAggType(in_mashm.p);
     p_mashmAllocateSharedMemoryMinAgg(in_mashm.p);
-    p_mashmCalcMsgIndices(in_mashm.p);
+    p_mashmCalcMsgIndicesMinAgg(in_mashm.p);
 
   }
   else {
@@ -422,11 +426,12 @@ void MashmCommFinish(Mashm in_mashm) {
       break;
 
     case MASHM_COMM_MIN_AGG:
-      //printf("Communication method MASHM_MIN_AGG not yet implemented\n");
-
+      /* Calculate */
       p_mashmSetupIntraSharedComm(in_mashm.p);
+
       in_mashm.p->p_interNodeCommBegin = p_mashmMinAggCommBegin;
       in_mashm.p->p_interNodeCommEnd = p_mashmStandardCommEnd;
+
       in_mashm.p->p_intraNodeCommBegin = p_mashmIntraSharedCommBegin;
       in_mashm.p->p_intraNodeCommEnd = p_mashmIntraSharedCommEnd;
 
@@ -531,14 +536,12 @@ void p_mashmSetupIntraSharedComm(struct MashmPrivate* p_mashm) {
 }
 
 
-
 /* @brief Begin nodal communication
  *
  * @param in_mash
  *
  * Begin Isend/Irecv communication. The waitalls for these are called with MashmInterNodeCommEnd
  */
-
 void MashmInterNodeCommBegin(Mashm in_mashm) {
   in_mashm.p->p_interNodeCommBegin(in_mashm.p);
 }
@@ -1382,7 +1385,7 @@ void p_mashmSetupAggType(struct MashmPrivate* p_mashm) {
 }
 
 
-void p_mashmCalcMsgIndices(struct MashmPrivate* p_mashm) {
+void p_mashmCalcMsgIndicesMinAgg(struct MashmPrivate* p_mashm) {
   int sendNodalSharedBufferOffset;
   int nodalMsgOffset;
   int msgOffset;
