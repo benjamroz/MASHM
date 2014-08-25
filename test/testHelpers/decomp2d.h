@@ -128,10 +128,9 @@ void decomp2dCreateGraph(int m, int n, int rank, int totalNumRanks, int* numElem
     (*elements)[i] = 0;
   }
   for (i = 0; i < numberOfElements; i++) {
-    printf("Test 456: Rank %d, Elements %i = %d\n", rank, i, (*elements)[i]);
+    printf("Test 456: Rank %d, Elements %d = %d\n", rank, i, (*elements)[i]);
   }
   decomp2dRectGetElements(m, n, rank, totalNumRanks, *elements);
-  return;
   /* Allocate the maximum possible number of elements */
   neighborsMaxSize = 8*(*numElements);
   neighborsMax = (int*) malloc(sizeof(int)*neighborsMaxSize);
