@@ -1,6 +1,8 @@
 
 SET(MASHM_LIB_SRCS
   intraNodeComm.c
+  MashmCommCycle.c
+  MashmPrivate.c
   Mashm.c
 )
 

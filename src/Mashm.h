@@ -4,14 +4,9 @@
 #include "mpi.h"
 
 #include "MashmBool.h"
+#include "MashmDefs.h"
 
 #include "cmake_fortran_c_interface.h"
-
-typedef enum { MASHM_COMM_STANDARD, MASHM_COMM_INTRA_MSG, MASHM_COMM_INTRA_SHARED, MASHM_COMM_MIN_AGG } MashmCommType;
-
-typedef enum { MASHM_SEND, MASHM_RECEIVE } MashmSendReceive;
-
-typedef enum { MASHM_MIN_AGG_ROUND_ROBIN, MASHM_MIN_AGG_ROOT_PROC } MashmMinAggType;
 
 struct MashmPrivate;
 typedef struct MashmPrivate _p_mashm;
@@ -19,7 +14,6 @@ typedef struct MashmPrivate _p_mashm;
 typedef struct {
   _p_mashm* p;
 } Mashm;
-
 
 /* Initialize the Mashm type */
 void MashmInit(Mashm* in_mashm, MPI_Comm in_comm);
@@ -85,43 +79,4 @@ void MashmIntraNodeCommEnd(Mashm in_mashm);
 #define MashmDestroy FCI_GLOBAL(mashmdestroy,MASHMDESTROY)
 void MashmDestroy(Mashm* in_mashm);
 
-/* Private routines */
-void p_mashmStandardCommBegin(_p_mashm* p_mashm);
-void p_mashmStandardCommEnd(_p_mashm* p_mashm);
-
-void p_mashmIntraMsgsCommBegin(_p_mashm* p_mashm);
-void p_mashmIntraMsgsCommEnd(_p_mashm* p_mashm);
-
-void p_mashmIntraSharedCommBegin(_p_mashm* p_mashm);
-void p_mashmIntraSharedCommEnd(_p_mashm* p_mashm);
-
-void p_mashmMinAggCommBegin(_p_mashm* p_mashm);
-void p_mashmMinAggCommEnd(_p_mashm* p_mashm);
-
-double* p_mashmGetBufferPointer(_p_mashm* p_mashm, int msgIndex, MashmSendReceive sendReceive);
-
-void p_nullFunction(_p_mashm* p_mashm);
-
-void p_mashmAllocateSharedMemory(struct MashmPrivate* p_mashm, int bufferSize);
-
-/* Set up Intranode Communication */
-void p_mashmSetupIntraMsgComm(struct MashmPrivate* p_mashm);
-void p_mashmSetupIntraSharedComm(struct MashmPrivate* p_mashm);
-
-/* Set up Internode Communication */
-void p_mashmSetupInterNodeComm(_p_mashm* p_mashm);
-
-/* Figure out nodal message scheduling for MASHM_COMM_MIN_AGG */
-void p_mashmCalculateNodalMsgSchedule(struct MashmPrivate* p_mashm);
-
-/** How to map the nodal messages to processes
- *    For the MIN_AGG scheme only
- */
-void p_mashmSetupAggType(struct MashmPrivate* p_mashm);
-void p_mashmAllocateSharedMemoryMinAgg(struct MashmPrivate* p_mashm);
-void p_mashmCalcMsgIndicesMinAgg(struct MashmPrivate* p_mashm);
-void p_MashmCalcNumMpiMsgs(struct MashmPrivate* p_mashm);
-
-MashmBool p_MashmIsIntraNodeRank(struct MashmPrivate* p_mashm, int pairRank);
-void p_MashmCalcMsgBufferSize(struct MashmPrivate* p_mashm);
 #endif 
