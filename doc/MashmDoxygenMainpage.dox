@@ -1,0 +1,6 @@
+/**
+\mainpage Minimal Aggregated SHared memory Messaging (MASHM) - Message Passing Layer (MPL)
+
+The MASHM library is designed to facilitate the use of MPI 3.0 shared memory features in user codes. Here, we specifically target nearest neighbor communication patterns which are common in high-performance scientific applications.
+
+*/
