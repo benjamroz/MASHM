@@ -1,4 +1,6 @@
 
+FILE(GLOB MASHM_LIB_HEADERS *.h)
+
 SET(MASHM_LIB_SRCS
   intraNodeComm.c
   MashmCommCycle.c
@@ -12,3 +14,9 @@ ADD_LIBRARY(mashm ${MASHM_LIB_SRCS})
 
 # Fortran bindings
 ADD_SUBDIRECTORY(fortran)
+INSTALL(TARGETS mashm
+        ARCHIVE DESTINATION lib)
+
+INSTALL(FILES ${MASHM_LIB_HEADERS}
+        DESTINATION include)
+
