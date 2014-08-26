@@ -5,90 +5,185 @@
 
 #include "MashmBool.h"
 #include "MashmDefs.h"
-
+#include "MashmFortranBindings.h"
 #include "cmake_fortran_c_interface.h"
 
+/**
+ */
+/** @struct Mashm
+ *  @brief An opaque pointer to be used by the user to use the Mashm library
+ *  @var Mashm::p
+ *  Member 'p' contains a pointer to a private (internal) struct
+ */
 typedef struct {
   struct MashmPrivate* p;
 } Mashm;
 
-/* Initialize the Mashm type */
+/**
+ *  \memberof Mashm
+ *  @brief Initialize the Mashm type
+ *  @param in_mashm Pointer to Mashm type 
+ *  @param in_comm MPI communicator
+ */
 void MashmInit(Mashm* in_mashm, MPI_Comm in_comm);
 
-/* Special binding for initializing using a Fortran MPI Communicator
- *   This gets mapped to mashmInit in Fortran */
-#define MashmInitF2C FCI_GLOBAL(mashminit,MASHMINIT)
+/**
+ *  \memberof Mashm
+ *  @brief Binding for initializing from Fortran
+ *  @param in_mashm Mashm object
+ *  @param f_comm Fortran MPI communicator
+ *
+ *  Special binding for initializing using a Fortran MPI Communicator.
+ *  This gets mapped to mashmInit in Fortran.
+ */
 void MashmInitF2C(Mashm* in_mashm, MPI_Fint f_comm); 
 
-#define MashmGetComm FCI_GLOBAL(mashmgetcomm,MASHMGETCOMM)
+/**
+ *  \memberof Mashm
+ *  @brief Returns the MPI communicator handed to the Mashm object
+ *  @param Mashm object
+ *  @return MPI communicator
+ */
 MPI_Comm MashmGetComm(const Mashm in_mashm);
 
-#define MashmGetSize FCI_GLOBAL(mashmgetsize,MASHMGETSIZE)
+/**
+ *  \memberof Mashm
+ *  @brief Return the number of MPI processes in the communicator
+ *  @param Mashm object
+ *  @return Number of MPI processes
+ */
+
 int MashmGetSize(const Mashm in_mashm);
 
-
-#define MashmGetRank FCI_GLOBAL(MashmGetRank,MashmGetRank)
+/**
+ *  \memberof Mashm
+ *  @brief Get the rank of the calling process
+ *  @param in_mashm Mashm object
+ *  @return Rank of the calling process
+ */
 int MashmGetRank(const Mashm in_mashm);
 
-#define MashmSetComm FCI_GLOBAL(mashmsetcomm,MASHMSETCOMM)
+/**
+ *  \memberof Mashm
+ *  @brief Set details about an MPI communication (symmetric)
+ *  @param in_mashm Mashm object
+ *  @param commIndex Index of the message to set
+ *  @param pairRank Rank of the communication partner
+ *  @param msgSize Size of the message
+ */
 void MashmSetComm(Mashm in_mashm, int commIndex, int pairRank, int msgSize);
 
-#define MashmCommFinish FCI_GLOBAL(mashmcommfinish,MASHMCOMMFINISH)
+/**
+ *  \memberof Mashm
+ *  @brief Allocate location for message data and set up pointers
+ *  @param in_mashm Mashm object
+ */
 void MashmCommFinish(Mashm in_mashm);
 
-#define MashmPrintInfo FCI_GLOBAL(mashmprintinfo,MASHMPRINTINFO)
+/**
+ *  \memberof Mashm
+ *  @brief Print information about the Mashm object
+ *  @param in_mashm Mashm object
+ */
 void MashmPrintInfo(const Mashm in_mashm);
 
-#define MashmIsMsgOnNode FCI_GLOBAL(mashmismsgonnode,MASHMISMSGONNODE)
+/**
+ *  \memberof Mashm
+ *  @brief Determine if the message is on node or off node
+ *  @param in_mashm Mashm object
+ *  @param msgIndex
+ *  @return True or False
+ *  True if rank on shared memory node
+ *  False if the rank is on shared memory node
+ */
 MashmBool MashmIsMsgOnNode(Mashm in_mashm, int msgIndex);
 
-#define MashmSetCommMethod FCI_GLOBAL(mashmsetcommmethod,MASHMSETCOMMMETHOD)
+/**
+ *  \memberof Mashm
+ *  @brief Set the Communication method to use
+ *  @param in_mashm Mashm object
+ *  @param commType Communication type
+ */
 void MashmSetCommMethod(Mashm in_mashm, MashmCommType commType);
 
-#define MashmSetNumComms FCI_GLOBAL(mashmsetnumcomms,MASHMSETNUMCOMMS)
-void MashmSetNumComms(Mashm in_mashm, int numNeighbors);
+/**
+ *  \memberof Mashm
+ *  @brief Set the number of messages for the calling process
+ *  @param in_mashm Mashm object
+ *  @param numNeighbors Number of messages
+ */
+void MashmSetNumComms(Mashm in_mashm, int numMessages);
 
-#define MashmGetCommMethod FCI_GLOBAL(mashmgetcommmethod,MASHMGETCOMMMETHOD)
+/**
+ *  \memberof Mashm
+ *  @brief Return the communication method
+ *  @param in_mashm Mashm object
+ *  @return The communication method
+ */
 MashmCommType MashmGetCommMethod(Mashm in_mashm);
 
-#define MashmNumMpiMsgs FCI_GLOBAL(mashmnummpimsgs,MASHMNUMMPIMSGS)
-int MashmNumMpiMsgs(Mashm in_mashm);
-
-#define MashmNumIntraNodeMsgs FCI_GLOBAL(mashmnumintranodemsgs,MASHMNUMINTRANODEMSGS)
-int MashmNumIntraNodeMsgs(Mashm in_mashm);
-
-#define MashmIsIntraNodeRank FCI_GLOBAL(mashmisintranoderank,MASHMISINTRANODERANK)
+/**
+ *  \memberof Mashm
+ *  @brief Determine if a process rank is on a shared memory node
+ *  @param in_mashm Mashm object
+ *  @param pairRank Message pair rank
+ *  @return Whether the specified rank is on the same shared memory node as the calling process
+ */
 MashmBool MashmIsIntraNodeRank(Mashm in_mashm, int pairRank);
 
-#define MashmCalcMsgBufferSize FCI_GLOBAL(mashmcalcmsgbuffersize,MASHMCALCMSGBUFFERSIZE)
-void MashmCalcMsgBufferSize(Mashm in_mashm);
-
-#define MashmCalcNumConnectedNodes FCI_GLOBAL(mashmcalcnumconnectednodes,MASHMCALCNUMCONNECTEDNODES)
-void MashmCalcNumConnectedNodes(Mashm in_mashm);
-
-#define MashmSetupStandardComm FCI_GLOBAL(mashmsetupstandardcomm,MASHMSETUPSTANDARDCOMM)
-void MashmSetupStandardComm(Mashm in_mashm);
-
-#define MashmGetBufferPointer FCI_GLOBAL(mashmgetbufferpointer,MASHMGETBUFFERPOINTER)
+/**
+ *  \memberof Mashm
+ *  @brief Return the buffer pointer for a message
+ *  @param in_mashm Mashm object
+ *  @param msgIndex Index of the message
+ *  @param sendReceive Whether to return the send or receive buffer pointer
+ *  @return A pointer to the location of a send or receive buffer message
+ */
 double* MashmGetBufferPointer(Mashm in_mashm, int msgIndex, MashmSendReceive sendReceive);
 
-#define MashmGetBufferPointerForDest FCI_GLOBAL(mashmgetbufferpointerfordest,MASHMGETBUFFERPOINTERFORDEST)
+/**
+ *  \memberof Mashm
+ *  @brief Return the buffer pointer for a certain process
+ *  @param in_mashm Mashm object
+ *  @param destRank The rank of the message pair rank
+ *  @param sendReceive Whether to return the send or receive buffer pointer
+ *  @return A pointer to the location of a send or receive buffer for the message to the specified rank
+ */
 double* MashmGetBufferPointerForDest(Mashm in_mashm, int destRank, MashmSendReceive sendReceive);
 
-/* Internode communication */
-#define MashmInterNodeCommBegin FCI_GLOBAL(mashminternodecommbegin,MASHMINTERNODECOMMBEGIN)
+/**
+ *  \memberof Mashm
+ *  @brief Begin the internode communication
+ *  @param in_mashm Mashm object
+ */
 void MashmInterNodeCommBegin(Mashm in_mashm);
 
-#define MashmInterNodeCommEnd FCI_GLOBAL(mashminternodecommend,MASHMINTERNODECOMMEND)
+/**
+ *  \memberof Mashm
+ *  @brief Finish the internode communication
+ *  @param in_mashm Mashm object
+ */
 void MashmInterNodeCommEnd(Mashm in_mashm);
 
-/* Intranode communication */
-#define MashmIntraNodeCommBegin FCI_GLOBAL(mashmintranodecommbegin,MASHMINTRANODECOMMBEGIN)
+/**
+ *  \memberof Mashm
+ *  @brief Begin the intranode communication
+ *  @param in_mashm Mashm object
+ */
 void MashmIntraNodeCommBegin(Mashm in_mashm);
-#define MashmIntraNodeCommEnd FCI_GLOBAL(mashmintranodecommend,MASHMINTRANODECOMMEND)
+
+/**
+ *  \memberof Mashm
+ *  @brief Finish the intranode communication
+ *  @param in_mashm Mashm object
+ */
 void MashmIntraNodeCommEnd(Mashm in_mashm);
 
-#define MashmDestroy FCI_GLOBAL(mashmdestroy,MASHMDESTROY)
+/**
+ *  \memberof Mashm
+ *  @brief Destroy the Mashm object
+ *  @param in_mashm Mashm object
+ */
 void MashmDestroy(Mashm* in_mashm);
 
 #endif 

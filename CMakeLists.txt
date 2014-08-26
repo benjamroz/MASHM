@@ -12,5 +12,12 @@ FortranCInterface_HEADER(cmake_fortran_c_interface.h
 
 CMAKE_MINIMUM_REQUIRED(VERSION 2.8.5)
 
+# Doxygen
+FIND_PACKAGE(Doxygen)
+IF (DOXYGEN_FOUND)
+  ADD_SUBDIRECTORY(doc)
+ENDIF()
+
+
 ADD_SUBDIRECTORY(src)
 ADD_SUBDIRECTORY(test)
