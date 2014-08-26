@@ -17,4 +17,4 @@ ADD_EXECUTABLE(nodalCommFtn nodalCommFtn.F90)
 
 #TARGET_LINK_LIBRARIES(nodalComm testHelpers mashm)
 TARGET_LINK_LIBRARIES(nodalComm mashm)
-TARGET_LINK_LIBRARIES(nodalCommFtn mashm_ftn mashm)
+TARGET_LINK_LIBRARIES(nodalCommFtn mashm)

@@ -33,8 +33,8 @@ MPI_Comm MashmGetComm(const Mashm in_mashm);
 int MashmGetSize(const Mashm in_mashm);
 int MashmGetRank(const Mashm in_mashm);
 
-#define MashmAddSymComm FCI_GLOBAL(mashmaddsymcomm,MASHMADDSYMCOMM)
-void MashmAddSymComm(Mashm in_mashm, int pairRank, int msgSize);
+#define MashmSetComm FCI_GLOBAL(mashmsetcomm,MASHMSETCOMM)
+void MashmSetComm(Mashm in_mashm, int commIndex, int pairRank, int msgSize);
 
 
 #define MashmCommFinish FCI_GLOBAL(mashmcommfinish,MASHMCOMMFINISH)
@@ -58,7 +58,6 @@ MashmCommType MashmGetCommMethod(Mashm in_mashm);
 int MashmNumMpiMsgs(Mashm in_mashm);
 int MashmNumIntraNodeMsgs(Mashm in_mashm);
 
-void MashmCalcNumMpiMsgs(Mashm in_mashm);
 MashmBool MashmIsIntraNodeRank(Mashm in_mashm, int pairRank);
 void MashmCalcMsgBufferSize(Mashm in_mashm);
 void MashmCalcNumConnectedNodes(Mashm in_mashm);
@@ -121,6 +120,8 @@ void p_mashmCalculateNodalMsgSchedule(struct MashmPrivate* p_mashm);
 void p_mashmSetupAggType(struct MashmPrivate* p_mashm);
 void p_mashmAllocateSharedMemoryMinAgg(struct MashmPrivate* p_mashm);
 void p_mashmCalcMsgIndicesMinAgg(struct MashmPrivate* p_mashm);
+void p_MashmCalcNumMpiMsgs(struct MashmPrivate* p_mashm);
 
 MashmBool p_MashmIsIntraNodeRank(struct MashmPrivate* p_mashm, int pairRank);
+void p_MashmCalcMsgBufferSize(struct MashmPrivate* p_mashm);
 #endif 

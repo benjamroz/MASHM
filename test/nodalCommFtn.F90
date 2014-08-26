@@ -11,7 +11,7 @@ integer :: myComm
 integer :: i, numNeighbors
 real*8, allocatable :: mashmSendBufferPtrs(:)
 real*8, allocatable :: mashmRecvBufferPtrs(:)
-integer :: neighbors, msgSizes
+integer, allocatable :: neighbors(:), msgSizes(:)
 
 call MPI_Init(ierr)
 
@@ -21,9 +21,11 @@ call MashmInit(myMashm, MPI_COMM_WORLD)
 !/* Print nodal comm info */
 call MashmPrintInfo(myMashm)
 
+call MashmSetNumComms(myMashm, numNeighbors)
+
 !/* Add communications calculated above */
 do i = 1, numNeighbors
-  call MashmAddSymComm(myMashm, neighbors(i), msgSizes(i))
+  call MashmSetComm(myMashm, i, neighbors(i), msgSizes(i))
 enddo
 
 !/* Perform precalculation */

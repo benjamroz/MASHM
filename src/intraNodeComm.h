@@ -1,6 +1,9 @@
 #ifndef INTRA_NODE_COMM_H
 #define INTRA_NODE_COMM_H
 
+#include "stdio.h"
+#include "stdlib.h"
+
 #include "mpi.h"
 
 #include "MashmBool.h"

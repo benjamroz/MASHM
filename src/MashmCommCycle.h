@@ -1,6 +1,9 @@
 #ifndef MASHM_COMM_H
 #define MASHM_COMM_H
 
+#include "stdio.h"
+#include "stdlib.h"
+
 /* Structure representing one point to point communication */
 typedef struct {
   int pairRank;
@@ -78,7 +81,7 @@ void MashmCommCollectionSetSize(MashmCommCollection* commCollection, int numComm
   commCollection->isAllocated = true;
 }
 
-void MashmCommCollectionAddComm(MashmCommCollection* commCollection, int commIndex, int pairRank, int sendSize, int recvSize) {
+void MashmCommCollectionSetComm(MashmCommCollection* commCollection, int commIndex, int pairRank, int sendSize, int recvSize) {
 
   if (commIndex >= commCollection->commArraySize) {
     /* Comm Collection array is at maximum size

@@ -27,6 +27,14 @@ interface
     integer, value :: msgSize
   end subroutine 
 
+  subroutine MashmSetComm(in_mashm, commIndex, pairRank, msgSize)
+    use, intrinsic :: iso_c_binding
+    Mashm, value :: in_mashm
+    integer, value :: commIndex
+    integer, value :: pairRank
+    integer, value :: msgSize
+  end subroutine 
+
   subroutine MashmCommFinish(in_mashm)
     use, intrinsic :: iso_c_binding
     Mashm, value :: in_mashm
