@@ -27,7 +27,7 @@ void MashmInit(Mashm* in_mashm, MPI_Comm in_comm) {
   /* Temporary subcommunicator to determine the number of shared memory nodes */
   MPI_Comm rankComm; 
 
-  in_mashm->p = (_p_mashm*) malloc(sizeof(_p_mashm));
+  in_mashm->p = (struct MashmPrivate*) malloc(sizeof(struct MashmPrivate));
 
   /* Set the communicator and get the size and rank */
   in_mashm->p->comm = in_comm;

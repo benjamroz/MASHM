@@ -8,11 +8,8 @@
 
 #include "cmake_fortran_c_interface.h"
 
-struct MashmPrivate;
-typedef struct MashmPrivate _p_mashm;
-
 typedef struct {
-  _p_mashm* p;
+  struct MashmPrivate* p;
 } Mashm;
 
 /* Initialize the Mashm type */
@@ -23,13 +20,18 @@ void MashmInit(Mashm* in_mashm, MPI_Comm in_comm);
 #define MashmInitF2C FCI_GLOBAL(mashminit,MASHMINIT)
 void MashmInitF2C(Mashm* in_mashm, MPI_Fint f_comm); 
 
+#define MashmGetComm FCI_GLOBAL(mashmgetcomm,MASHMGETCOMM)
 MPI_Comm MashmGetComm(const Mashm in_mashm);
+
+#define MashmGetSize FCI_GLOBAL(mashmgetsize,MASHMGETSIZE)
 int MashmGetSize(const Mashm in_mashm);
+
+
+#define MashmGetRank FCI_GLOBAL(MashmGetRank,MashmGetRank)
 int MashmGetRank(const Mashm in_mashm);
 
 #define MashmSetComm FCI_GLOBAL(mashmsetcomm,MASHMSETCOMM)
 void MashmSetComm(Mashm in_mashm, int commIndex, int pairRank, int msgSize);
-
 
 #define MashmCommFinish FCI_GLOBAL(mashmcommfinish,MASHMCOMMFINISH)
 void MashmCommFinish(Mashm in_mashm);
@@ -46,21 +48,31 @@ void MashmSetCommMethod(Mashm in_mashm, MashmCommType commType);
 #define MashmSetNumComms FCI_GLOBAL(mashmsetnumcomms,MASHMSETNUMCOMMS)
 void MashmSetNumComms(Mashm in_mashm, int numNeighbors);
 
+#define MashmGetCommMethod FCI_GLOBAL(mashmgetcommmethod,MASHMGETCOMMMETHOD)
 MashmCommType MashmGetCommMethod(Mashm in_mashm);
 
-
+#define MashmNumMpiMsgs FCI_GLOBAL(mashmnummpimsgs,MASHMNUMMPIMSGS)
 int MashmNumMpiMsgs(Mashm in_mashm);
+
+#define MashmNumIntraNodeMsgs FCI_GLOBAL(mashmnumintranodemsgs,MASHMNUMINTRANODEMSGS)
 int MashmNumIntraNodeMsgs(Mashm in_mashm);
 
+#define MashmIsIntraNodeRank FCI_GLOBAL(mashmisintranoderank,MASHMISINTRANODERANK)
 MashmBool MashmIsIntraNodeRank(Mashm in_mashm, int pairRank);
-void MashmCalcMsgBufferSize(Mashm in_mashm);
-void MashmCalcNumConnectedNodes(Mashm in_mashm);
-void MashmSetupStandardComm(Mashm in_mashm);
 
+#define MashmCalcMsgBufferSize FCI_GLOBAL(mashmcalcmsgbuffersize,MASHMCALCMSGBUFFERSIZE)
+void MashmCalcMsgBufferSize(Mashm in_mashm);
+
+#define MashmCalcNumConnectedNodes FCI_GLOBAL(mashmcalcnumconnectednodes,MASHMCALCNUMCONNECTEDNODES)
+void MashmCalcNumConnectedNodes(Mashm in_mashm);
+
+#define MashmSetupStandardComm FCI_GLOBAL(mashmsetupstandardcomm,MASHMSETUPSTANDARDCOMM)
+void MashmSetupStandardComm(Mashm in_mashm);
 
 #define MashmGetBufferPointer FCI_GLOBAL(mashmgetbufferpointer,MASHMGETBUFFERPOINTER)
 double* MashmGetBufferPointer(Mashm in_mashm, int msgIndex, MashmSendReceive sendReceive);
 
+#define MashmGetBufferPointerForDest FCI_GLOBAL(mashmgetbufferpointerfordest,MASHMGETBUFFERPOINTERFORDEST)
 double* MashmGetBufferPointerForDest(Mashm in_mashm, int destRank, MashmSendReceive sendReceive);
 
 /* Internode communication */
