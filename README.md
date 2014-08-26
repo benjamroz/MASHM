@@ -53,7 +53,9 @@ cmake /path/to/source
 
 # TODO:
 
-1. Documentation - Doxygen
+1. Extend the documentation to internal classes 
 2. Compiler checks in CMake (MPI, F2003)
 3. More robust examples
-4. Refactor to eliminate dynamic message memory (require user to allocate number of MPI messages)
+4. Condense the two structs: commTuple, MashmCommCollection
+5. Remove unnecessary data from MashmPrivate
+6. Ensure proper cleanup (destructors) 
