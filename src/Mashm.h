@@ -120,7 +120,7 @@ void MashmSetNumComms(Mashm in_mashm, int numMessages);
  *  @param in_mashm Mashm object
  *  @return The communication method
  */
-MashmCommType MashmGetCommMethod(Mashm in_mashm);
+MashmCommType MashmGetCommMethod(const Mashm in_mashm);
 
 /**
  *  \memberof Mashm

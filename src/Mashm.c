@@ -2,17 +2,13 @@
 
 #include "mpi.h"
 
-#include "MashmIntraNodeComm.h"
-#include "MashmCommCycle.h"
+//#include "MashmIntraNodeComm.h"
+//#include "MashmCommCycle.h"
 #include "MashmPrivate.h"
 #include "Mashm.h"
 
 
-int cmpfunc (const void * a, const void * b) {
-   return ( *(int*)a - *(int*)b );
-}
-
-/* Need a method to convert a Fortran MPI_Comm (integer) to  
+/* Method to convert a Fortran MPI_Comm (integer) to  
  *   a C MPI_Comm type */
 void MashmInitF2C(Mashm* in_mashm, MPI_Fint f_comm) {
   MPI_Comm c_comm;
@@ -31,95 +27,47 @@ void MashmInit(Mashm* in_mashm, MPI_Comm in_comm) {
 }
 
 MPI_Comm MashmGetComm(const Mashm in_mashm) {
-  return in_mashm.p->comm;
+  return p_MashmGetComm(in_mashm.p);
 }
 
 int MashmGetSize(const Mashm in_mashm) {
-  return in_mashm.p->size;
+  return p_MashmGetSize(in_mashm.p);
 }
 
 int MashmGetRank(const Mashm in_mashm) {
-  return in_mashm.p->rank;
+  return p_MashmGetRank(in_mashm.p);
 }
 
 void MashmPrintInfo(const Mashm in_mashm) {
-  int iNode;
-
-  if (in_mashm.p->isMasterProc) {
-    printf("Number of shared memory nodes %d\n", in_mashm.p->numSharedMemNodes);
-  }
-
-  for (iNode = 0; iNode < in_mashm.p->numSharedMemNodes; iNode++) {
-    if (in_mashm.p->isMasterProc) {
-      printf("  Node %d\n", iNode);
-    }
-    if (in_mashm.p->sharedMemIndex == iNode) {
-      MashmIntraNodeCommPrintInfo(in_mashm.p->intraComm);
-    }
-  }
+  p_MashmPrintInfo(in_mashm.p);
 }
 
 void MashmSetNumComms(Mashm in_mashm, int numComms) {
-  MashmCommCollectionSetSize(&(in_mashm.p->commCollection), numComms);
+  p_MashmSetNumComms(in_mashm.p, numComms);
 }
 
 void MashmSetComm(Mashm in_mashm, int commIndex, int pairRank, int msgSize) {
-  MashmCommCollectionSetComm(&(in_mashm.p->commCollection), commIndex, pairRank, msgSize, msgSize);
+  p_MashmSetComm(in_mashm.p, commIndex, pairRank, msgSize);
 }
 
-/**
- * @brief Print out all of the communications
- */
 void MashmPrintCommCollection(const Mashm in_mashm) {
-  int i;
-  for (i = 0; i < in_mashm.p->size; i++) {
-    if (i == in_mashm.p->rank) {
-      printf("Rank %d has communication:\n", in_mashm.p->rank);
-      MashmCommCollectionPrint(in_mashm.p->commCollection);
-    }
-  }
+  p_MashmPrintCommCollection(in_mashm.p);
 }
 
-/**
- * @brief Set the communication type
- *
- * Default (if this is not called) is MASHM_COMM_STANDARD
- */
 void MashmSetCommMethod(Mashm in_mashm, MashmCommType commType) {
-  in_mashm.p->commType = commType;
+  p_MashmSetCommMethod(in_mashm.p, commType);
 }
 
-/**
- * @brief Get the communication type
- */
-MashmCommType MashmGetCommMethod(Mashm in_mashm) {
-  return in_mashm.p->commType;
+MashmCommType MashmGetCommMethod(const Mashm in_mashm) {
+  return p_MashmGetCommMethod(in_mashm.p);
 }
 
-/**
- * @brief Call when finished adding all messages.
- * 
- * Allocate buffer data for communication methods. 
- * If intranode then just regular data
- * If intranode shared then 
- *     regular data for internode comm
- *     shared data for intranode comm
- * If minimal nodal then
- *     block of shared data for each nodal message
- *       or
- *     block of shared data for all messages
- *      
- * TODO: This function is kind of a mess - it needs to be simplified
- *
- * @param in_mashm Set precalculation of modified messaging
- */
 void MashmCommFinish(Mashm in_mashm) {
   p_MashmFinish(in_mashm.p);
 }
 
 MashmBool MashmIsMsgOnNode(Mashm in_mashm, int msgIndex) {
-  return in_mashm.p->onNodeMessage[msgIndex];
-
+  return p_MashmIsMsgOnNode(in_mashm.p, msgIndex);
 }
 
 double* MashmGetBufferPointer(Mashm in_mashm, int msgIndex, MashmSendReceive sendReceive) {
@@ -133,18 +81,7 @@ void MashmRetireBufferPointer(Mashm in_mashm, double** bufPtr) {
 }
 
 double* MashmGetBufferPointerForDest(Mashm in_mashm, int destRank, MashmSendReceive sendReceive) {
-  int iRank;
-  for (iRank = 0; iRank < in_mashm.p->intraComm.size; iRank++) {
-    if (destRank == in_mashm.p->intraComm.parentRanksOnNode[iRank]) {
-      if (sendReceive == MASHM_SEND) {
-        return in_mashm.p->sendBufferPointers[iRank];
-      }
-      else {
-        return in_mashm.p->recvBufferPointers[iRank];
-      }
-    }
-  }
-  return NULL;
+  return p_MashmGetBufferPointerForDest(in_mashm.p, destRank, sendReceive);
 }
 
 void MashmDestroy(Mashm* in_mashm) {
@@ -157,26 +94,20 @@ void MashmDestroy(Mashm* in_mashm) {
 
 }
 
-/* @brief Begin nodal communication
- *
- * @param in_mash
- *
- * Begin Isend/Irecv communication. The waitalls for these are called with MashmInterNodeCommEnd
- */
 void MashmInterNodeCommBegin(Mashm in_mashm) {
-  in_mashm.p->p_interNodeCommBegin(in_mashm.p);
+  p_MashmInterNodeCommBegin(in_mashm.p);
 }
 
 void MashmIntraNodeCommBegin(Mashm in_mashm) {
-  in_mashm.p->p_intraNodeCommBegin(in_mashm.p);
+  p_MashmIntraNodeCommBegin(in_mashm.p);
 }
 
 void MashmIntraNodeCommEnd(Mashm in_mashm) {
-  in_mashm.p->p_intraNodeCommEnd(in_mashm.p);
+  p_MashmIntraNodeCommEnd(in_mashm.p);
 }
 
 void MashmInterNodeCommEnd(Mashm in_mashm) {
-  in_mashm.p->p_interNodeCommEnd(in_mashm.p);
+  p_MashmInterNodeCommEnd(in_mashm.p);
 }
 
 MashmBool MashmIsIntraNodeRank(Mashm in_mashm, int pairRank) {

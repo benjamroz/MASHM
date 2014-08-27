@@ -68,7 +68,6 @@ int main(int argc, char** argv) {
         printf("Element %d,%d owned by proc %d\n", i,j, owner);
       }
     }
-
   }
 #endif
 

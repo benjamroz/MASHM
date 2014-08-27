@@ -118,6 +118,15 @@ void p_MashmAllocateSharedMemory(struct MashmPrivate* p_mashm, int bufferSize);
 MashmBool p_MashmIsIntraNodeRank(struct MashmPrivate* p_mashm, int pairRank);
 void p_MashmCalcMsgBufferSize(struct MashmPrivate* p_mashm);
 
+/* Get communicator */
+MPI_Comm p_MashmGetComm(const struct MashmPrivate* p_mashm);
+
+/* Get MPI communicator size */
+int p_MashmGetSize(const struct MashmPrivate* p_mashm);
+
+/* Get MPI communicator rank */
+int p_MashmGetRank(const struct MashmPrivate* p_mashm);
+
 /* Set up Intranode Communication */
 void p_MashmSetupIntraMsgComm(struct MashmPrivate* p_mashm);
 void p_MashmSetupIntraSharedComm(struct MashmPrivate* p_mashm);
@@ -133,6 +142,9 @@ void p_MashmCalculateNodalMsgSchedule(struct MashmPrivate* p_mashm);
 
 /* Return the buffer pointers for the specified message */
 double* p_MashmGetBufferPointer(struct MashmPrivate* p_mashm, int msgIndex, MashmSendReceive sendReceive);
+
+/* Return the buffer pointers for the specified rank and send/receive */
+double* p_MashmGetBufferPointerForDest(const struct MashmPrivate* p_mashm, int destRank, MashmSendReceive sendReceive);
 
 /* Retire (set to null) the buffer pointers */
 void p_MashmRetireBufferPointer(struct MashmPrivate* p_mashm, double** bufPtr);
@@ -161,5 +173,38 @@ void p_MashmFinish(struct MashmPrivate* p_mashm);
 
 /* Destroy the MashmPrivate object */
 void p_MashmDestroy(struct MashmPrivate* p_mashm);
+
+/* Print information about the MashmPrivate object */
+void p_MashmPrintInfo(const struct MashmPrivate* p_mashm);
+
+/* Set the number of communications */
+void p_MashmSetNumComms(struct MashmPrivate* p_mashm, int numComms);
+
+/* Set the communication data for the specified message index */
+void p_MashmSetComm(struct MashmPrivate* p_mashm, int commIndex, int pairRank, int msgSize);
+
+/* Print the communication collection */
+void p_MashmPrintCommCollection(const struct MashmPrivate* p_mashm);
+
+/* Set the communication method */
+void p_MashmSetCommMethod(struct MashmPrivate* in_mashm, MashmCommType commType);
+
+/* Return the communication method */
+MashmCommType p_MashmGetCommMethod(const struct MashmPrivate* p_mashm);
+
+/* Whether the message is on node or not */
+MashmBool p_MashmIsMsgOnNode(const struct MashmPrivate* p_mashm, int msgIndex);
+
+/* Begin internode communication */
+void p_MashmInterNodeCommBegin(struct MashmPrivate* p_mashm);
+
+/* Begin intranode communication */
+void p_MashmIntraNodeCommBegin(struct MashmPrivate* p_mashm);
+
+/* Finish intranode communication */
+void p_MashmIntraNodeCommEnd(struct MashmPrivate* p_mashm);
+
+/* Finish internode communication */
+void p_MashmInterNodeCommEnd(struct MashmPrivate* p_mashm);
 
 #endif

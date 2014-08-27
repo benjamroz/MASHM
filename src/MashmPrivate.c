@@ -1325,6 +1325,100 @@ void p_Destroy(struct MashmPrivate* p_mashm) {
 
 }
 
+void p_MashmPrintInfo(const struct MashmPrivate* p_mashm) {
+  int iNode;
 
-void p_MashmNullFunction(struct MashmPrivate* p_mashm) {
+  if (p_mashm->isMasterProc) {
+    printf("Number of shared memory nodes %d\n", p_mashm->numSharedMemNodes);
+  }
+
+  for (iNode = 0; iNode < p_mashm->numSharedMemNodes; iNode++) {
+    if (p_mashm->isMasterProc) {
+      printf("  Node %d\n", iNode);
+    }
+    if (p_mashm->sharedMemIndex == iNode) {
+      MashmIntraNodeCommPrintInfo(p_mashm->intraComm);
+    }
+  }
 }
+
+double* p_MashmGetBufferPointerForDest(const struct MashmPrivate* p_mashm, int destRank, MashmSendReceive sendReceive) {
+  int iRank;
+
+  for (iRank = 0; iRank < p_mashm->intraComm.size; iRank++) {
+    if (destRank == p_mashm->intraComm.parentRanksOnNode[iRank]) {
+      if (sendReceive == MASHM_SEND) {
+        return p_mashm->sendBufferPointers[iRank];
+      }
+      else {
+        return p_mashm->recvBufferPointers[iRank];
+      }
+    }
+  }
+  return NULL;
+}
+
+void p_MashmNullFunction(struct MashmPrivate* p_mashm) {}
+
+
+/* Get communicator */
+MPI_Comm p_MashmGetComm(const struct MashmPrivate* p_mashm) {
+  return p_mashm->comm;
+}
+
+/* Get MPI communicator size */
+int p_MashmGetSize(const struct MashmPrivate* p_mashm) {
+  return p_mashm->size;
+}
+
+/* Get MPI communicator rank */
+int p_MashmGetRank(const struct MashmPrivate* p_mashm) {
+  return p_mashm->rank;
+}
+
+void p_MashmSetNumComms(struct MashmPrivate* p_mashm, int numComms) {
+  MashmCommCollectionSetSize(&(p_mashm->commCollection), numComms);
+}
+
+void p_MashmSetComm(struct MashmPrivate* p_mashm, int commIndex, int pairRank, int msgSize) {
+  MashmCommCollectionSetComm(&(p_mashm->commCollection), commIndex, pairRank, msgSize, msgSize);
+}
+
+void p_MashmPrintCommCollection(const struct MashmPrivate* p_mashm) {
+  int i;
+  for (i = 0; i < p_mashm->size; i++) {
+    if (i == p_mashm->rank) {
+      printf("Rank %d has communication:\n", p_mashm->rank);
+      MashmCommCollectionPrint(p_mashm->commCollection);
+    }
+  }
+}
+
+void p_MashmSetCommMethod(struct MashmPrivate* p_mashm, MashmCommType commType) {
+  p_mashm->commType = commType;
+}
+
+MashmCommType p_MashmGetCommMethod(const struct MashmPrivate* p_mashm) {
+  return p_mashm->commType;
+}
+
+MashmBool p_MashmIsMsgOnNode(const struct MashmPrivate* p_mashm, int msgIndex) {
+  return p_mashm->onNodeMessage[msgIndex];
+}
+
+void p_MashmInterNodeCommBegin(struct MashmPrivate* p_mashm) {
+  p_mashm->p_interNodeCommBegin(p_mashm);
+}
+
+void p_MashmIntraNodeCommBegin(struct MashmPrivate* p_mashm) {
+  p_mashm->p_intraNodeCommBegin(p_mashm);
+}
+
+void p_MashmIntraNodeCommEnd(struct MashmPrivate* p_mashm) {
+  p_mashm->p_intraNodeCommEnd(p_mashm);
+}
+
+void p_MashmInterNodeCommEnd(struct MashmPrivate* p_mashm) {
+  p_mashm->p_interNodeCommEnd(p_mashm);
+}
+
