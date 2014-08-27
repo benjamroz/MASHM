@@ -26,7 +26,7 @@ void MashmInit(Mashm* in_mashm, MPI_Comm in_comm) {
   in_mashm->p = (struct MashmPrivate*) malloc(sizeof(struct MashmPrivate));
 
   /* Initialize the MashmPrivate structure */
-  p_Init(in_mashm->p);
+  p_MashmInit(in_mashm->p, in_comm);
 
 }
 
@@ -114,140 +114,7 @@ MashmCommType MashmGetCommMethod(Mashm in_mashm) {
  * @param in_mashm Set precalculation of modified messaging
  */
 void MashmCommFinish(Mashm in_mashm) {
-  int regularBufferOffset, sharedBufferOffset;
-  int iMsg, msgDestRank;
-  int i;
-  int numMessages;
-
-  /* Allocate data for the number of messages */
-  numMessages = in_mashm.p->commCollection.commArraySize;
-
-  in_mashm.p->numOrigMessages = numMessages;
-
-  in_mashm.p->sendBufferPointers = (double**) malloc(sizeof(double*)*in_mashm.p->numOrigMessages);
-  in_mashm.p->recvBufferPointers = (double**) malloc(sizeof(double*)*in_mashm.p->numOrigMessages);
-  in_mashm.p->onNodeMessage = (MashmBool*) malloc(sizeof(MashmBool)*in_mashm.p->numOrigMessages);
-  in_mashm.p->pairRanks = (int*) malloc(sizeof(int)*numMessages);
-  in_mashm.p->pairSharedRanks = (int*) malloc(sizeof(int)*numMessages);
-
-  /* */
-  for (i = 0; i < in_mashm.p->numOrigMessages; i++) {
-    in_mashm.p->pairRanks[i] = (in_mashm.p->commCollection.commArray[i]).pairRank;
-    in_mashm.p->pairSharedRanks[i] = MashmIntraNodeCommGetSharedRank(in_mashm.p->intraComm, in_mashm.p->pairRanks[i]);
-  }
-
-  /* Determine the number of intranode and internode messages and calculate the sizes */
-  /* TODO: these two methods should be condensed into one -
-   *       they are doing similar things 
-   */
-  p_MashmCalcNumMpiMsgs(in_mashm.p);
-  p_MashmCalcMsgBufferSize(in_mashm.p);
-  /*
-  printf("Buf size %d, shared buf size %d\n", in_mashm.p->bufferSize,in_mashm.p->sharedBufferSize);
-  printf("Rank %d, intra rank %d sends %d MPI messages\n", in_mashm.p->rank, in_mashm.p->intraComm.rank, in_mashm.p->numInterNodeMsgs);
-  */
-  
-  /* Allocate MPI (non-shared) buffer */
-  in_mashm.p->p_regularSendBuffer = (double*) malloc(sizeof(double)*in_mashm.p->bufferSize);
-  in_mashm.p->p_regularRecvBuffer = (double*) malloc(sizeof(double)*in_mashm.p->bufferSize);
-
-  /* Allocate MPI shared memory */
-  if (in_mashm.p->commType == MASHM_COMM_INTRA_SHARED ||
-      in_mashm.p->commType == MASHM_COMM_MIN_AGG) {
-    p_mashmAllocateSharedMemory(in_mashm.p, in_mashm.p->sharedBufferSize);
-  }
-  in_mashm.p->buffersInit = true;
-
-  /* Set pointers to the buffer and shared buffer */
-  if (in_mashm.p->commType == MASHM_COMM_MIN_AGG) {
-    p_mashmCalculateNodalMsgSchedule(in_mashm.p);
-    p_mashmSetupAggType(in_mashm.p);
-    p_mashmAllocateSharedMemoryMinAgg(in_mashm.p);
-    p_mashmCalcMsgIndicesMinAgg(in_mashm.p);
-
-  }
-  else {
-    regularBufferOffset = 0;
-    sharedBufferOffset = 0;
-    for (iMsg = 0; iMsg < in_mashm.p->commCollection.commArraySize; iMsg++) {
-      msgDestRank = (in_mashm.p->commCollection.commArray[iMsg]).pairRank;
-      if ( (in_mashm.p->commType == MASHM_COMM_INTRA_SHARED ||
-            in_mashm.p->commType == MASHM_COMM_MIN_AGG) 
-          && MashmIsIntraNodeRank(in_mashm, msgDestRank)) {
-        /* Set the shared memory pointers */
-        in_mashm.p->sendBufferPointers[iMsg] = &(in_mashm.p->p_sharedSendBuffer[sharedBufferOffset]);
-        in_mashm.p->recvBufferPointers[iMsg] = &(in_mashm.p->p_sharedRecvBuffer[sharedBufferOffset]);
-        sharedBufferOffset = sharedBufferOffset + (in_mashm.p->commCollection.commArray[iMsg]).sendSize;
-        in_mashm.p->onNodeMessage[iMsg] = true;
-      }
-      else {
-        /* Set the pointers to regular memory */
-        in_mashm.p->sendBufferPointers[iMsg] = &(in_mashm.p->p_regularSendBuffer[regularBufferOffset]);
-        in_mashm.p->recvBufferPointers[iMsg] = &(in_mashm.p->p_regularRecvBuffer[regularBufferOffset]);
-        regularBufferOffset = regularBufferOffset + (in_mashm.p->commCollection.commArray[iMsg]).sendSize;
-        if (in_mashm.p->commType == MASHM_COMM_INTRA_MSG &&
-            MashmIsIntraNodeRank(in_mashm, msgDestRank)) {
-          /* On node MPI_Isend/MPI_Irecv */
-          in_mashm.p->onNodeMessage[iMsg] = true;
-        }
-        else {
-          in_mashm.p->onNodeMessage[iMsg] = false;
-        }
-      }
-    }
-  }
-
-  /* All communication types need to setup the data needed for MPI_Irecv/MPI_Isend */
-  p_mashmSetupInterNodeComm(in_mashm.p);
-
-  /* Perform some initialization for each comm method and set pointers to proper routines */
-  switch (in_mashm.p->commType) {
-    case MASHM_COMM_STANDARD:
-      in_mashm.p->p_interNodeCommBegin = p_mashmStandardCommBegin;
-      in_mashm.p->p_interNodeCommEnd = p_mashmStandardCommEnd;
-
-      in_mashm.p->p_intraNodeCommBegin = p_nullFunction;
-      in_mashm.p->p_intraNodeCommEnd = p_nullFunction;
-
-      break;
-
-    case MASHM_COMM_INTRA_MSG:
-      p_mashmSetupIntraMsgComm(in_mashm.p);
-
-      in_mashm.p->p_interNodeCommBegin = p_mashmStandardCommBegin;
-      in_mashm.p->p_interNodeCommEnd = p_mashmStandardCommEnd;
-
-      in_mashm.p->p_intraNodeCommBegin = p_mashmIntraMsgsCommBegin;
-      in_mashm.p->p_intraNodeCommEnd = p_mashmIntraMsgsCommEnd;
-
-      break;
-
-    case MASHM_COMM_INTRA_SHARED:
-      /* Calculate shared memory indices etc. */
-      p_mashmSetupIntraSharedComm(in_mashm.p);
-
-      in_mashm.p->p_interNodeCommBegin = p_mashmStandardCommBegin;
-      in_mashm.p->p_interNodeCommEnd = p_mashmStandardCommEnd;
-
-      in_mashm.p->p_intraNodeCommBegin = p_mashmIntraSharedCommBegin;
-      in_mashm.p->p_intraNodeCommEnd = p_mashmIntraSharedCommEnd;
-
-      break;
-
-    case MASHM_COMM_MIN_AGG:
-      /* Calculate */
-      p_mashmSetupIntraSharedComm(in_mashm.p);
-
-      in_mashm.p->p_interNodeCommBegin = p_mashmMinAggCommBegin;
-      in_mashm.p->p_interNodeCommEnd = p_mashmStandardCommEnd;
-
-      in_mashm.p->p_intraNodeCommBegin = p_mashmIntraSharedCommBegin;
-      in_mashm.p->p_intraNodeCommEnd = p_mashmIntraSharedCommEnd;
-
-      break;
-
-  }
-
+  p_MashmFinish(in_mashm.p);
 }
 
 MashmBool MashmIsMsgOnNode(Mashm in_mashm, int msgIndex) {
@@ -257,12 +124,12 @@ MashmBool MashmIsMsgOnNode(Mashm in_mashm, int msgIndex) {
 
 double* MashmGetBufferPointer(Mashm in_mashm, int msgIndex, MashmSendReceive sendReceive) {
   /* Call the private routine */
-  return p_mashmGetBufferPointer(in_mashm.p, msgIndex, sendReceive);
+  return p_MashmGetBufferPointer(in_mashm.p, msgIndex, sendReceive);
 }
 
 void MashmRetireBufferPointer(Mashm in_mashm, double** bufPtr) {
   /* Call the private routine */
-  return p_mashmRetireBufferPointer(in_mashm.p, bufPtr);
+  return p_MashmRetireBufferPointer(in_mashm.p, bufPtr);
 }
 
 double* MashmGetBufferPointerForDest(Mashm in_mashm, int destRank, MashmSendReceive sendReceive) {

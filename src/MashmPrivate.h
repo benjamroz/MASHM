@@ -106,54 +106,60 @@ struct MashmPrivate {
 };
 
 
+/* Initialize the MashmPrivate object */
+void p_MashmInit(struct MashmPrivate* p_mashm, MPI_Comm in_comm);
+
 /* Set up Internode Communication */
-void p_mashmSetupInterNodeComm(struct MashmPrivate* p_mashm);
+void p_MashmSetupInterNodeComm(struct MashmPrivate* p_mashm);
 
 /* Allocate memory for the intranode messages */
-void p_mashmAllocateSharedMemory(struct MashmPrivate* p_mashm, int bufferSize);
+void p_MashmAllocateSharedMemory(struct MashmPrivate* p_mashm, int bufferSize);
 
 MashmBool p_MashmIsIntraNodeRank(struct MashmPrivate* p_mashm, int pairRank);
 void p_MashmCalcMsgBufferSize(struct MashmPrivate* p_mashm);
 
 /* Set up Intranode Communication */
-void p_mashmSetupIntraMsgComm(struct MashmPrivate* p_mashm);
-void p_mashmSetupIntraSharedComm(struct MashmPrivate* p_mashm);
+void p_MashmSetupIntraMsgComm(struct MashmPrivate* p_mashm);
+void p_MashmSetupIntraSharedComm(struct MashmPrivate* p_mashm);
 
 /* Setup MIN_AGG data */
-void p_mashmSetupAggType(struct MashmPrivate* p_mashm);
-void p_mashmAllocateSharedMemoryMinAgg(struct MashmPrivate* p_mashm);
-void p_mashmCalcMsgIndicesMinAgg(struct MashmPrivate* p_mashm);
+void p_MashmSetupAggType(struct MashmPrivate* p_mashm);
+void p_MashmAllocateSharedMemoryMinAgg(struct MashmPrivate* p_mashm);
+void p_MashmCalcMsgIndicesMinAgg(struct MashmPrivate* p_mashm);
 void p_MashmCalcNumMpiMsgs(struct MashmPrivate* p_mashm);
 
 /* Figure out nodal message scheduling for MASHM_COMM_MIN_AGG */
-void p_mashmCalculateNodalMsgSchedule(struct MashmPrivate* p_mashm);
+void p_MashmCalculateNodalMsgSchedule(struct MashmPrivate* p_mashm);
 
 /* Return the buffer pointers for the specified message */
-double* p_mashmGetBufferPointer(struct MashmPrivate* p_mashm, int msgIndex, MashmSendReceive sendReceive);
+double* p_MashmGetBufferPointer(struct MashmPrivate* p_mashm, int msgIndex, MashmSendReceive sendReceive);
 
 /* Retire (set to null) the buffer pointers */
-void p_mashmRetireBufferPointer(struct MashmPrivate* p_mashm, double** bufPtr);
+void p_MashmRetireBufferPointer(struct MashmPrivate* p_mashm, double** bufPtr);
 
 /* Communication Routines for MPI_Irecv/MPI_Isend - (all but MIN_AGG) */
-void p_mashmStandardCommBegin(struct MashmPrivate* p_mashm);
-void p_mashmStandardCommEnd(struct MashmPrivate* p_mashm);
+void p_MashmStandardCommBegin(struct MashmPrivate* p_mashm);
+void p_MashmStandardCommEnd(struct MashmPrivate* p_mashm);
 
 /* Communication routines for intranode MPI_Irecv/MPI_Isend - INTRA_MSGS only */
-void p_mashmIntraMsgsCommBegin(struct MashmPrivate* p_mashm);
-void p_mashmIntraMsgsCommEnd(struct MashmPrivate* p_mashm);
+void p_MashmIntraMsgsCommBegin(struct MashmPrivate* p_mashm);
+void p_MashmIntraMsgsCommEnd(struct MashmPrivate* p_mashm);
 
 /* Communication routines for intranode shared memory - INTRA_SHARED and MIN_AGG */
-void p_mashmIntraSharedCommBegin(struct MashmPrivate* p_mashm);
-void p_mashmIntraSharedCommEnd(struct MashmPrivate* p_mashm);
+void p_MashmIntraSharedCommBegin(struct MashmPrivate* p_mashm);
+void p_MashmIntraSharedCommEnd(struct MashmPrivate* p_mashm);
 
 /* Communication routines for single nodal messages - MIN_AGG only */
-void p_mashmMinAggCommBegin(struct MashmPrivate* p_mashm);
-void p_mashmMinAggCommEnd(struct MashmPrivate* p_mashm);
+void p_MashmMinAggCommBegin(struct MashmPrivate* p_mashm);
+void p_MashmMinAggCommEnd(struct MashmPrivate* p_mashm);
 
 /* Null function to satisfy function pointer assignment */
-void p_nullFunction(struct MashmPrivate* p_mashm);
+void p_MashmNullFunction(struct MashmPrivate* p_mashm);
+
+/* Complete the MashmPrivate struct - allocate data and set up pointers */
+void p_MashmFinish(struct MashmPrivate* p_mashm);
 
 /* Destroy the MashmPrivate object */
-void p_Destroy(struct MashmPrivate* p_mashm);
+void p_MashmDestroy(struct MashmPrivate* p_mashm);
 
 #endif
