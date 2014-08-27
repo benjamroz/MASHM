@@ -18,22 +18,18 @@ typedef struct {
   int* parentRanksOnNode;
 } MashmIntraNodeComm;
 
-int intraNodeInit(MashmIntraNodeComm* intraComm, MPI_Comm in_comm);
+int MashmIntraNodeCommInit(MashmIntraNodeComm* intraComm, MPI_Comm in_comm);
 
-MPI_Comm intraNodeGetComm(const MashmIntraNodeComm intraComm);
+MPI_Comm MashmIntraNodeCommGetComm(const MashmIntraNodeComm intraComm);
 
-int intraNodeGetSize(const MashmIntraNodeComm intraComm);
+int MashmIntraNodeCommGetSize(const MashmIntraNodeComm intraComm);
 
-int intraNodeGetRank(const MashmIntraNodeComm intraComm);
+int MashmIntraNodeCommGetRank(const MashmIntraNodeComm intraComm);
 
-int intraNodeDetermineGlobalInfo(MashmIntraNodeComm* intraComm);
+int MashmIntraNodeCommGetSharedRank(const MashmIntraNodeComm intraComm, int pairRank);
 
-int intraNodeGetSharedRank(const MashmIntraNodeComm intraComm, int pairRank);
+void MashmIntraNodeCommPrintInfo(const MashmIntraNodeComm intraComm);
 
-int intraNodeDetermineNodalInfo(MashmIntraNodeComm* intraComm);
-
-void intraNodePrintInfo(const MashmIntraNodeComm intraComm);
-
-int intraNodeDestroy(MashmIntraNodeComm* intraComm);
+int MashmIntraNodeCommDestroy(MashmIntraNodeComm* intraComm);
 
 #endif 

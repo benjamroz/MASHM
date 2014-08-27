@@ -43,7 +43,7 @@ void MashmInit(Mashm* in_mashm, MPI_Comm in_comm) {
   }
 
   /* Initialize the intra-node subcommunicator */
-  intraNodeInit(&(in_mashm->p->intraComm),in_mashm->p->comm);
+  MashmIntraNodeCommInit(&(in_mashm->p->intraComm),in_mashm->p->comm);
 
   /* Now calculate the number of shared memory indices */
   ierr = MPI_Comm_split(in_mashm->p->comm, in_mashm->p->intraComm.rank, in_mashm->p->rank, &rankComm);
@@ -107,7 +107,7 @@ void MashmPrintInfo(const Mashm in_mashm) {
       printf("  Node %d\n", iNode);
     }
     if (in_mashm.p->sharedMemIndex == iNode) {
-      intraNodePrintInfo(in_mashm.p->intraComm);
+      MashmIntraNodeCommPrintInfo(in_mashm.p->intraComm);
     }
   }
 }
@@ -186,7 +186,7 @@ void MashmCommFinish(Mashm in_mashm) {
   /* */
   for (i = 0; i < in_mashm.p->numOrigMessages; i++) {
     in_mashm.p->pairRanks[i] = (in_mashm.p->commCollection.commArray[i]).pairRank;
-    in_mashm.p->pairSharedRanks[i] = intraNodeGetSharedRank(in_mashm.p->intraComm, in_mashm.p->pairRanks[i]);
+    in_mashm.p->pairSharedRanks[i] = MashmIntraNodeCommGetSharedRank(in_mashm.p->intraComm, in_mashm.p->pairRanks[i]);
   }
 
   /* Determine the number of intranode and internode messages and calculate the sizes */
@@ -341,7 +341,7 @@ void MashmDestroy(Mashm* in_mashm) {
   MashmCommCollectionDestroy(&(in_mashm->p->commCollection));
 
   /* Destroy the intra-node subcommunicator */
-  intraNodeDestroy(&(in_mashm->p->intraComm));
+  MashmIntraNodeCommDestroy(&(in_mashm->p->intraComm));
  
   if (in_mashm->p->buffersInit) {
     free(in_mashm->p->sendBufferPointers);
