@@ -21,66 +21,13 @@ void MashmInitF2C(Mashm* in_mashm, MPI_Fint f_comm) {
 }
 
 void MashmInit(Mashm* in_mashm, MPI_Comm in_comm) {
-  int ierr;
-  int numSharedMemNodes, sharedMemNodeRank;
 
-  /* Temporary subcommunicator to determine the number of shared memory nodes */
-  MPI_Comm rankComm; 
-
+  /* Allocate the MashmPrivate structure */
   in_mashm->p = (struct MashmPrivate*) malloc(sizeof(struct MashmPrivate));
 
-  /* Set the communicator and get the size and rank */
-  in_mashm->p->comm = in_comm;
+  /* Initialize the MashmPrivate structure */
+  p_Init(in_mashm->p);
 
-  ierr = MPI_Comm_size(MashmGetComm(*in_mashm), &(in_mashm->p->size));
-  ierr = MPI_Comm_rank(MashmGetComm(*in_mashm), &(in_mashm->p->rank));
-
-  if (in_mashm->p->rank == 0) {
-    in_mashm->p->isMasterProc = true;
-  }
-  else {
-    in_mashm->p->isMasterProc = false;
-  }
-
-  /* Initialize the intra-node subcommunicator */
-  MashmIntraNodeCommInit(&(in_mashm->p->intraComm),in_mashm->p->comm);
-
-  /* Now calculate the number of shared memory indices */
-  ierr = MPI_Comm_split(in_mashm->p->comm, in_mashm->p->intraComm.rank, in_mashm->p->rank, &rankComm);
- 
-  /* Only the nodal root is participates */
-  if (in_mashm->p->intraComm.rank == 0) {
-    ierr = MPI_Comm_size(rankComm, &numSharedMemNodes);
-    ierr = MPI_Comm_rank(rankComm, &sharedMemNodeRank);
-    /* The number of shared memory nodes */
-    in_mashm->p->numSharedMemNodes = numSharedMemNodes;
-    /* The index of each shared memory node */
-    in_mashm->p->sharedMemIndex = sharedMemNodeRank;
-    /*
-    if (in_mashm->p->sharedMemIndex == 0) {
-      printf("Number of shared memory nodes %d\n", in_mashm->p->numSharedMemNodes);
-    }
-    */
-  }
-
-  /* Destroy this comm */
-  ierr = MPI_Comm_free(&rankComm);
-
-  /* Broadcast (to the shared sub comm) the number of shared memory nodes */
-  ierr = MPI_Bcast(&(in_mashm->p->numSharedMemNodes), 1, MPI_INT, 0, in_mashm->p->intraComm.comm);
-  /* Broadcast (to the shared sub comm) the index of each shared memory nodes */
-  ierr = MPI_Bcast(&(in_mashm->p->sharedMemIndex), 1, MPI_INT, 0, in_mashm->p->intraComm.comm);
-
-  /* Initialize the MashmCommCollection */
-  MashmCommCollectionInit(&(in_mashm->p->commCollection));
-
-  in_mashm->p->commType = MASHM_COMM_STANDARD;
-
-  in_mashm->p->isInit = true;
-  in_mashm->p->buffersInit = false;
-
-  in_mashm->p->minAggScheme = MASHM_MIN_AGG_ROUND_ROBIN;
-  //return 0;
 }
 
 MPI_Comm MashmGetComm(const Mashm in_mashm) {
@@ -334,36 +281,11 @@ double* MashmGetBufferPointerForDest(Mashm in_mashm, int destRank, MashmSendRece
 }
 
 void MashmDestroy(Mashm* in_mashm) {
-  int ierr;
-
-  /* Destroy the MashmCommCollection 
-   * TODO: this should be destroyed in the finish method */
-  MashmCommCollectionDestroy(&(in_mashm->p->commCollection));
-
-  /* Destroy the intra-node subcommunicator */
-  MashmIntraNodeCommDestroy(&(in_mashm->p->intraComm));
- 
-  if (in_mashm->p->buffersInit) {
-    free(in_mashm->p->sendBufferPointers);
-    free(in_mashm->p->recvBufferPointers);
-    free(in_mashm->p->p_regularSendBuffer);
-    free(in_mashm->p->p_regularRecvBuffer);
-    free(in_mashm->p->onNodeMessage);
-    free(in_mashm->p->pairRanks);
-    free(in_mashm->p->pairSharedRanks);
-  }
-
-  /* Deallocate the shared memory window created with the
-   *   call to MPI_Win_allocate_shared
-   *   Note that this also frees the underlying shared memory */
-  if (in_mashm->p->commType == MASHM_COMM_INTRA_SHARED ||
-      in_mashm->p->commType == MASHM_COMM_MIN_AGG) {
-    ierr = MPI_Win_free(&(in_mashm->p->sendSharedMemWindow));
-    ierr = MPI_Win_free(&(in_mashm->p->recvSharedMemWindow));
-
-  }
 
   /* Destroy the MashmPrivate data */
+  p_Destroy(in_mashm->p);
+
+  /* Free the pointer to the MashmPrivate data */
   free(in_mashm->p);
 
 }

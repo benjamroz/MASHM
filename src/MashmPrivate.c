@@ -42,6 +42,66 @@ int commTupleCmpFunc (const void * a, const void * b) {
   }
 }
 
+
+void p_Init(struct MashmPrivate* p_mashm, MPI_Comm in_comm) {
+  int ierr;
+  int sharedMemNodeRank;
+  int numSharedMemNodes;
+  MPI_Comm rankComm;
+
+  /* Set the communicator and get the size and rank */
+  p_mashm->comm = in_comm;
+
+  ierr = MPI_Comm_size(p_mashm->comm, &(p_mashm->size));
+  ierr = MPI_Comm_rank(p_mashm->comm, &(p_mashm->rank));
+
+  if (p_mashm->rank == 0) {
+    p_mashm->isMasterProc = true;
+  }
+  else {
+    p_mashm->isMasterProc = false;
+  }
+
+  /* Initialize the intra-node subcommunicator */
+  MashmIntraNodeCommInit(&(p_mashm->intraComm),p_mashm->comm);
+
+  /* Now calculate the number of shared memory indices */
+  ierr = MPI_Comm_split(p_mashm->comm, p_mashm->intraComm.rank, p_mashm->rank, &rankComm);
+ 
+  /* Only the nodal root is participates */
+  if (p_mashm->intraComm.rank == 0) {
+    ierr = MPI_Comm_size(rankComm, &numSharedMemNodes);
+    ierr = MPI_Comm_rank(rankComm, &sharedMemNodeRank);
+    /* The number of shared memory nodes */
+    p_mashm->numSharedMemNodes = numSharedMemNodes;
+    /* The index of each shared memory node */
+    p_mashm->sharedMemIndex = sharedMemNodeRank;
+    /*
+    if (p_mashm->sharedMemIndex == 0) {
+      printf("Number of shared memory nodes %d\n", p_mashm->numSharedMemNodes);
+    }
+    */
+  }
+
+  /* Destroy this comm */
+  ierr = MPI_Comm_free(&rankComm);
+
+  /* Broadcast (to the shared sub comm) the number of shared memory nodes */
+  ierr = MPI_Bcast(&(p_mashm->numSharedMemNodes), 1, MPI_INT, 0, p_mashm->intraComm.comm);
+  /* Broadcast (to the shared sub comm) the index of each shared memory nodes */
+  ierr = MPI_Bcast(&(p_mashm->sharedMemIndex), 1, MPI_INT, 0, p_mashm->intraComm.comm);
+
+  /* Initialize the MashmCommCollection */
+  MashmCommCollectionInit(&(p_mashm->commCollection));
+
+  p_mashm->commType = MASHM_COMM_STANDARD;
+
+  p_mashm->isInit = true;
+  p_mashm->buffersInit = false;
+
+  p_mashm->minAggScheme = MASHM_MIN_AGG_ROUND_ROBIN;
+}
+
 double* p_mashmGetBufferPointer(struct MashmPrivate* p_mashm, int msgIndex, MashmSendReceive sendReceive) {
   if (sendReceive == MASHM_SEND) {
     return p_mashm->sendBufferPointers[msgIndex];
@@ -1095,3 +1155,34 @@ MashmBool p_MashmIsIntraNodeRank(struct MashmPrivate* p_mashm, int pairRank) {
 }
 
 
+void p_Destroy(struct MashmPrivate* p_mashm) {
+  int ierr;
+
+  /* Destroy the MashmCommCollection 
+   * TODO: this should be destroyed in the finish method */
+  MashmCommCollectionDestroy(&(p_mashm->commCollection));
+
+  /* Destroy the intra-node subcommunicator */
+  MashmIntraNodeCommDestroy(&(p_mashm->intraComm));
+ 
+  if (p_mashm->buffersInit) {
+    free(p_mashm->sendBufferPointers);
+    free(p_mashm->recvBufferPointers);
+    free(p_mashm->p_regularSendBuffer);
+    free(p_mashm->p_regularRecvBuffer);
+    free(p_mashm->onNodeMessage);
+    free(p_mashm->pairRanks);
+    free(p_mashm->pairSharedRanks);
+  }
+
+  /* Deallocate the shared memory window created with the
+   *   call to MPI_Win_allocate_shared
+   *   Note that this also frees the underlying shared memory */
+  if (p_mashm->commType == MASHM_COMM_INTRA_SHARED ||
+      p_mashm->commType == MASHM_COMM_MIN_AGG) {
+    ierr = MPI_Win_free(&(p_mashm->sendSharedMemWindow));
+    ierr = MPI_Win_free(&(p_mashm->recvSharedMemWindow));
+
+  }
+
+}

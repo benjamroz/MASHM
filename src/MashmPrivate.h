@@ -153,4 +153,7 @@ void p_mashmMinAggCommEnd(struct MashmPrivate* p_mashm);
 /* Null function to satisfy function pointer assignment */
 void p_nullFunction(struct MashmPrivate* p_mashm);
 
+/* Destroy the MashmPrivate object */
+void p_Destroy(struct MashmPrivate* p_mashm);
+
 #endif
