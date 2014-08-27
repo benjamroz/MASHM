@@ -1,6 +1,6 @@
-#include "intraNodeComm.h"
+#include "MashmIntraNodeComm.h"
 
-int intraNodeInit(intraNodeComm* intraComm, MPI_Comm in_comm) {
+int intraNodeInit(MashmIntraNodeComm* intraComm, MPI_Comm in_comm) {
   int ierr;
 
   /* Store the parent commincator */
@@ -31,28 +31,28 @@ int intraNodeInit(intraNodeComm* intraComm, MPI_Comm in_comm) {
   return 0;
 }
 
-MPI_Comm intraNodeGetComm(const intraNodeComm intraComm) {
+MPI_Comm intraNodeGetComm(const MashmIntraNodeComm intraComm) {
   return intraComm.comm;
 }
 
-int intraNodeGetSize(const intraNodeComm intraComm) {
+int intraNodeGetSize(const MashmIntraNodeComm intraComm) {
   return intraComm.size;
 }
 
-int intraNodeGetRank(const intraNodeComm intraComm) {
+int intraNodeGetRank(const MashmIntraNodeComm intraComm) {
   return intraComm.rank;
 }
 
-int intraNodeDetermineGlobalInfo(intraNodeComm* intraComm);
-int intraNodeDetermineNodalInfo(intraNodeComm* intraComm);
+int intraNodeDetermineGlobalInfo(MashmIntraNodeComm* intraComm);
+int intraNodeDetermineNodalInfo(MashmIntraNodeComm* intraComm);
 
-void intraNodePrintInfo(const intraNodeComm intraComm) {
+void intraNodePrintInfo(const MashmIntraNodeComm intraComm) {
   if (intraComm.isMasterProc) {
     printf("  Shared memory node has size %d\n", intraComm.size);
   }
 }
 
-int intraNodeGetSharedRank(const intraNodeComm intraComm, int pairRank) {
+int intraNodeGetSharedRank(const MashmIntraNodeComm intraComm, int pairRank) {
   int i;
   for (i = 0; i < intraComm.size; i++) {
     if (pairRank == intraComm.parentRanksOnNode[i]) {
@@ -62,7 +62,7 @@ int intraNodeGetSharedRank(const intraNodeComm intraComm, int pairRank) {
   return -1;
 }
 
-int intraNodeDestroy(intraNodeComm* intraComm) {
+int intraNodeDestroy(MashmIntraNodeComm* intraComm) {
   int ierr;
 
   /* Free the shared memory subcommunicator groups */

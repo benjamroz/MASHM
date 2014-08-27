@@ -2,7 +2,7 @@
 
 #include "mpi.h"
 
-#include "intraNodeComm.h"
+#include "MashmIntraNodeComm.h"
 #include "MashmCommCycle.h"
 #include "MashmPrivate.h"
 #include "Mashm.h"

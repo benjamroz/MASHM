@@ -5,7 +5,7 @@
 
 #include "MashmBool.h"
 #include "MashmDefs.h"
-#include "intraNodeComm.h"
+#include "MashmIntraNodeComm.h"
 #include "MashmCommCycle.h"
 
 struct MashmPrivate {
@@ -15,7 +15,7 @@ struct MashmPrivate {
   int rank;
   MashmBool isMasterProc;
   /* Intranodal communicator struct */
-  intraNodeComm intraComm;
+  MashmIntraNodeComm intraComm;
   int numSharedMemNodes;
   int sharedMemIndex;
   int isInit;

@@ -2,7 +2,7 @@
 FILE(GLOB MASHM_LIB_HEADERS *.h)
 
 SET(MASHM_LIB_SRCS
-  intraNodeComm.c
+  MashmIntraNodeComm.c
   MashmCommCycle.c
   MashmPrivate.c
   Mashm.c
