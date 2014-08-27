@@ -143,6 +143,14 @@ double* MashmGetBufferPointer(Mashm in_mashm, int msgIndex, MashmSendReceive sen
 
 /**
  *  \memberof Mashm
+ *  @brief Retire (set to null) the buffer pointer for a message
+ *  @param in_mashm Mashm object
+ *  @param bufPtr The pointer to a message buffer
+ */
+void MashmRetireBufferPointer(Mashm in_mashm, double** bufPtr);
+
+/**
+ *  \memberof Mashm
  *  @brief Return the buffer pointer for a certain process
  *  @param in_mashm Mashm object
  *  @param destRank The rank of the message pair rank

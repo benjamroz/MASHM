@@ -323,11 +323,23 @@ int main(int argc, char** argv) {
 
   ierr = MPI_Reduce(&testFailedInt, &numTestsFailed, 1, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
 
+  if (rank == 0) printf("Retiring Mashm buffer pointers.\n");
+  /* Retire the Mashm buffer pointers */
+  for (i = 0; i < numNeighbors; i++) {
+    MashmRetireBufferPointer(myMashm, &(mashmSendBufferPtrs[i]));
+    MashmRetireBufferPointer(myMashm, &(mashmRecvBufferPtrs[i]));
+  }
+
   /* Destroy the Mashm object */
   if (rank == 0) printf("Calling Mashm Destroy.\n");
   MashmDestroy(&myMashm);
 
   decomp2dDestroyGraph(&neighbors, &msgSizes);
+
+
+  free(mashmSendBufferPtrs);
+  free(mashmRecvBufferPtrs);
+
 
   ierr = MPI_Finalize();
 

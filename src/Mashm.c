@@ -203,20 +203,11 @@ void MashmCommFinish(Mashm in_mashm) {
   /* Allocate MPI (non-shared) buffer */
   in_mashm.p->p_regularSendBuffer = (double*) malloc(sizeof(double)*in_mashm.p->bufferSize);
   in_mashm.p->p_regularRecvBuffer = (double*) malloc(sizeof(double)*in_mashm.p->bufferSize);
-  for (i = 0; i < in_mashm.p->bufferSize; i++) {
-    in_mashm.p->p_regularSendBuffer[i] = 666;
-    in_mashm.p->p_regularRecvBuffer[i] = 667;
-  }
 
   /* Allocate MPI shared memory */
   if (in_mashm.p->commType == MASHM_COMM_INTRA_SHARED ||
       in_mashm.p->commType == MASHM_COMM_MIN_AGG) {
     p_mashmAllocateSharedMemory(in_mashm.p, in_mashm.p->sharedBufferSize);
-  }
-
-  for (i = 0; i < in_mashm.p->sharedBufferSize; i++) {
-    in_mashm.p->p_sharedSendBuffer[i] = 668;
-    in_mashm.p->p_sharedRecvBuffer[i] = 669;
   }
   in_mashm.p->buffersInit = true;
 
@@ -320,6 +311,11 @@ MashmBool MashmIsMsgOnNode(Mashm in_mashm, int msgIndex) {
 double* MashmGetBufferPointer(Mashm in_mashm, int msgIndex, MashmSendReceive sendReceive) {
   /* Call the private routine */
   return p_mashmGetBufferPointer(in_mashm.p, msgIndex, sendReceive);
+}
+
+void MashmRetireBufferPointer(Mashm in_mashm, double** bufPtr) {
+  /* Call the private routine */
+  return p_mashmRetireBufferPointer(in_mashm.p, bufPtr);
 }
 
 double* MashmGetBufferPointerForDest(Mashm in_mashm, int destRank, MashmSendReceive sendReceive) {

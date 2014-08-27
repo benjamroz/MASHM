@@ -1,6 +1,14 @@
 
 #include "MashmPrivate.h"
 
+typedef struct {
+  int srcSharedMemRank;
+  int destGlobalRank;
+  int destNodeIndex;
+  int msgSize;
+  int srcNodeIndex;
+
+} commTuple;
 
 /* Sort on first element of comm tuple */
 int commTupleCmpFunc (const void * a, const void * b) {
@@ -34,9 +42,6 @@ int commTupleCmpFunc (const void * a, const void * b) {
   }
 }
 
-/**
- * Should be private
- */
 double* p_mashmGetBufferPointer(struct MashmPrivate* p_mashm, int msgIndex, MashmSendReceive sendReceive) {
   if (sendReceive == MASHM_SEND) {
     return p_mashm->sendBufferPointers[msgIndex];
@@ -46,6 +51,12 @@ double* p_mashmGetBufferPointer(struct MashmPrivate* p_mashm, int msgIndex, Mash
   }
 }
 
+void p_mashmRetireBufferPointer(struct MashmPrivate* p_mashm, double** bufPtr) {
+  /* Could put a debug check here to ensure that the bufPtr is belongs to 
+   * sendBufferPointers or recvBufferPointers 
+   */
+  *bufPtr = NULL;
+}
 
 void p_mashmSetupInterNodeComm(struct MashmPrivate* p_mashm) {
   int numMsgs;
