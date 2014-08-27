@@ -56,9 +56,11 @@ void MashmInit(Mashm* in_mashm, MPI_Comm in_comm) {
     in_mashm->p->numSharedMemNodes = numSharedMemNodes;
     /* The index of each shared memory node */
     in_mashm->p->sharedMemIndex = sharedMemNodeRank;
+    /*
     if (in_mashm->p->sharedMemIndex == 0) {
       printf("Number of shared memory nodes %d\n", in_mashm->p->numSharedMemNodes);
     }
+    */
   }
 
   /* Destroy this comm */
@@ -193,8 +195,10 @@ void MashmCommFinish(Mashm in_mashm) {
    */
   p_MashmCalcNumMpiMsgs(in_mashm.p);
   p_MashmCalcMsgBufferSize(in_mashm.p);
+  /*
   printf("Buf size %d, shared buf size %d\n", in_mashm.p->bufferSize,in_mashm.p->sharedBufferSize);
   printf("Rank %d, intra rank %d sends %d MPI messages\n", in_mashm.p->rank, in_mashm.p->intraComm.rank, in_mashm.p->numInterNodeMsgs);
+  */
   
   /* Allocate MPI (non-shared) buffer */
   in_mashm.p->p_regularSendBuffer = (double*) malloc(sizeof(double)*in_mashm.p->bufferSize);

@@ -529,7 +529,7 @@ void p_mashmAllocateSharedMemoryMinAgg(struct MashmPrivate* p_mashm) {
   /* Need to figure out the indices and ... for the other ...*/
   p_mashm->sendNodalSharedBufferIndex = (double**) malloc(sizeof(double*)*p_mashm->numNodalMsgs);
   p_mashm->recvNodalSharedBufferIndex = (double**) malloc(sizeof(double*)*p_mashm->numNodalMsgs);
-  printf("MINAGGG\n");
+
   /* Iterate through the intranodal message and get a pointer to the dest data */
   for (iMsg = 0; iMsg < p_mashm->numNodalMsgs; iMsg++) {
     /* TODO: Need shared rank here - NOT global pair Rank */
@@ -679,11 +679,13 @@ void p_mashmCalculateNodalMsgSchedule(struct MashmPrivate* p_mashm) {
     qsort(commArray, sumNumMsgs, sizeof(commTuple), commTupleCmpFunc);
 
     /* Print the comm Schedule */
+    /*
     for (i = 0; i < sumNumMsgs; i++) {
       printf("Rank %d: msg %i: srcRank %d, nodeIndex %d, destRank %d, size %d\n",
              p_mashm->rank, i, commArray[i].srcSharedMemRank, commArray[i].destNodeIndex,
              commArray[i].destGlobalRank, commArray[i].msgSize);
     }
+    */
 
     /* Now advance the commArray to the first non-self node */
     for (i = 0; i < sumNumMsgs; i++) {
@@ -704,8 +706,10 @@ void p_mashmCalculateNodalMsgSchedule(struct MashmPrivate* p_mashm) {
       }
     }
     p_mashm->numNodalSubMsgs = sumNumMsgs - commArrayOffset;
+    /*
     printf("Rank %d, commArrayOffset %d, numNodalSubMsgs %d\n", p_mashm->rank,
            commArrayOffset, p_mashm->numNodalSubMsgs);
+    */
 
     p_mashm->numNodalMsgs = nodeCounter;
     numNodes = p_mashm->numNodalMsgs;
@@ -722,7 +726,9 @@ void p_mashmCalculateNodalMsgSchedule(struct MashmPrivate* p_mashm) {
     }
     p_mashm->numCommNodes = nodeCounter;
 
+    /*
     printf("Rank %d sends messages to num %d nodes\n", p_mashm->rank, numNodes);
+    */
 
     p_mashm->uniqueNodeIndices = (int*) malloc(sizeof(int)*(p_mashm->numCommNodes));
 
@@ -739,9 +745,6 @@ void p_mashmCalculateNodalMsgSchedule(struct MashmPrivate* p_mashm) {
     /* Calculate the offsets into each nodal message */
     /* Also calculate the size of each nodal message */
     msgOffsets = (int*) malloc(sizeof(int)*p_mashm->numNodalSubMsgs);
-    //for (i = 0; i < commArrayOffset; i++) {
-    //  msgOffsets[i] = -1;
-    //}
 
     p_mashm->nodalMsgSizes = (int*) malloc(sizeof(int)*p_mashm->numNodalMsgs);
 
@@ -755,21 +758,20 @@ void p_mashmCalculateNodalMsgSchedule(struct MashmPrivate* p_mashm) {
         tmpMsgSize += commArray[iOffset].msgSize;
       }
       else {
-        printf("Okay %d, %d\n", commArray[iOffset].destNodeIndex, commArray[iOffset-1].destNodeIndex);
-        printf("  Okay2 %d, %d\n", iOffset, iOffset-1);
         p_mashm->nodalMsgSizes[nodeCounter] = tmpMsgSize;
 
-        tmpMsgSize = 667;
         msgOffsets[i] = tmpMsgSize;
 
         nodeCounter += 1;
       }
     }
     p_mashm->nodalMsgSizes[nodeCounter] = tmpMsgSize;
+    /*
     for (i = 0; i < p_mashm->numNodalMsgs; i++) {
       printf("Rankn %d nodal msg %d size %d\n", p_mashm->rank, i, p_mashm->nodalMsgSizes[i]);
 
     }
+    */
 
     for (i = 0; i < sumNumMsgs; i++) {
       allSrcSharedMemRanks[i] = commArray[i].srcSharedMemRank;
@@ -777,8 +779,9 @@ void p_mashmCalculateNodalMsgSchedule(struct MashmPrivate* p_mashm) {
       allMsgNodeIndices[i] = commArray[i].destNodeIndex;
     }
 
+    /* Print the comm Schedule */
+    /*
     if (p_mashm->intraComm.isMasterProc) {
-      /* Print the comm Schedule */
       for (i = 0; i < sumNumMsgs; i++) {
         printf("Rankm %d: msg %i: srcRank %d, nodeIndex %d, destRank %d, size %d\n",
                p_mashm->rank, i, commArray[i].srcSharedMemRank, commArray[i].destNodeIndex,
@@ -789,6 +792,7 @@ void p_mashmCalculateNodalMsgSchedule(struct MashmPrivate* p_mashm) {
         }
       }
     }
+    */
 
   }
 

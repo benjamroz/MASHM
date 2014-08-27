@@ -80,7 +80,6 @@ int decomp2dGetOwnerRank(int mIndex, int nIndex, int totalNumRanks, int m, int n
   for (i = 0; i < numCeil; i++) {
     rankCeil = rankCeil + ceilElementsPerRank;
     if (elemIndex < rankCeil) {
-      printf("map1: nIndex, mIndex %d, %d owned by %d\n", mIndex, nIndex, i);
       return i;
     }
   }
@@ -88,7 +87,6 @@ int decomp2dGetOwnerRank(int mIndex, int nIndex, int totalNumRanks, int m, int n
   for (i = numCeil; i < totalNumRanks; i++) {
     rankCeil = rankCeil + floorElementsPerRank;
     if (elemIndex < rankCeil) {
-      printf("map2: nIndex, mIndex %d, %d owned by %d\n", mIndex, nIndex, i);
       return i;
     }
     
@@ -97,14 +95,9 @@ int decomp2dGetOwnerRank(int mIndex, int nIndex, int totalNumRanks, int m, int n
 }
 
 void decomp2dCreateGraph(int m, int n, int rank, int totalNumRanks, int* numElements, int** elements, int** neighbors, int** msgSizes, int* numNeighbors) {
-  //int numElements;
-  //int* elements;
   int neighborsMaxSize;
   int* neighborsMax;
   int* msgSizesMax;
-  //int* neighbors;
-  //int* msgSizes;
-  //int numNeighbors;
   int i, j, k, iNeigh;
   int mIndex, nIndex, msgSize, neighborRank;
   MashmBool found;
@@ -115,21 +108,9 @@ void decomp2dCreateGraph(int m, int n, int rank, int totalNumRanks, int* numElem
   /* Determine the number of elements */
   numberOfElements = decomp2dRectNumElements(m, n, rank, totalNumRanks);
   *numElements = numberOfElements;
-  printf("Rank %d numElements %d\n", rank, *numElements);
 
   *elements = (int*) malloc(sizeof(int)*(numberOfElements));
 
-  printf("Rank %d after allocating numElements %d\n", rank, *numElements);
-  printf("Rank %d after allocating numElements %d, ptrVal = %p\n", rank, *numElements, *elements);
-  if ( (*elements) == NULL ) {
-    printf("Error 123: Rank %d, malloc failed\n", rank);
-  }
-  for (i = 0; i < numberOfElements; i++) {
-    (*elements)[i] = 0;
-  }
-  for (i = 0; i < numberOfElements; i++) {
-    printf("Test 456: Rank %d, Elements %d = %d\n", rank, i, (*elements)[i]);
-  }
   decomp2dRectGetElements(m, n, rank, totalNumRanks, *elements);
   /* Allocate the maximum possible number of elements */
   neighborsMaxSize = 8*(*numElements);
