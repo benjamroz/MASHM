@@ -1,5 +1,6 @@
 
 SET(NODAL_COMM_SRCS
+  testHelpers/decomp2d.c
   nodalComm.c)
 
 INCLUDE_DIRECTORIES(
@@ -13,8 +14,8 @@ INCLUDE_DIRECTORIES(
 #ADD_SUBDIRECTORY(testHelpers)
 
 ADD_EXECUTABLE(nodalComm ${NODAL_COMM_SRCS})
-ADD_EXECUTABLE(nodalCommFtn nodalCommFtn.F90)
+ADD_EXECUTABLE(nodalCommFtn nodalCommFtn.F90 testHelpers/decomp2d.c)
 
 #TARGET_LINK_LIBRARIES(nodalComm testHelpers mashm)
 TARGET_LINK_LIBRARIES(nodalComm mashm)
-TARGET_LINK_LIBRARIES(nodalCommFtn mashm)
+TARGET_LINK_LIBRARIES(nodalCommFtn mashm mashm_ftn)

@@ -2,8 +2,6 @@
 
 #include "mpi.h"
 
-//#include "MashmIntraNodeComm.h"
-//#include "MashmCommCycle.h"
 #include "MashmPrivate.h"
 #include "Mashm.h"
 
@@ -48,6 +46,14 @@ void MashmSetNumComms(Mashm in_mashm, int numComms) {
 
 void MashmSetComm(Mashm in_mashm, int commIndex, int pairRank, int msgSize) {
   p_MashmSetComm(in_mashm.p, commIndex, pairRank, msgSize);
+}
+
+int MashmGetCommRank(Mashm in_mashm, int commIndex) {
+  return p_MashmGetCommRank(in_mashm.p, commIndex);
+}
+
+int MashmGetCommSize(Mashm in_mashm, int commIndex) {
+  return p_MashmGetCommSize(in_mashm.p, commIndex);
 }
 
 void MashmPrintCommCollection(const Mashm in_mashm) {

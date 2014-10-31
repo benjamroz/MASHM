@@ -79,6 +79,16 @@ void MashmCommCollectionSetComm(MashmCommCollection* commCollection, int commInd
   (commCollection->commArray[commIndex]).recvSize = recvSize;
 }
 
+
+int MashmCommCollectionGetCommSize(MashmCommCollection* commCollection, int commIndex) {
+  return commCollection->commArray[commIndex].pairRank;
+}
+
+int MashmCommCollectionGetCommRank(MashmCommCollection* commCollection, int commIndex) {
+  return commCollection->commArray[commIndex].sendSize;
+}
+
+
 void MashmCommCollectionPrint(const MashmCommCollection commCollection) {
   int i;
   if (!commCollection.isInit) {

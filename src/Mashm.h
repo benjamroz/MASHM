@@ -75,6 +75,24 @@ void MashmSetComm(Mashm in_mashm, int commIndex, int pairRank, int msgSize);
 
 /**
  *  \memberof Mashm
+ *  @brief Get the rank of the source/dest for this communication index (symmetric)
+ *  @param in_mashm Mashm object
+ *  @param commIndex Index of the message to set
+ *  @return Global MPI rank of the source/dest for this communication
+ */
+int MashmGetCommRank(Mashm in_mashm, int commIndex);
+
+/**
+ *  \memberof Mashm
+ *  @brief Get the size of the message for this communication index (symmetric)
+ *  @param in_mashm Mashm object
+ *  @param commIndex Index of the message to set
+ *  @return Size of the message this communication
+ */
+int MashmGetCommSize(Mashm in_mashm, int commIndex);
+
+/**
+ *  \memberof Mashm
  *  @brief Allocate location for message data and set up pointers
  *  @param in_mashm Mashm object
  */
@@ -194,4 +212,10 @@ void MashmIntraNodeCommEnd(Mashm in_mashm);
  */
 void MashmDestroy(Mashm* in_mashm);
 
+/** 
+ *  \memberof Mashm
+ *  @brief Print informatino about the messages
+ *  @param in_mashm Mashm object
+ */
+void MashmPrintCommCollection(const Mashm in_mashm);
 #endif 

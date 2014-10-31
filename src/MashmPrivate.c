@@ -1384,6 +1384,16 @@ void p_MashmSetComm(struct MashmPrivate* p_mashm, int commIndex, int pairRank, i
   MashmCommCollectionSetComm(&(p_mashm->commCollection), commIndex, pairRank, msgSize, msgSize);
 }
 
+/* Get the rank of communication */
+int p_MashmGetCommRank(struct MashmPrivate* p_mashm, int commIndex) {
+  return MashmCommCollectionGetCommRank(&(p_mashm->commCollection), commIndex);
+}
+
+/* Get the size of communication */
+int p_MashmGetCommSize(struct MashmPrivate* p_mashm, int commIndex) {
+  return MashmCommCollectionGetCommSize(&(p_mashm->commCollection), commIndex);
+}
+
 void p_MashmPrintCommCollection(const struct MashmPrivate* p_mashm) {
   int i;
   for (i = 0; i < p_mashm->size; i++) {

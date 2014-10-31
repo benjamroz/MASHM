@@ -183,6 +183,12 @@ void p_MashmSetNumComms(struct MashmPrivate* p_mashm, int numComms);
 /* Set the communication data for the specified message index */
 void p_MashmSetComm(struct MashmPrivate* p_mashm, int commIndex, int pairRank, int msgSize);
 
+/* Get the rank of communication */
+int p_MashmGetCommRank(struct MashmPrivate* p_mashm, int commIndex);
+
+/* Get the size of communication */
+int p_MashmGetCommSize(struct MashmPrivate* p_mashm, int commIndex);
+
 /* Print the communication collection */
 void p_MashmPrintCommCollection(const struct MashmPrivate* p_mashm);
 

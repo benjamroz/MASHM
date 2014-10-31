@@ -49,6 +49,10 @@ void MashmCommCollectionSetSize(MashmCommCollection* commCollection, int numComm
 
 void MashmCommCollectionSetComm(MashmCommCollection* commCollection, int commIndex, int pairRank, int sendSize, int recvSize);
 
+int MashmCommCollectionGetCommSize(MashmCommCollection* commCollection, int commIndex);
+
+int MashmCommCollectionGetCommRank(MashmCommCollection* commCollection, int commIndex);
+
 void MashmCommCollectionPrint(const MashmCommCollection commCollection);
 
 void MashmCommCollectionReset(MashmCommCollection* commCollection);

@@ -59,3 +59,4 @@ cmake /path/to/source
 4. Condense the two structs: commTuple, MashmCommCollection
 5. Remove unnecessary data from MashmPrivate
 6. Ensure proper cleanup (destructors) 
+7. Get Fortran test working
