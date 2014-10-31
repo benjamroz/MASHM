@@ -206,9 +206,6 @@ int main(int argc, char** argv) {
   for (i = 0; i < numNeighbors; i++) {
     mashmSendBufferPtrs[i] = MashmGetBufferPointer(myMashm, i, MASHM_SEND);
     mashmRecvBufferPtrs[i] = MashmGetBufferPointer(myMashm, i, MASHM_RECEIVE);
-    for (j = 0; j < msgSizes[i]; j++) {
-      mashmSendBufferPtrs[i][j] = rank*msgSizes[i]+j;
-    }
   }
 
  
@@ -216,16 +213,12 @@ int main(int argc, char** argv) {
    * Now perform communication 
    ************************************************************/
 
-  for (i = 0; i < numNeighbors; i++) {
-    /* Fill individual buffer */
-    for (j = 0; j < msgSizes[i]; j++) {
-    }
-  }
-
-
   /* Fill internode buffers */
   for (i = 0; i < numNeighbors; i++) {
     if (! MashmIsMsgOnNode(myMashm, i)) {
+      for (j = 0; j < msgSizes[i]; j++) {
+        mashmSendBufferPtrs[i][j] = rank*msgSizes[i]+j;
+      }
     }
   }
 
@@ -238,6 +231,9 @@ int main(int argc, char** argv) {
    */
   for (i = 0; i < numNeighbors; i++) {
     if (MashmIsMsgOnNode(myMashm, i)) {
+      for (j = 0; j < msgSizes[i]; j++) {
+        mashmSendBufferPtrs[i][j] = rank*msgSizes[i]+j;
+      }
     }
   }
 
@@ -252,6 +248,9 @@ int main(int argc, char** argv) {
   for (i = 0; i < numNeighbors; i++) {
     if (MashmIsMsgOnNode(myMashm, i)) {
       /* Unpack individual buffer */
+      for (j = 0; j < msgSizes[i]; j++) {
+        mashmSendBufferPtrs[i][j] = rank*msgSizes[i]+j;
+      }
     }
   }
 
@@ -262,6 +261,9 @@ int main(int argc, char** argv) {
   for (i = 0; i < numNeighbors; i++) {
     if (! MashmIsMsgOnNode(myMashm, i)) {
       /* Unpack individual buffer */
+      for (j = 0; j < msgSizes[i]; j++) {
+        mashmSendBufferPtrs[i][j] = rank*msgSizes[i]+j;
+      }
     }
   }
 
