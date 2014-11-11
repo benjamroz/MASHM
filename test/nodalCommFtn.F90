@@ -36,17 +36,22 @@ integer, pointer :: neighbors(:), msgSizes(:)
 integer :: m, n, numElems
 integer :: rank, numProcs
 !integer, pointer :: elements(:)
-integer :: j, sumMsgSizes, counter
+integer :: j, sumMsgSizes
 integer, allocatable :: sendStatuses(:,:)
 integer, allocatable :: recvStatuses(:,:)
 integer, allocatable :: sendRequests(:)
 integer, allocatable :: recvRequests(:)
 real*8, allocatable :: origBuffer(:)
+real*8, allocatable :: mashmData(:)
 integer :: tag
 type(c_ptr) :: cptrElements, cptrNeighbors, cptrMsgSizes
 integer :: iRank
 !MashmPointerArr, allocatable :: recvBuffers(:), sendBuffers(:)
 type(MashmPointer1d), pointer :: recvBuffers(:), sendBuffers(:)
+integer :: offset
+integer, allocatable :: msgOffsets(:)
+logical :: testFailed
+integer :: testFailedInt, numTestsFailed
 
 call MPI_Init(ierr)
 call MPI_Comm_size(MPI_COMM_WORLD, numProcs, ierr)
@@ -62,6 +67,18 @@ call c_f_pointer(cptrNeighbors, neighbors, (/numNeighbors/))
 call c_f_pointer(cptrMsgSizes, msgSizes, (/numNeighbors/))
 
 
+allocate(msgOffsets(numNeighbors))
+msgOffsets(1) = 0;
+do i = 2, numNeighbors
+  msgOffsets(i) = msgOffsets(i-1) + msgSizes(i-1)
+enddo
+
+sumMsgSizes = 0;
+do i = 1, numNeighbors
+  sumMsgSizes = sumMsgSizes + msgSizes(i)
+enddo
+
+#if 0
 do iRank = 0, numProcs - 1
   call MPI_Barrier(MPI_COMM_WORLD, ierr)
   call MPI_Barrier(MPI_COMM_WORLD, ierr)
@@ -74,11 +91,7 @@ do iRank = 0, numProcs - 1
   call MPI_Barrier(MPI_COMM_WORLD, ierr)
   call MPI_Barrier(MPI_COMM_WORLD, ierr)
 enddo
-
-sumMsgSizes = 0
-do i = 1, numNeighbors
-  sumMsgSizes = sumMsgSizes + msgSizes(i) 
-enddo
+#endif
 
 !/* Allocate send and receive buffers */
 allocate(recvBuffers(numNeighbors))
@@ -99,26 +112,10 @@ enddo
 !/* Now fill the buffers */
 do i = 1, numNeighbors
   do j = 1, msgSizes(i)
-    !sendBuffers(i)%p(j) = rank*msgSizes(i)+j;
-    sendBuffers(i)%p(j) = -(rank+1)
+    sendBuffers(i)%p(j) = rank*msgSizes(i)+j;
   enddo
 enddo
 
-#if 0
-do iRank = 0, numProcs - 1
-  call MPI_Barrier(MPI_COMM_WORLD, ierr)
-  call MPI_Barrier(MPI_COMM_WORLD, ierr)
-  if (rank == iRank) then
-    write(*,*) "Rank ", rank
-    do i = 1, numNeighbors
-      write(*,*) "  send msg ", i, " data ", sendBuffers(i)%p
-    enddo
-  endif
-  call MPI_Barrier(MPI_COMM_WORLD, ierr)
-  call MPI_Barrier(MPI_COMM_WORLD, ierr)
-  call flush(6)
-enddo
-#endif
 
 !/* Usual point to point communication */
 tag = 0
@@ -148,37 +145,17 @@ if (ierr .ne. MPI_SUCCESS) then
   print *, "Rank ", rank, " error on MPI_Waitall recv"
 endif
 
-#if 0
-call MPI_Barrier(MPI_COMM_WORLD, ierr)
-call MPI_Barrier(MPI_COMM_WORLD, ierr)
-call flush(6)
-do iRank = 0, numProcs - 1
-  call MPI_Barrier(MPI_COMM_WORLD, ierr)
-  call MPI_Barrier(MPI_COMM_WORLD, ierr)
-  if (rank == iRank) then
-    write(*,*) "Rank ", rank
-    do i = 1, numNeighbors
-      write(*,*) "  receive msg ", i, " data ", recvBuffers(i)%p
-    enddo
-  endif
-  call MPI_Barrier(MPI_COMM_WORLD, ierr)
-  call MPI_Barrier(MPI_COMM_WORLD, ierr)
-  call flush(6)
-enddo
-#endif
-
-
 allocate(origBuffer(sumMsgSizes))
-print *, "origBuffer = "
-counter = 1
 do i = 1, numNeighbors
+  offset = msgOffsets(i)
   do j = 1, msgSizes(i)
-    origBuffer(counter) = recvBuffers(i)%p(j)
-    print *, "  ", origBuffer(counter)
-    counter = counter + 1
+    origBuffer(offset+j) = recvBuffers(i)%p(j)
   enddo
 enddo
 
+call MPI_Barrier(MPI_COMM_WORLD, ierr)
+call MPI_Barrier(MPI_COMM_WORLD, ierr)
+call flush(6)
 
 call MashmInit(myMashm, MPI_COMM_WORLD)
 
@@ -196,38 +173,107 @@ enddo
 ! Perform precalculation
 call MashmCommFinish(myMashm)
 
-call MashmPrintCommCollection(myMashm)
+!call MashmPrintCommCollection(myMashm)
 
 ! Retrieve pointers for buffers
 allocate(mashmSendBufferPtrs(numNeighbors))
 allocate(mashmRecvBufferPtrs(numNeighbors))
 
 do i = 1, numNeighbors
-  call MashmGetBufferPointer(myMashm, i, MASHM_SEND, mashmSendBufferPtrs(i)) 
-  call MashmGetBufferPointer(myMashm, i, MASHM_RECEIVE, mashmRecvBufferPtrs(i)) 
+  call MashmGetBufferPointer(myMashm, i, MASHM_SEND, mashmSendBufferPtrs(i), msgSizes(i))
+  call MashmGetBufferPointer(myMashm, i, MASHM_RECEIVE, mashmRecvBufferPtrs(i), msgSizes(i))
 enddo
-
 ! Fill buffers
 
+call MPI_Barrier(MPI_COMM_WORLD, ierr)
+call MPI_Barrier(MPI_COMM_WORLD, ierr)
+call MPI_Barrier(MPI_COMM_WORLD, ierr)
+call MPI_Barrier(MPI_COMM_WORLD, ierr)
 !************************************************************
 ! * Now perform communication 
 ! ************************************************************/
+!  /* Fill internode buffers */
+do i = 1, numNeighbors
+  if (.not. MashmIsMsgOnNode(myMashm, i))  then
+    do j = 1, msgSizes(i)
+      mashmSendBufferPtrs(i)%p(j) = rank*msgSizes(i)+j;
+    enddo
+  endif
+enddo
 
 ! Send internode messages
+if (rank == 0) print *, "Mashm Internode communication begin."
 call MashmInterNodeCommBegin(myMashm)
 
-! Messages sent and receives posted 
-! * Can asynchronously do work on nodal data 
-!
+do i = 1, numNeighbors
+  if (MashmIsMsgOnNode(myMashm, i)) then
+    do j = 1, msgSizes(i)
+      mashmSendBufferPtrs(i)%p(j) = rank*msgSizes(i)+j
+    enddo
+  endif
+enddo
+
 ! Send intranode messages
+if (rank == 0) print *, "Mashm Intranode communication begin."
 call MashmIntraNodeCommBegin(myMashm)
+
+allocate(mashmData(sumMsgSizes))
+
+if (rank == 0) print *, "Mashm Intranode communication end."
 call MashmIntraNodeCommEnd(myMashm)
+
 ! At this stage you have completed the intra-node communication
+do i = 1, numNeighbors
+  if (MashmIsMsgOnNode(myMashm, i)) then
+    offset = msgOffsets(i)
+    do j = 1, msgSizes(i)
+      mashmData(offset+j) = mashmRecvBufferPtrs(i)%p(j)
+    enddo
+  endif
+enddo
 
 ! Asynchronously do work on nodal data
 
 ! Now wait on nodal messages
+if (rank == 0) print *, "Mashm Internode communication end."
 call MashmInterNodeCommEnd(myMashm)
+
+do i = 1, numNeighbors
+  if (.not. MashmIsMsgOnNode(myMashm, i)) then
+    offset = msgOffsets(i)
+    do j = 1, msgSizes(i)
+      mashmData(offset+j) = mashmRecvBufferPtrs(i)%p(j)
+    enddo
+  endif
+enddo
+
+call MPI_Barrier(MPI_COMM_WORLD, ierr)
+
+testFailed = .false.
+do i = 1, sumMsgSizes
+  if (origBuffer(i) .ne. mashmData(i)) then
+    print *, "Error entry ", i, " different with value ", origBuffer(i) - mashmData(i)
+    testFailed = .true.
+  endif
+enddo
+
+call MPI_Barrier(MPI_COMM_WORLD, ierr)
+
+if (testFailed) then
+  testFailedInt = 1
+else
+  testFailedInt = 0
+endif
+
+call MPI_Reduce(testFailedInt, numTestsFailed, 1, MPI_INTEGER, MPI_SUM, 0, MPI_COMM_WORLD, ierr)
+
+if (rank == 0) then
+  if (numTestsFailed .ne. 0) then
+    print *, "Test Failed: buffers are different"
+  else
+    print *, "Test Passed: buffers are identical"
+  endif
+endif 
 
 ! Destroy the Mashm object
 call MashmDestroy(myMashm)
@@ -236,6 +282,7 @@ call MashmDestroy(myMashm)
 call decomp2dDestroyGraph(cptrNeighbors, cptrMsgSizes)
 
 call MPI_Finalize(ierr)
+
 end program nodalCommFtn
 
 

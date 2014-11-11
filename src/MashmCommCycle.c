@@ -81,11 +81,11 @@ void MashmCommCollectionSetComm(MashmCommCollection* commCollection, int commInd
 
 
 int MashmCommCollectionGetCommSize(MashmCommCollection* commCollection, int commIndex) {
-  return commCollection->commArray[commIndex].pairRank;
+  return commCollection->commArray[commIndex].sendSize;
 }
 
 int MashmCommCollectionGetCommRank(MashmCommCollection* commCollection, int commIndex) {
-  return commCollection->commArray[commIndex].sendSize;
+  return commCollection->commArray[commIndex].pairRank;
 }
 
 

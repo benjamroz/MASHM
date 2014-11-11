@@ -78,7 +78,18 @@ MashmBool MashmIsMsgOnNode(Mashm in_mashm, int msgIndex) {
 
 double* MashmGetBufferPointer(Mashm in_mashm, int msgIndex, MashmSendReceive sendReceive) {
   /* Call the private routine */
+  /* Debug
+  printf("pointer, msgIndex, sendReceive %p,%d,%d\n", p_MashmGetBufferPointer(in_mashm.p, msgIndex, sendReceive),msgIndex, sendReceive);
+  */
   return p_MashmGetBufferPointer(in_mashm.p, msgIndex, sendReceive);
+}
+
+void MashmGetBufferPointer2(Mashm in_mashm, int msgIndex, MashmSendReceive sendReceive, double** outPtr) {
+  /* Call the private routine */
+  /*
+  printf("pointer, msgIndex, sendReceive %p,%d,%d\n", p_MashmGetBufferPointer(in_mashm.p, msgIndex, sendReceive),msgIndex, sendReceive);
+  */
+  *outPtr = p_MashmGetBufferPointer(in_mashm.p, msgIndex, sendReceive);
 }
 
 void MashmRetireBufferPointer(Mashm in_mashm, double** bufPtr) {

@@ -19,7 +19,7 @@
 
 #define MashmPrintInfo FCI_GLOBAL(mashmprintinfo,MASHMPRINTINFO)
 
-#define MashmIsMsgOnNode FCI_GLOBAL(mashmismsgonnode,MASHMISMSGONNODE)
+#define MashmIsMsgOnNode FCI_GLOBAL(mashmismsgonnodec,MASHMISMSGONNODEC)
 
 #define MashmSetCommMethod FCI_GLOBAL(mashmsetcommmethod,MASHMSETCOMMMETHOD)
 
@@ -40,6 +40,7 @@
 #define MashmSetupStandardComm FCI_GLOBAL(mashmsetupstandardcomm,MASHMSETUPSTANDARDCOMM)
 
 #define MashmGetBufferPointer FCI_GLOBAL(mashmgetbufferpointerc,MASHMGETBUFFERPOINTERC)
+#define MashmGetBufferPointer2 FCI_GLOBAL(mashmgetbufferpointer2c,MASHMGETBUFFERPOINTER2C)
 
 #define MashmGetBufferPointerForDest FCI_GLOBAL(mashmgetbufferpointerfordest,MASHMGETBUFFERPOINTERFORDEST)
 

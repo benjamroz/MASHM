@@ -48,6 +48,8 @@ int main(int argc, char** argv) {
   double* mashmData;
   MashmBool testFailed = false;
   int testFailedInt, numTestsFailed;
+  int* msgOffsets;
+  int offset;
 
   ierr = MPI_Init(&argc,&argv);
   ierr = MPI_Comm_size(MPI_COMM_WORLD, &numProcs);
@@ -72,6 +74,12 @@ int main(int argc, char** argv) {
 #endif
 
   decomp2dCreateGraph(m, n, rank, numProcs, &numElems, &elements, &neighbors, &msgSizes, &numNeighbors);
+
+  msgOffsets = (int*) malloc(sizeof(int)*numNeighbors);
+  msgOffsets[0] = 0;
+  for (i = 1; i < numNeighbors; i++) {
+    msgOffsets[i] = msgOffsets[i-1] + msgSizes[i-1];
+  }
 
   /* Print element to process map */
   /*
@@ -139,7 +147,13 @@ int main(int argc, char** argv) {
 
   ierr = MPI_Waitall(numNeighbors,recvRequests,recvStatuses); 
   ierr = MPI_Waitall(numNeighbors,sendRequests,sendStatuses); 
-
+  origBuffer = (double*) malloc(sizeof(double)*sumMsgSizes);
+  for (i = 0; i < numNeighbors; i++) {
+    offset = msgOffsets[i];
+    for (j = 0; j < msgSizes[i]; j++) {
+      origBuffer[offset + j] = recvBuffers[i][j];
+    }
+  }
   /****************************************************************
    * Okay that was a lot of setup
    * Now use the MASHM library
@@ -157,6 +171,7 @@ int main(int argc, char** argv) {
   /* Add communications calculated above */
   if (rank == 0) printf("Setting message information\n");
   MashmSetNumComms(myMashm, numNeighbors);
+
   for (i = 0; i < numNeighbors; i++) {
     MashmSetComm(myMashm, i, neighbors[i], msgSizes[i]);
   }
@@ -240,6 +255,10 @@ int main(int argc, char** argv) {
   /* Send intranode messages */
   if (rank == 0) printf("Mashm Intranode communication begin.\n");
   MashmIntraNodeCommBegin(myMashm);
+
+  /* Asynchronously do some computation */
+  mashmData = (double*) malloc(sizeof(double)*sumMsgSizes);
+
   if (rank == 0) printf("Mashm Intranode communication end.\n");
   MashmIntraNodeCommEnd(myMashm);
   /* At this stage you have completed the intra-node communication */
@@ -248,8 +267,9 @@ int main(int argc, char** argv) {
   for (i = 0; i < numNeighbors; i++) {
     if (MashmIsMsgOnNode(myMashm, i)) {
       /* Unpack individual buffer */
+      offset = msgOffsets[i];
       for (j = 0; j < msgSizes[i]; j++) {
-        mashmSendBufferPtrs[i][j] = rank*msgSizes[i]+j;
+        mashmData[offset+j] = mashmRecvBufferPtrs[i][j];
       }
     }
   }
@@ -261,8 +281,9 @@ int main(int argc, char** argv) {
   for (i = 0; i < numNeighbors; i++) {
     if (! MashmIsMsgOnNode(myMashm, i)) {
       /* Unpack individual buffer */
+      offset = msgOffsets[i];
       for (j = 0; j < msgSizes[i]; j++) {
-        mashmSendBufferPtrs[i][j] = rank*msgSizes[i]+j;
+        mashmData[offset+j] = mashmRecvBufferPtrs[i][j];
       }
     }
   }
@@ -272,26 +293,8 @@ int main(int argc, char** argv) {
    * All communication has been performed
    * 
    * Now compare unpacked buffers
-   */
-  origBuffer = (double*) malloc(sizeof(double)*sumMsgSizes);
+   ****************************************************************/
 
-  counter = 0;
-  for (i = 0; i < numNeighbors; i++) {
-    for (j = 0; j < msgSizes[i]; j++) {
-      origBuffer[counter] = recvBuffers[i][j];
-      counter += 1;
-    }
-  }
-
-  mashmData = (double*) malloc(sizeof(double)*sumMsgSizes);
-
-  counter = 0;
-  for (i = 0; i < numNeighbors; i++) {
-    for (j = 0; j < msgSizes[i]; j++) {
-      mashmData[counter] = mashmRecvBufferPtrs[i][j];
-      counter += 1;
-    }
-  }
 
   if (rank == 0) printf("Testing Mashm data against original.\n");
   /* Test that the original buffer and the Mashm data are the same */
@@ -340,7 +343,8 @@ int main(int argc, char** argv) {
 
   free(mashmSendBufferPtrs);
   free(mashmRecvBufferPtrs);
-
+ 
+  free(msgOffsets);
 
   ierr = MPI_Finalize();
 

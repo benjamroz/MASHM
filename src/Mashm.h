@@ -158,6 +158,11 @@ MashmBool MashmIsIntraNodeRank(Mashm in_mashm, int pairRank);
  *  @return A pointer to the location of a send or receive buffer message
  */
 double* MashmGetBufferPointer(Mashm in_mashm, int msgIndex, MashmSendReceive sendReceive);
+/**
+ *  \memberof Mashm
+ *  @brief same as MashmGetBufferPointer - needed for Fortran
+ */
+void MashmGetBufferPointer2(Mashm in_mashm, int msgIndex, MashmSendReceive sendReceive, double** outPtr);
 
 /**
  *  \memberof Mashm
