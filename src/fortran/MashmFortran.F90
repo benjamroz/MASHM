@@ -8,15 +8,12 @@ module Mashm_mod
 #include "Mashmf.h"
 implicit none
 
-  !enum, bind(c) :: MashmSendReceive
-  !  enumerator :: mashm_send, mashm_receive
-  !end enum
+  ! Set enump for MashmSendReceive
   enum, bind(c) 
     enumerator  :: MASHM_SEND = 0, MASHM_RECEIVE = 1
   end enum
 
-  !integer(c_int), parameter :: MASHM_COMM_STANDARD = 0, &
-  !                            MASHM_RECEIVE = 1
+  ! Set enump for MashmCommType
   enum, bind(c)
     enumerator :: MASHM_COMM_STANDARD, &
                   MASHM_COMM_INTRA_MSG, &
@@ -25,14 +22,9 @@ implicit none
   end enum
 
   type MashmBufferPointer
-    !real*8, pointer :: p(:)
     real(c_double), pointer, public :: p(:)
     type(c_ptr), public :: cPtr
   end type MashmBufferPointer
-
-  type MashmPointer1d
-    real*8, allocatable :: p(:)
-  end type MashmPointer1d
 
 interface
 

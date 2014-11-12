@@ -1,3 +1,9 @@
+module arrayOfPointers_mod
+  type arrayOfPointers
+    real*8, allocatable :: p(:)
+  end type arrayOfPointers
+end module 
+
 module decomp2d_mod
   interface
 
@@ -25,6 +31,7 @@ program nodalCommFtn
 use iso_c_binding
 use Mashm_mod
 use mpi
+use arrayOfPointers_mod
 use decomp2d_mod
 implicit none
 Mashm :: myMashm
@@ -46,8 +53,7 @@ real*8, allocatable :: mashmData(:)
 integer :: tag
 type(c_ptr) :: cptrElements, cptrNeighbors, cptrMsgSizes
 integer :: iRank
-!MashmPointerArr, allocatable :: recvBuffers(:), sendBuffers(:)
-type(MashmPointer1d), pointer :: recvBuffers(:), sendBuffers(:)
+type(arrayOfPointers), pointer :: recvBuffers(:), sendBuffers(:)
 integer :: offset
 integer, allocatable :: msgOffsets(:)
 logical :: testFailed
