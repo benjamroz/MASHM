@@ -52,6 +52,7 @@ integer :: offset
 integer, allocatable :: msgOffsets(:)
 logical :: testFailed
 integer :: testFailedInt, numTestsFailed
+MashmCommType :: commMethod
 
 call MPI_Init(ierr)
 call MPI_Comm_size(MPI_COMM_WORLD, numProcs, ierr)
@@ -62,7 +63,6 @@ n = 10
 
 call decomp2dCreateGraph(m, n, rank, numProcs, numElems, cptrElements, cptrNeighbors, cptrMsgSizes, numNeighbors)
 
-!call c_f_pointer(cptrElements, elements, shape=[numNeighbors])
 call c_f_pointer(cptrNeighbors, neighbors, (/numNeighbors/))
 call c_f_pointer(cptrMsgSizes, msgSizes, (/numNeighbors/))
 
@@ -77,21 +77,6 @@ sumMsgSizes = 0;
 do i = 1, numNeighbors
   sumMsgSizes = sumMsgSizes + msgSizes(i)
 enddo
-
-#if 0
-do iRank = 0, numProcs - 1
-  call MPI_Barrier(MPI_COMM_WORLD, ierr)
-  call MPI_Barrier(MPI_COMM_WORLD, ierr)
-  if (rank == iRank) then
-    write(*,*) "Rank ", rank
-    do i = 1, numNeighbors
-      write(*,*) "  msg ", i, " neighbors ", neighbors(i), " msgSizes ", msgSizes(i)
-    enddo
-  endif
-  call MPI_Barrier(MPI_COMM_WORLD, ierr)
-  call MPI_Barrier(MPI_COMM_WORLD, ierr)
-enddo
-#endif
 
 !/* Allocate send and receive buffers */
 allocate(recvBuffers(numNeighbors))
@@ -170,6 +155,14 @@ do i = 1, numNeighbors
   call MashmSetComm(myMashm, i, neighbors(i), msgSizes(i))
 enddo
 
+! Choose the communitcation method
+!commMethod = MASHM_COMM_INTRA_SHARED
+!commMethod = MASHM_COMM_INTRA_MSG
+!commMethod = MASHM_COMM_STANDARD
+commMethod = MASHM_COMM_MIN_AGG
+
+call MashmSetCommMethod(myMashm, commMethod)
+
 ! Perform precalculation
 call MashmCommFinish(myMashm)
 
@@ -180,15 +173,11 @@ allocate(mashmSendBufferPtrs(numNeighbors))
 allocate(mashmRecvBufferPtrs(numNeighbors))
 
 do i = 1, numNeighbors
-  call MashmGetBufferPointer(myMashm, i, MASHM_SEND, mashmSendBufferPtrs(i), msgSizes(i))
-  call MashmGetBufferPointer(myMashm, i, MASHM_RECEIVE, mashmRecvBufferPtrs(i), msgSizes(i))
+  call MashmGetBufferPointer(myMashm, i, MASHM_SEND, mashmSendBufferPtrs(i))
+  call MashmGetBufferPointer(myMashm, i, MASHM_RECEIVE, mashmRecvBufferPtrs(i))
 enddo
 ! Fill buffers
 
-call MPI_Barrier(MPI_COMM_WORLD, ierr)
-call MPI_Barrier(MPI_COMM_WORLD, ierr)
-call MPI_Barrier(MPI_COMM_WORLD, ierr)
-call MPI_Barrier(MPI_COMM_WORLD, ierr)
 !************************************************************
 ! * Now perform communication 
 ! ************************************************************/
@@ -232,6 +221,7 @@ do i = 1, numNeighbors
   endif
 enddo
 
+
 ! Asynchronously do work on nodal data
 
 ! Now wait on nodal messages
@@ -246,6 +236,16 @@ do i = 1, numNeighbors
     enddo
   endif
 enddo
+
+! Restore (nullify) the Mashm access pointers
+do i = 1, numNeighbors
+  call MashmRetireBufferPointer(myMashm, mashmSendBufferPtrs(i))
+  call MashmRetireBufferPointer(myMashm, mashmRecvBufferPtrs(i))
+enddo
+
+
+! Destroy the Mashm object
+call MashmDestroy(myMashm)
 
 call MPI_Barrier(MPI_COMM_WORLD, ierr)
 
@@ -274,9 +274,6 @@ if (rank == 0) then
     print *, "Test Passed: buffers are identical"
   endif
 endif 
-
-! Destroy the Mashm object
-call MashmDestroy(myMashm)
 
 ! Destroy the graph data
 call decomp2dDestroyGraph(cptrNeighbors, cptrMsgSizes)

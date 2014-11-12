@@ -11,7 +11,18 @@ implicit none
   !enum, bind(c) :: MashmSendReceive
   !  enumerator :: mashm_send, mashm_receive
   !end enum
-  integer(c_int), parameter :: MASHM_SEND = 0, MASHM_RECEIVE = 1
+  enum, bind(c) 
+    enumerator  :: MASHM_SEND = 0, MASHM_RECEIVE = 1
+  end enum
+
+  !integer(c_int), parameter :: MASHM_COMM_STANDARD = 0, &
+  !                            MASHM_RECEIVE = 1
+  enum, bind(c)
+    enumerator :: MASHM_COMM_STANDARD, &
+                  MASHM_COMM_INTRA_MSG, &
+                  MASHM_COMM_INTRA_SHARED, &
+                  MASHM_COMM_MIN_AGG
+  end enum
 
   type MashmBufferPointer
     !real*8, pointer :: p(:)
@@ -141,11 +152,20 @@ interface
    
   end function
 
+  subroutine MashmRetireBufferPointerC(in_mashm, bufferPointer)
+    use, intrinsic :: iso_c_binding
+    use Mashm_enum_mod
+    implicit none
+    Mashm, value, intent(in) :: in_mashm
+    type(c_ptr), intent(out) :: bufferPointer
+
+  end subroutine
+
 end interface
 
 contains
 
-  subroutine MashmGetBufferPointer(in_mashm, i, sendReceive, ftnBufferPointer, inMsgSize)
+  subroutine MashmGetBufferPointer(in_mashm, i, sendReceive, ftnBufferPointer)
     use, intrinsic :: iso_c_binding
     use Mashm_enum_mod
     implicit none
@@ -155,7 +175,6 @@ contains
     type(MashmBufferPointer), intent(inout) :: ftnBufferPointer
     integer(c_int) :: msgSize
     integer(c_int) :: iBaseZero
-    integer :: inMsgSize
     iBaseZero = i - 1
 
     ! TODO: move to MashmGetBufferPointerC function call - not working for some
@@ -169,6 +188,22 @@ contains
     call c_f_pointer(cptr=ftnBufferPointer%cPtr,fptr=ftnBufferPointer%p,shape = (/ msgSize /))
 
   end subroutine
+
+  subroutine MashmRetireBufferPointer(in_mashm, ftnBufferPointer)
+    use, intrinsic :: iso_c_binding
+    use Mashm_enum_mod
+    implicit none
+    Mashm, value :: in_mashm
+    type(MashmBufferPointer), intent(inout) :: ftnBufferPointer
+
+    ! Nullify the Fortran pointer
+    nullify(ftnBufferPointer%p)
+
+    ! Retire (nullify) the C pointer
+    call MashmRetireBufferPointerC(in_mashm, ftnBufferPointer%cPtr)
+
+  end subroutine
+
 
   subroutine MashmSetComm(in_mashm, commIndex, pairRank, msgSize)
     use, intrinsic :: iso_c_binding

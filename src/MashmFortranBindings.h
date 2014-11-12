@@ -44,6 +44,8 @@
 
 #define MashmGetBufferPointerForDest FCI_GLOBAL(mashmgetbufferpointerfordest,MASHMGETBUFFERPOINTERFORDEST)
 
+#define MashmRetireBufferPointer FCI_GLOBAL(mashmretirebufferpointerc,MASHMRETIREBUFFERPOINTERC)
+
 #define MashmInterNodeCommBegin FCI_GLOBAL(mashminternodecommbegin,MASHMINTERNODECOMMBEGIN)
 
 #define MashmInterNodeCommEnd FCI_GLOBAL(mashminternodecommend,MASHMINTERNODECOMMEND)
