@@ -19,3 +19,11 @@ ADD_EXECUTABLE(nodalCommFtn nodalCommFtn.F90 testHelpers/decomp2d.c)
 #TARGET_LINK_LIBRARIES(nodalComm testHelpers mashm)
 TARGET_LINK_LIBRARIES(nodalComm mashm)
 TARGET_LINK_LIBRARIES(nodalCommFtn mashm mashm_ftn)
+
+SET(POISSON_3D_SRCS
+  poisson3d.F90
+  grid.F90
+)
+
+ADD_EXECUTABLE(poisson3d ${POISSON_3D_SRCS})
+TARGET_LINK_LIBRARIES(poisson3d mashm mashm_ftn)
