@@ -254,7 +254,7 @@ contains
   end function
 
   subroutine determineCommSchedule(rank, numProcs, gridIndicesStart, gridIndicesEnd, &
-                                   numMessages, msgIndices, msgSizes, msgOffsets)
+                                   numMessages, msgIndices, msgSizes, msgOffsets, neighborRanks)
   implicit none
   integer, intent(in) :: rank, numProcs
   integer, intent(in) :: gridIndicesStart(3), gridIndicesEnd(3)
@@ -262,11 +262,11 @@ contains
   integer, intent(out) :: numMessages
   integer, intent(out) :: msgIndices(-1:1,-1:1,-1:1)
   integer, allocatable, intent(out) :: msgSizes(:), msgOffsets(:)
+  integer, allocatable, intent(out) :: neighborRanks(:)
 
   integer :: iRank, ix, iy, iz, elemRank, rankCounter
   integer :: ierr
   integer :: elemRankCounter(0:numProcs-1)
-  integer, allocatable :: neighborRanks(:)
   integer :: tmpDir(-1:1,-1:1,-1:1)
   integer :: tmpDirX, tmpDirY, tmpDirZ
   integer :: totalMessageSize, i

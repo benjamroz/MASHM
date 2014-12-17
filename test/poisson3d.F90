@@ -78,7 +78,7 @@ integer :: packIndex, packOffset
 ! pack top
 packIndex = packDir(0,0,1)
 if (packIndex > 0) then
-  iz = gridIndicesEnd(3) + 1
+  iz = gridIndicesEnd(3)
   packOffset = msgOffsets(packIndex) + 1
   do iy = gridIndicesStart(2), gridIndicesEnd(2)
     do ix = gridIndicesStart(1), gridIndicesEnd(1)
@@ -92,7 +92,7 @@ endif
 ! pack bottom
 packIndex = packDir(0,0,-1)
 if (packIndex > 0) then
-  iz = gridIndicesStart(3) - 1
+  iz = gridIndicesStart(3)
   packOffset = msgOffsets(packIndex) + 1
   do iy = gridIndicesStart(2), gridIndicesEnd(2)
     do ix = gridIndicesStart(1), gridIndicesEnd(1)
@@ -106,7 +106,7 @@ endif
 ! pack south
 packIndex = packDir(0,-1,0)
 if (packIndex > 0) then
-  iy = gridIndicesStart(2) - 1
+  iy = gridIndicesStart(2)
   packOffset = msgOffsets(packIndex) + 1
   do iz = gridIndicesStart(3), gridIndicesEnd(3)
     do ix = gridIndicesStart(1), gridIndicesEnd(1)
@@ -119,7 +119,7 @@ endif
 ! pack north
 packIndex = packDir(0,1,0)
 if (packIndex > 0) then
-  iy = gridIndicesEnd(2) + 1
+  iy = gridIndicesEnd(2)
   packOffset = msgOffsets(packIndex) + 1
   do iz = gridIndicesStart(3), gridIndicesEnd(3)
     do ix = gridIndicesStart(1), gridIndicesEnd(1)
@@ -132,7 +132,7 @@ endif
 ! pack east
 packIndex = packDir(-1,0,0)
 if (packIndex > 0) then
-  ix = gridIndicesStart(1) - 1
+  ix = gridIndicesStart(1)
   packOffset = msgOffsets(packIndex) + 1
   do iz = gridIndicesStart(3), gridIndicesEnd(3)
     do iy = gridIndicesStart(2), gridIndicesEnd(2)
@@ -145,7 +145,7 @@ endif
 ! pack west
 packIndex = packDir(1,0,0)
 if (packIndex > 0) then
-  ix = gridIndicesEnd(1) + 1
+  ix = gridIndicesEnd(1)
   packOffset = msgOffsets(packIndex) + 1
   do iz = gridIndicesStart(3), gridIndicesEnd(3)
     do iy = gridIndicesStart(2), gridIndicesEnd(2)
@@ -159,8 +159,8 @@ endif
 ! Bottom east
 packIndex = packDir(-1,0,-1)
 if (packIndex > 0) then
-  ix = gridIndicesStart(1) - 1
-  iz = gridIndicesStart(3) - 1
+  ix = gridIndicesStart(1)
+  iz = gridIndicesStart(3)
   packOffset = msgOffsets(packIndex) + 1
   do iy = gridIndicesStart(2), gridIndicesEnd(2)
     packBuffer(packOffset) = inData(ix,iy,iz)
@@ -171,8 +171,8 @@ endif
 ! Bottom west
 packIndex = packDir(1,0,-1)
 if (packIndex > 0) then
-  ix = gridIndicesEnd(1) + 1
-  iz = gridIndicesStart(3) - 1
+  ix = gridIndicesEnd(1)
+  iz = gridIndicesStart(3)
   packOffset = msgOffsets(packIndex) + 1
   do iy = gridIndicesStart(2), gridIndicesEnd(2)
     packBuffer(packOffset) = inData(ix,iy,iz)
@@ -183,8 +183,8 @@ endif
 ! Bottom south
 packIndex = packDir(0,-1,-1)
 if (packIndex > 0) then
-  iy = gridIndicesStart(2) - 1
-  iz = gridIndicesStart(3) - 1
+  iy = gridIndicesStart(2)
+  iz = gridIndicesStart(3)
   packOffset = msgOffsets(packIndex) + 1
   do ix = gridIndicesStart(1), gridIndicesEnd(1)
     packBuffer(packOffset) = inData(ix,iy,iz)
@@ -195,8 +195,8 @@ endif
 ! Bottom north
 packIndex = packDir(0,1,-1)
 if (packIndex > 0) then
-  iy = gridIndicesEnd(2) + 1
-  iz = gridIndicesStart(3) - 1
+  iy = gridIndicesEnd(2)
+  iz = gridIndicesStart(3)
   packOffset = msgOffsets(packIndex) + 1
   do ix = gridIndicesStart(1), gridIndicesEnd(1)
     packBuffer(packOffset) = inData(ix,iy,iz)
@@ -209,8 +209,8 @@ endif
 ! Bottom east
 packIndex = packDir(-1,0,1)
 if (packIndex > 0) then
-  ix = gridIndicesStart(1) - 1
-  iz = gridIndicesEnd(3) + 1
+  ix = gridIndicesStart(1)
+  iz = gridIndicesEnd(3)
   packOffset = msgOffsets(packIndex) + 1
   do iy = gridIndicesStart(2), gridIndicesEnd(2)
     packBuffer(packOffset) = inData(ix,iy,iz)
@@ -221,8 +221,8 @@ endif
 ! Bottom west
 packIndex = packDir(1,0,1)
 if (packIndex > 0) then
-  ix = gridIndicesEnd(1) + 1
-  iz = gridIndicesEnd(3) + 1
+  ix = gridIndicesEnd(1)
+  iz = gridIndicesEnd(3)
   packOffset = msgOffsets(packIndex) + 1
   do iy = gridIndicesStart(2), gridIndicesEnd(2)
     packBuffer(packOffset) = inData(ix,iy,iz)
@@ -233,8 +233,8 @@ endif
 ! Bottom south
 packIndex = packDir(0,-1,1)
 if (packIndex > 0) then
-  iy = gridIndicesStart(2) - 1
-  iz = gridIndicesEnd(3) + 1
+  iy = gridIndicesStart(2)
+  iz = gridIndicesEnd(3)
   packOffset = msgOffsets(packIndex) + 1
   do ix = gridIndicesStart(1), gridIndicesEnd(1)
     packBuffer(packOffset) = inData(ix,iy,iz)
@@ -245,8 +245,8 @@ endif
 ! Bottom north
 packIndex = packDir(0,1,1)
 if (packIndex > 0) then
-  iy = gridIndicesEnd(2) + 1
-  iz = gridIndicesEnd(3) + 1
+  iy = gridIndicesEnd(2)
+  iz = gridIndicesEnd(3)
   packOffset = msgOffsets(packIndex) + 1
   do ix = gridIndicesStart(1), gridIndicesEnd(1)
     packBuffer(packOffset) = inData(ix,iy,iz)
@@ -254,16 +254,91 @@ if (packIndex > 0) then
   enddo
 endif
 
+! Pack corners
+! Bottom south east
+packIndex = packDir(-1,-1,-1)
+if (packIndex > 0) then
+  ix = gridIndicesStart(1)
+  iy = gridIndicesStart(2)
+  iz = gridIndicesStart(3)
+  packOffset = msgOffsets(packIndex) + 1
+  packBuffer(packOffset) = inData(ix,iy,iz)
+endif
+
+packIndex = packDir(1,-1,-1)
+if (packIndex > 0) then
+  ix = gridIndicesEnd(1)
+  iy = gridIndicesStart(2)
+  iz = gridIndicesStart(3)
+  packOffset = msgOffsets(packIndex) + 1
+  packBuffer(packOffset) = inData(ix,iy,iz)
+endif
+
+packIndex = packDir(-1,1,-1)
+if (packIndex > 0) then
+  ix = gridIndicesStart(1)
+  iy = gridIndicesEnd(2)
+  iz = gridIndicesStart(3)
+  packOffset = msgOffsets(packIndex) + 1
+  packBuffer(packOffset) = inData(ix,iy,iz)
+endif
+
+packIndex = packDir(1,1,-1)
+if (packIndex > 0) then
+  ix = gridIndicesEnd(1)
+  iy = gridIndicesEnd(2)
+  iz = gridIndicesStart(3)
+  packOffset = msgOffsets(packIndex) + 1
+  packBuffer(packOffset) = inData(ix,iy,iz)
+endif
+
+! Top edges
+packIndex = packDir(-1,-1,1)
+if (packIndex > 0) then
+  ix = gridIndicesStart(1)
+  iy = gridIndicesStart(2)
+  iz = gridIndicesEnd(3)
+  packOffset = msgOffsets(packIndex) + 1
+  packBuffer(packOffset) = inData(ix,iy,iz)
+endif
+
+packIndex = packDir(1,-1,1)
+if (packIndex > 0) then
+  ix = gridIndicesEnd(1)
+  iy = gridIndicesStart(2)
+  iz = gridIndicesEnd(3)
+  packOffset = msgOffsets(packIndex) + 1
+  packBuffer(packOffset) = inData(ix,iy,iz)
+endif
+
+packIndex = packDir(-1,1,1)
+if (packIndex > 0) then
+  ix = gridIndicesStart(1)
+  iy = gridIndicesEnd(2)
+  iz = gridIndicesEnd(3)
+  packOffset = msgOffsets(packIndex) + 1
+  packBuffer(packOffset) = inData(ix,iy,iz)
+endif
+
+packIndex = packDir(1,1,1)
+if (packIndex > 0) then
+  ix = gridIndicesEnd(1)
+  iy = gridIndicesEnd(2)
+  iz = gridIndicesEnd(3)
+  packOffset = msgOffsets(packIndex) + 1
+  packBuffer(packOffset) = inData(ix,iy,iz)
+endif
+
 end subroutine
 
 subroutine unpackData(inData, gridIndicesStart, gridIndicesEnd,  &
-                    msgOffsets, msgLengths, packBuffer, packDir)
+                    msgOffsets, msgLengths, unpackBuffer, packDir)
 integer, intent(in) :: gridIndicesStart(3), gridIndicesEnd(3)
 real*8, intent(inout) :: inData(gridIndicesStart(1)-1:gridIndicesEnd(1)+1, &
                                 gridIndicesStart(2)-1:gridIndicesEnd(2)+1, &
                                gridIndicesStart(3)-1:gridIndicesEnd(3)+1)
 integer, intent(in) :: msgOffsets(:), msgLengths(:)
-real*8, intent(in) :: packBuffer(:)
+real*8, intent(in) :: unpackBuffer(:)
 integer, intent(in) :: packDir(-1:1,-1:1,-1:1)
 
 
@@ -277,7 +352,7 @@ if (packIndex > 0) then
   do iy = gridIndicesStart(2), gridIndicesEnd(2)
     do ix = gridIndicesStart(1), gridIndicesEnd(1)
       !packBuffer(packOffset) = inData(ix,iy,iz)
-      inData(ix,iy,iz) = packBuffer(packOffset)
+      inData(ix,iy,iz) = unpackBuffer(packOffset)
       packOffset = packOffset + 1
     enddo
   enddo
@@ -292,7 +367,7 @@ if (packIndex > 0) then
   do iy = gridIndicesStart(2), gridIndicesEnd(2)
     do ix = gridIndicesStart(1), gridIndicesEnd(1)
       !packBuffer(packOffset) = inData(ix,iy,iz)
-      inData(ix,iy,iz) = packBuffer(packOffset)
+      inData(ix,iy,iz) = unpackBuffer(packOffset)
       packOffset = packOffset + 1
     enddo
   enddo
@@ -307,7 +382,7 @@ if (packIndex > 0) then
   do iz = gridIndicesStart(3), gridIndicesEnd(3)
     do ix = gridIndicesStart(1), gridIndicesEnd(1)
       !packBuffer(packOffset) = inData(ix,iy,iz)
-      inData(ix,iy,iz) = packBuffer(packOffset)
+      inData(ix,iy,iz) = unpackBuffer(packOffset)
       packOffset = packOffset + 1
     enddo
   enddo
@@ -321,7 +396,7 @@ if (packIndex > 0) then
   do iz = gridIndicesStart(3), gridIndicesEnd(3)
     do ix = gridIndicesStart(1), gridIndicesEnd(1)
       !packBuffer(packOffset) = inData(ix,iy,iz)
-      inData(ix,iy,iz) = packBuffer(packOffset)
+      inData(ix,iy,iz) = unpackBuffer(packOffset)
       packOffset = packOffset + 1
     enddo
   enddo
@@ -335,7 +410,7 @@ if (packIndex > 0) then
   do iz = gridIndicesStart(3), gridIndicesEnd(3)
     do iy = gridIndicesStart(2), gridIndicesEnd(2)
       !packBuffer(packOffset) = inData(ix,iy,iz)
-      inData(ix,iy,iz) = packBuffer(packOffset)
+      inData(ix,iy,iz) = unpackBuffer(packOffset)
       packOffset = packOffset + 1
     enddo
   enddo
@@ -349,7 +424,7 @@ if (packIndex > 0) then
   do iz = gridIndicesStart(3), gridIndicesEnd(3)
     do iy = gridIndicesStart(2), gridIndicesEnd(2)
       !packBuffer(packOffset) = inData(ix,iy,iz)
-      inData(ix,iy,iz) = packBuffer(packOffset)
+      inData(ix,iy,iz) = unpackBuffer(packOffset)
       packOffset = packOffset + 1
     enddo
   enddo
@@ -364,7 +439,7 @@ if (packIndex > 0) then
   packOffset = msgOffsets(packIndex) + 1
   do iy = gridIndicesStart(2), gridIndicesEnd(2)
     !packBuffer(packOffset) = inData(ix,iy,iz)
-    inData(ix,iy,iz) = packBuffer(packOffset)
+    inData(ix,iy,iz) = unpackBuffer(packOffset)
     packOffset = packOffset + 1
   enddo
 endif
@@ -377,7 +452,7 @@ if (packIndex > 0) then
   packOffset = msgOffsets(packIndex) + 1
   do iy = gridIndicesStart(2), gridIndicesEnd(2)
     !packBuffer(packOffset) = inData(ix,iy,iz)
-    inData(ix,iy,iz) = packBuffer(packOffset)
+    inData(ix,iy,iz) = unpackBuffer(packOffset)
     packOffset = packOffset + 1
   enddo
 endif
@@ -390,7 +465,7 @@ if (packIndex > 0) then
   packOffset = msgOffsets(packIndex) + 1
   do ix = gridIndicesStart(1), gridIndicesEnd(1)
     !packBuffer(packOffset) = inData(ix,iy,iz)
-    inData(ix,iy,iz) = packBuffer(packOffset)
+    inData(ix,iy,iz) = unpackBuffer(packOffset)
     packOffset = packOffset + 1
   enddo
 endif
@@ -403,7 +478,7 @@ if (packIndex > 0) then
   packOffset = msgOffsets(packIndex) + 1
   do ix = gridIndicesStart(1), gridIndicesEnd(1)
     !packBuffer(packOffset) = inData(ix,iy,iz)
-    inData(ix,iy,iz) = packBuffer(packOffset)
+    inData(ix,iy,iz) = unpackBuffer(packOffset)
     packOffset = packOffset + 1
   enddo
 endif
@@ -418,7 +493,7 @@ if (packIndex > 0) then
   packOffset = msgOffsets(packIndex) + 1
   do iy = gridIndicesStart(2), gridIndicesEnd(2)
     !packBuffer(packOffset) = inData(ix,iy,iz)
-    inData(ix,iy,iz) = packBuffer(packOffset)
+    inData(ix,iy,iz) = unpackBuffer(packOffset)
     packOffset = packOffset + 1
   enddo
 endif
@@ -431,7 +506,7 @@ if (packIndex > 0) then
   packOffset = msgOffsets(packIndex) + 1
   do iy = gridIndicesStart(2), gridIndicesEnd(2)
     !packBuffer(packOffset) = inData(ix,iy,iz)
-    inData(ix,iy,iz) = packBuffer(packOffset)
+    inData(ix,iy,iz) = unpackBuffer(packOffset)
     packOffset = packOffset + 1
   enddo
 endif
@@ -444,7 +519,7 @@ if (packIndex > 0) then
   packOffset = msgOffsets(packIndex) + 1
   do ix = gridIndicesStart(1), gridIndicesEnd(1)
     !packBuffer(packOffset) = inData(ix,iy,iz)
-    inData(ix,iy,iz) = packBuffer(packOffset)
+    inData(ix,iy,iz) = unpackBuffer(packOffset)
     packOffset = packOffset + 1
   enddo
 endif
@@ -457,10 +532,94 @@ if (packIndex > 0) then
   packOffset = msgOffsets(packIndex) + 1
   do ix = gridIndicesStart(1), gridIndicesEnd(1)
     !packBuffer(packOffset) = inData(ix,iy,iz)
-    inData(ix,iy,iz) = packBuffer(packOffset)
+    inData(ix,iy,iz) = unpackBuffer(packOffset)
     packOffset = packOffset + 1
   enddo
 endif
+
+! Pack corners
+! Bottom south east
+packIndex = packDir(-1,-1,-1)
+if (packIndex > 0) then
+  ix = gridIndicesStart(1) - 1
+  iy = gridIndicesStart(2) - 1 
+  iz = gridIndicesStart(3) - 1 
+  packOffset = msgOffsets(packIndex) + 1
+  !packBuffer(packOffset) = inData(ix,iy,iz)
+  inData(ix,iy,iz) = unpackBuffer(packOffset)
+endif
+
+packIndex = packDir(1,-1,-1)
+if (packIndex > 0) then
+  ix = gridIndicesEnd(1) + 1
+  iy = gridIndicesStart(2) - 1
+  iz = gridIndicesStart(3) - 1
+  packOffset = msgOffsets(packIndex) + 1
+  !packBuffer(packOffset) = inData(ix,iy,iz)
+  inData(ix,iy,iz) = unpackBuffer(packOffset)
+endif
+
+packIndex = packDir(-1,1,-1)
+if (packIndex > 0) then
+  ix = gridIndicesStart(1) - 1
+  iy = gridIndicesEnd(2) + 1
+  iz = gridIndicesStart(3) - 1
+  packOffset = msgOffsets(packIndex) + 1
+  !packBuffer(packOffset) = inData(ix,iy,iz)
+  inData(ix,iy,iz) = unpackBuffer(packOffset)
+endif
+
+packIndex = packDir(1,1,-1)
+if (packIndex > 0) then
+  ix = gridIndicesEnd(1) + 1
+  iy = gridIndicesEnd(2) + 1
+  iz = gridIndicesStart(3) - 1
+  packOffset = msgOffsets(packIndex) + 1
+  !packBuffer(packOffset) = inData(ix,iy,iz)
+  inData(ix,iy,iz) = unpackBuffer(packOffset)
+endif
+
+! Top corners
+packIndex = packDir(-1,-1,1)
+if (packIndex > 0) then
+  ix = gridIndicesStart(1) - 1
+  iy = gridIndicesStart(2) - 1
+  iz = gridIndicesEnd(3) + 1
+  packOffset = msgOffsets(packIndex) + 1
+  !packBuffer(packOffset) = inData(ix,iy,iz)
+  inData(ix,iy,iz) = unpackBuffer(packOffset)
+endif
+
+packIndex = packDir(1,-1,1)
+if (packIndex > 0) then
+  ix = gridIndicesEnd(1) + 1
+  iy = gridIndicesStart(2) - 1
+  iz = gridIndicesEnd(3) + 1
+  packOffset = msgOffsets(packIndex) + 1
+  !packBuffer(packOffset) = inData(ix,iy,iz)
+  inData(ix,iy,iz) = unpackBuffer(packOffset)
+endif
+
+packIndex = packDir(-1,1,1)
+if (packIndex > 0) then
+  ix = gridIndicesStart(1) - 1
+  iy = gridIndicesEnd(2) + 1
+  iz = gridIndicesEnd(3) + 1
+  packOffset = msgOffsets(packIndex) + 1
+  !packBuffer(packOffset) = inData(ix,iy,iz)
+  inData(ix,iy,iz) = unpackBuffer(packOffset)
+endif
+
+packIndex = packDir(1,1,1)
+if (packIndex > 0) then
+  ix = gridIndicesEnd(1) + 1
+  iy = gridIndicesEnd(2) + 1
+  iz = gridIndicesEnd(3) + 1
+  packOffset = msgOffsets(packIndex) + 1
+  !packBuffer(packOffset) = inData(ix,iy,iz)
+  inData(ix,iy,iz) = unpackBuffer(packOffset)
+endif
+
 
 end subroutine
 
@@ -489,10 +648,16 @@ logical :: found
 real*8, allocatable :: domain(:,:,:)
 real*8, allocatable :: outData(:,:,:)
 integer :: totalMessageSize
-real*8, allocatable :: packBuffer(:)
+real*8, allocatable :: packBuffer(:), unpackBuffer(:)
 integer, allocatable :: msgOffsets(:)
 integer :: offsetValue, i, j, k
 integer :: msgDirIndex(-1:1,-1:1,-1:1)
+
+integer :: errorCode, errorLen
+character(256) :: errorString
+integer, allocatable :: sendRequest(:), recvRequest(:)
+integer, allocatable :: sendStatus(:,:), recvStatus(:,:)
+
 Mashm :: myMashm
 
 call MPI_Init(ierr)
@@ -510,9 +675,16 @@ call grid_3d_get_indices(numElems, gridIndicesStart, gridIndicesEnd)
 
 
 call determineCommSchedule(rank, numProcs, gridIndicesStart, gridIndicesEnd, numMessages, msgDirIndex, &
-                           msgSizes, msgOffsets)
+                           msgSizes, msgOffsets, neighborRanks)
+
+allocate(sendRequest(numMessages))
+allocate(recvRequest(numMessages))
+allocate(sendStatus(MPI_STATUS_SIZE,numMessages))
+allocate(recvStatus(MPI_STATUS_SIZE,numMessages))
+
 totalMessageSize=msgOffsets(numMessages+1)
 allocate(packBuffer(totalMessageSize))
+allocate(unpackBuffer(totalMessageSize))
 
 ! Initialize domain data
 allocate(domain(gridIndicesStart(1)-1:gridIndicesEnd(1)+1, &
@@ -535,6 +707,7 @@ do k = gridIndicesStart(3)-1, gridIndicesEnd(3)+1
   enddo
 enddo
 
+! The pack is incorrect
 call packData(domain, gridIndicesStart, gridIndicesEnd,  &
               msgOffsets, msgSizes, packBuffer, msgDirIndex)
 
@@ -542,8 +715,33 @@ call packData(domain, gridIndicesStart, gridIndicesEnd,  &
 !  Should have all of the data that we need
 !  Allocate a receive buffer - pass that into unpack
 
+do i = 1, numMessages
+  call MPI_Isend(packBuffer(msgOffsets(i)+1),msgSizes(i),MPI_REAL8,neighborRanks(i),10,MPI_COMM_WORLD,sendRequest(i),ierr)
+  if(ierr .ne. MPI_SUCCESS) then
+    errorcode = ierr
+    call MPI_Error_String(errorcode,errorstring,errorlen,ierr)
+    print *,'Error after call to MPI_Isend: ',errorstring
+  endif
+end do    ! icycle
+
+!==================================================
+!  Post the Receives
+!==================================================
+do i = 1, numMessages
+  call MPI_Irecv(unpackBuffer(msgOffsets(i)+1),msgSizes(i),MPI_REAL8,neighborRanks(i),10,MPI_COMM_WORLD,recvRequest(i),ierr)
+  if(ierr .ne. MPI_SUCCESS) then
+     errorcode = ierr
+     call MPI_Error_String(errorcode,errorstring,errorlen,ierr)
+     print *,'Error after call to MPI_Irecv: ',errorstring
+  endif
+end do    ! icycle
+
+
+call MPI_Waitall(numMessages,sendRequest,sendStatus,ierr)
+call MPI_Waitall(numMessages,recvRequest,recvStatus,ierr)
+
 call unpackData(domain, gridIndicesStart, gridIndicesEnd,  &
-              msgOffsets, msgSizes, packBuffer, msgDirIndex)
+              msgOffsets, msgSizes, unpackBuffer, msgDirIndex)
 
 
 call MPI_Finalize(ierr)
