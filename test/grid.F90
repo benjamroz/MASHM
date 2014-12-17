@@ -30,6 +30,7 @@ module grid_data
   public :: grid_3d_get_indices
   public :: getElemRank
   public :: determineCommSchedule
+  public :: get_num_cells
 
 contains
 
