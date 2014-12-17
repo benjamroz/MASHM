@@ -297,6 +297,12 @@ contains
   do iz = gridIndicesStart(3) - 1, gridIndicesEnd(3) + 1
     do iy = gridIndicesStart(2) - 1, gridIndicesEnd(2) + 1
       do ix = gridIndicesStart(1) - 1, gridIndicesEnd(1) + 1
+        ! If a corner - then cycle
+        if (    (ix < gridIndicesStart(1) .or. ix > gridIndicesEnd(1)) &
+          .and. (iy < gridIndicesStart(2) .or. iy > gridIndicesEnd(2)) &
+          .and. (iz < gridIndicesStart(3) .or. iz > gridIndicesEnd(3)) ) then
+          cycle
+        endif
         elemRank = getElemRank(ix,iy,iz)
         if (elemRank .ne. -1) then
           tmpDir = 0
@@ -325,6 +331,12 @@ contains
   do iz = gridIndicesStart(3) - 1, gridIndicesEnd(3) + 1
     do iy = gridIndicesStart(2) - 1, gridIndicesEnd(2) + 1
       do ix = gridIndicesStart(1) - 1, gridIndicesEnd(1) + 1
+        ! If a corner - then cycle
+        if (    (ix < gridIndicesStart(1) .or. ix > gridIndicesEnd(1)) &
+          .and. (iy < gridIndicesStart(2) .or. iy > gridIndicesEnd(2)) &
+          .and. (iz < gridIndicesStart(3) .or. iz > gridIndicesEnd(3)) ) then
+          cycle
+        endif
         elemRank = getElemRank(ix,iy,iz)
         if (elemRank .ne. -1 .and. elemRank .ne. rank) then
           found = .false.
@@ -372,6 +384,12 @@ contains
   do iz = gridIndicesStart(3) - 1, gridIndicesEnd(3) + 1
     do iy = gridIndicesStart(2) - 1, gridIndicesEnd(2) + 1
       do ix = gridIndicesStart(1) - 1, gridIndicesEnd(1) + 1
+        ! If a corner - then cycle
+        if (    (ix < gridIndicesStart(1) .or. ix > gridIndicesEnd(1)) &
+          .and. (iy < gridIndicesStart(2) .or. iy > gridIndicesEnd(2)) &
+          .and. (iz < gridIndicesStart(3) .or. iz > gridIndicesEnd(3)) ) then
+          cycle
+        endif
         elemRank = getElemRank(ix,iy,iz)
         if (elemRank .ne. -1 .and. elemRank .ne. rank) then
           do iRank = 1, numMessages
