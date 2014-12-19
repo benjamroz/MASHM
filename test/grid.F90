@@ -364,7 +364,7 @@ contains
             endif
             if (ix .gt. gridIndicesEnd(1)) then
               tmpDirX = 1
-            else if (iz .gt. gridIndicesStart(1)) then
+            else if (ix .lt. gridIndicesStart(1)) then
               tmpDirX = -1
             endif
             msgIndices(tmpDirX,tmpDirY,tmpDirZ) = rankCounter
