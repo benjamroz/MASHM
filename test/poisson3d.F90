@@ -62,7 +62,8 @@ derivYZ(0,-1,1) = -1./(dy*dz)
 derivYZ(0,1,-1) = -1./(dy*dz)
 derivYZ(0,1,1) = 1./(dy*dz)
 
-factor = (dx**2 * dy**2 * dz**2)/(-2.0*dy**2*dz**2 + -2.0*dx**2*dz**2 + -2.0*dx**2*dy**2)
+factor = -(dx**2 * dy**2 * dz**2)/(2.0*dy**2*dz**2 + 2.0*dx**2*dz**2 + 2.0*dx**2*dy**2)
+
 derivXX = derivXX*factor
 derivYY = derivYY*factor
 derivZZ = derivZZ*factor
@@ -87,8 +88,13 @@ coefs = nu1 * derivXX &
       + nu2 * derivYY &
       + nu3 * derivZZ
 print *, "coefs(0,0,0) = ", coefs(0,0,0)
-coefs(0,0,0) = -1.0
-rhsFactor = factor
+!coefs(0,0,0) = 0.0
+coefs = -coefs
+coefs(0,0,0) = 0.0
+print *, "coefs(1,0,0) = ", coefs(1,0,0)
+print *, "coefs(-1,0,0) = ", coefs(-1,0,0)
+!coefs(0,0,0) = -1.0
+rhsFactor = -factor
 ! \nabla \cdot : [-1, 1
 end subroutine
 
@@ -130,17 +136,17 @@ integer :: ix, iy, iz
 integer :: i, j, k
 real*8 :: relaxOmega
 
-relaxOmega = 2.0/3.0
-!relaxOmega = 1.0
+!relaxOmega = 2.0/3.0
+relaxOmega = 1.0
 
 do iz = gridIndicesStart(3), gridIndicesEnd(3)
   do iy = gridIndicesStart(2), gridIndicesEnd(2)
     do ix = gridIndicesStart(1), gridIndicesEnd(1)
-      outData(ix,iy,iz) = inData(ix,iy,iz) + relaxOmega*rhsFactor*rhs(ix,iy,iz)
+      outData(ix,iy,iz) = (1.0-relaxOmega)*inData(ix,iy,iz) + relaxOmega*rhsFactor*rhs(ix,iy,iz)
       do k = -1, 1
         do j = -1, 1
           do i = -1, 1
-            outData(ix,iy,iz) = outData(ix,iy,iz) + relaxOmega*coefs(i,j,k)*inData(ix+i,iy+j,iz+k)
+            outData(ix,iy,iz) = outData(ix,iy,iz) - relaxOmega*coefs(i,j,k)*inData(ix+i,iy+j,iz+k)
             !outData(ix,iy,iz) = relaxDt*inData(ix+i,iy+j,iz+k)
           enddo
         enddo
@@ -903,7 +909,7 @@ enddo
 
 end subroutine
 
-subroutine calcL2Norm(numSoln, solution, gridIndicesStart, gridIndicesEnd, globalL2Norm, totalNumCells)
+subroutine calcL2Norm(numSoln, solution, gridIndicesStart, gridIndicesEnd, globalL2Norm, globalMaxNorm, totalNumCells)
 use mpi
 implicit none
 integer, intent(in) :: gridIndicesStart(3), gridIndicesEnd(3)
@@ -913,19 +919,21 @@ real*8, intent(in) :: numSoln(gridIndicesStart(1)-1:gridIndicesEnd(1)+1, &
 real*8, intent(in) :: solution(gridIndicesStart(1):gridIndicesEnd(1), &
                                gridIndicesStart(2):gridIndicesEnd(2), &
                                gridIndicesStart(3):gridIndicesEnd(3))
-real*8, intent(out) :: globalL2Norm
+real*8, intent(out) :: globalL2Norm, globalMaxNorm
 integer, intent(in) :: totalNumCells
 
-real*8 :: localL2Norm
+real*8 :: localL2Norm, localMaxNorm
 integer :: i, j, k
 integer :: ierr
 !integer :: counter
 !counter = 1
 localL2Norm = 0.0
+localMaxNorm = 0.0
 do k = gridIndicesStart(3), gridIndicesEnd(3)
   do j = gridIndicesStart(2), gridIndicesEnd(2)
     do i = gridIndicesStart(1), gridIndicesEnd(1)
       localL2Norm = localL2Norm + (numSoln(i,j,k) - solution(i,j,k))**2
+      localMaxNorm = maxval( (/ localMaxNorm, dabs( numSoln(i,j,k) - solution(i,j,k) ) /) )
       !localL2Norm = localL2Norm + (solution(i,j,k))**2
       !print *, "localL2Norm = ", localL2Norm, ", ", counter
       !counter = counter + 1
@@ -935,6 +943,8 @@ enddo
 
 ! MPI_Allreduce 
 call MPI_Allreduce(localL2Norm, globalL2Norm, 1, MPI_REAL8, MPI_SUM, &
+                   MPI_COMM_WORLD, ierr)
+call MPI_Allreduce(localMaxNorm, globalMaxNorm, 1, MPI_REAL8, MPI_MAX, &
                    MPI_COMM_WORLD, ierr)
 
 globalL2Norm = dsqrt(globalL2Norm/totalNumCells)
@@ -978,7 +988,7 @@ real*8 :: dx, dy, dz
 real*8 :: angleAlpha, angleBeta
 real*8 :: nu1, nu2, nu3
 integer :: iIter, numIters
-real*8 :: residual
+real*8 :: residualL2, residualMax
 integer :: totalNumCells
 integer :: counter 
 Mashm :: myMashm
@@ -1093,7 +1103,8 @@ do k = gridIndicesStart(3), gridIndicesEnd(3)
 !      domain(i,j,k) = offsetValue &
 !                      + k*(gridIndicesEnd(2)-gridIndicesStart(2)+2)*(gridIndicesEnd(1)-gridIndicesStart(1)+2) &
 !                      + j*(gridIndicesEnd(1)-gridIndicesStart(1)+2) + i
-      domain(i,j,k) = dsin(1*i*dx)*dsin(1*j*dy)*dsin(1*k*dz)
+      !domain(i,j,k) = dsin(3*i*dx)*dsin(3*j*dy)*dsin(3*k*dz)
+      domain(i,j,k) = dsin(1*i*dx)
     enddo
   enddo
 enddo
@@ -1104,9 +1115,9 @@ enddo
 !                        gridIndicesStart,gridIndicesEnd,dx,dy,dz)
 
 
-call calcL2Norm(domain, solution, gridIndicesStart, gridIndicesEnd, residual, &
+call calcL2Norm(domain, solution, gridIndicesStart, gridIndicesEnd, residualL2, residualMax, &
                 totalNumCells)
-if (rank == 0) print *, "Initial difference", residual
+if (rank == 0) print *, "Initial difference", residualL2, residualMax
 
 call setOperator(nu1,nu2,nu3,dx,dy,dz,angleAlpha,angleBeta)
 
@@ -1146,10 +1157,11 @@ do iIter = 1, numIters
 
   call relaxation(domain, tmpDomain, rhs, gridIndicesStart, gridIndicesEnd)
 
-  call calcL2Norm(tmpDomain, solution, gridIndicesStart, gridIndicesEnd, residual, &
+  call calcL2Norm(tmpDomain, solution, gridIndicesStart, gridIndicesEnd, residualL2, residualMax, &
                   totalNumCells)
 
-  if (rank == 0) print *, "running iter ", iIter, " residual ", residual
+  if (rank == 0) print *, "running iter ", iIter, " residual ", residualL2, &
+                          residualMax
 
   call packData(tmpDomain, gridIndicesStart, gridIndicesEnd,  &
                 msgOffsets, msgSizes, packBuffer, msgDirIndex)
@@ -1162,10 +1174,11 @@ do iIter = 1, numIters
 
   call relaxation(tmpDomain, domain, rhs, gridIndicesStart, gridIndicesEnd)
 
-  call calcL2Norm(domain, solution, gridIndicesStart, gridIndicesEnd, residual, &
+  call calcL2Norm(domain, solution, gridIndicesStart, gridIndicesEnd, residualL2, residualMax, &
                   totalNumCells)
 
-  if (rank == 0) print *, "running iter ", iIter, " residual ", residual
+  if (rank == 0) print *, "running iter ", iIter, " residual ", residualL2, &
+                          residualMax
 
 enddo
 
