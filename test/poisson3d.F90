@@ -120,27 +120,22 @@ coefs = coefXX * derivXX &
       + coefYZ * derivYZ
 
 coefs = -coefs*(dx**2 * dy**2 * dz**2)
+
 factor = -(dx**2 * dy**2 * dz**2)/coefs(0,0,0)
-coefs = coefs/coefs(0,0,0)
-!factor = -(dx**2 * dy**2 * dz**2)/(2.0*dy**2*dz**2*nu1 + 2.0*dx**2*dz**2*nu2 + 2.0*dx**2*dy**2*nu3)
-
-!derivXX = derivXX*factor
-!derivYY = derivYY*factor
-!derivZZ = derivZZ*factor
-!derivXY = derivXY*factor
-!derivXZ = derivXZ*factor
-!derivYZ = derivYZ*factor
-
-print *, "coefs(0,0,0) = ", coefs(0,0,0)
-!coefs(0,0,0) = 0.0
-coefs = -coefs
-coefs(0,0,0) = 0.0
-print *, "coefs(1,0,0) = ", coefs(1,0,0)
-print *, "coefs(-1,0,0) = ", coefs(-1,0,0)
-!coefs(0,0,0) = -1.0
+! RHS factor for relaxation
 rhsFactor = -factor
-print *, "rhsFactor = ", rhsFactor
-! \nabla \cdot : [-1, 1
+
+coefs = coefs/coefs(0,0,0)
+
+!print *, "coefs(0,0,0) = ", coefs(0,0,0)
+coefs = -coefs
+
+! To ease the relaxation algorithm
+coefs(0,0,0) = 0.0
+!print *, "coefs(1,0,0) = ", coefs(1,0,0)
+!print *, "coefs(-1,0,0) = ", coefs(-1,0,0)
+!print *, "rhsFactor = ", rhsFactor
+
 end subroutine
 
 subroutine relaxation(inData, outData, rhs, gridIndicesStart, gridIndicesEnd)
@@ -166,17 +161,6 @@ relaxOmega = 1.0
 do iz = gridIndicesStart(3), gridIndicesEnd(3)
   do iy = gridIndicesStart(2), gridIndicesEnd(2)
     do ix = gridIndicesStart(1), gridIndicesEnd(1)
-#if 0
-      !outData(ix,iy,iz) = (1.0-relaxOmega)*inData(ix,iy,iz) + (relaxOmega/6.0)*(globDx**2)*rhs(ix,iy,iz)
-      !outData(ix,iy,iz) = outData(ix,iy,iz) + relaxOmega/6*( &
-      !                    inData(ix-1,iy,iz) + inData(ix+1,iy,iz) + &
-      !                    inData(ix,iy-1,iz) + inData(ix,iy+1,iz) + &
-      !                    inData(ix,iy,iz-1) + inData(ix+1,iy,iz+1))
-      outData(ix,iy,iz) = (1.0/6.0)*(globDx*globDx)*rhs(ix,iy,iz) + 1.0/6.0*( &
-                          inData(ix-1,iy,iz) + inData(ix+1,iy,iz) + &
-                          inData(ix,iy-1,iz) + inData(ix,iy+1,iz) + &
-                          inData(ix,iy,iz-1) + inData(ix,iy,iz+1))
-#else
       outData(ix,iy,iz) = (1.0-relaxOmega)*inData(ix,iy,iz) + relaxOmega*rhsFactor*rhs(ix,iy,iz)
       do k = -1, 1
         do j = -1, 1
@@ -185,7 +169,6 @@ do iz = gridIndicesStart(3), gridIndicesEnd(3)
           enddo
         enddo
       enddo
-#endif
     enddo
   enddo
 enddo
@@ -1198,27 +1181,14 @@ real*8 :: newMaxNorm
 
 integer :: i, j, k
 integer :: ierr
-integer :: iSave, jSave, kSave
 
-!integer :: counter
-!counter = 1
 localL2Norm = 0.0
 localMaxNorm = 0.0
 do k = gridIndicesStart(3), gridIndicesEnd(3)
   do j = gridIndicesStart(2), gridIndicesEnd(2)
     do i = gridIndicesStart(1), gridIndicesEnd(1)
       localL2Norm = localL2Norm + (numSoln(i,j,k) - solution(i,j,k))**2
-      !localMaxNorm = maxval( (/ localMaxNorm, dabs( numSoln(i,j,k) - solution(i,j,k) ) /) )
-      newMaxNorm = maxval( (/ localMaxNorm, dabs( numSoln(i,j,k) - solution(i,j,k) ) /) )
-      if (newMaxNorm > localMaxNorm) then
-        iSave = i
-        jSave = j
-        kSave = k
-      endif
-      localMaxNorm = newMaxNorm
-      !localL2Norm = localL2Norm + (solution(i,j,k))**2
-      !print *, "localL2Norm = ", localL2Norm, ", ", counter
-      !counter = counter + 1
+      localMaxNorm = maxval( (/ localMaxNorm, dabs( numSoln(i,j,k) - solution(i,j,k) ) /) )
     enddo
   enddo
 enddo
@@ -1230,29 +1200,6 @@ call MPI_Allreduce(localMaxNorm, globalMaxNorm, 1, MPI_REAL8, MPI_MAX, &
                    MPI_COMM_WORLD, ierr)
 
 globalL2Norm = dsqrt(globalL2Norm/totalNumCells)
-#if 0
-print *, "iSave,jSave,kSave = ", iSave, jSave, kSave
-
-print *, "maxvals of edges:"
-if (gridIndicesStart(1) == 1) then
-  print *, maxval(numSoln(gridIndicesStart(1) - 1,:,:))
-endif
-if (gridIndicesEnd(1) == globNx) then
-  print *, maxval(numSoln(gridIndicesEnd(1) + 1,:,:))
-endif
-if (gridIndicesStart(2) == 1) then
-  print *, maxval(numSoln(gridIndicesStart(2) - 1,:,:))
-endif
-if (gridIndicesEnd(2) == globNy) then
-  print *, maxval(numSoln(gridIndicesEnd(2) + 1,:,:))
-endif
-if (gridIndicesStart(3) == 1) then
-  print *, maxval(numSoln(gridIndicesStart(3) - 1,:,:))
-endif
-if (gridIndicesEnd(3) == globNz) then
-  print *, maxval(numSoln(gridIndicesEnd(3) + 1,:,:))
-endif
-#endif
 end subroutine
 
 end module commCycle
@@ -1314,43 +1261,8 @@ call determineCommSchedule(rank, numProcs, gridIndicesStart, gridIndicesEnd, num
                            msgSizes, msgOffsets, neighborRanks)
 call setupComm(numMessages)
 
-call MPI_Barrier(MPI_COMM_WORLD, ierr)
-call MPI_Barrier(MPI_COMM_WORLD, ierr)
-call MPI_Barrier(MPI_COMM_WORLD, ierr)
-call MPI_Barrier(MPI_COMM_WORLD, ierr)
-call flush(6)
-call MPI_Barrier(MPI_COMM_WORLD, ierr)
-call MPI_Barrier(MPI_COMM_WORLD, ierr)
-call MPI_Barrier(MPI_COMM_WORLD, ierr)
-call MPI_Barrier(MPI_COMM_WORLD, ierr)
-
 totalMessageSize=msgOffsets(numMessages+1)
-if (rank == 2) then
-  print *, "Rank ", rank, " message sizes offsets"
-  do i = 1, numMessages
-    print *, "i ", i, " rank ", neighborRanks(i), " msgSize ", msgSizes(i), " begin,end", &
-             msgOffsets(i:i+1)
-  enddo
-  print *, "msgDirIndex:"
-  counter = 1
-  do iz = -1, 1
-    do iy = -1, 1
-      do ix = -1, 1
-        print *, "  ", counter, "  ", msgDirIndex(ix,iy,iz)
-        counter = counter + 1
-      enddo
-    enddo
-  enddo
-endif
-call MPI_Barrier(MPI_COMM_WORLD, ierr)
-call MPI_Barrier(MPI_COMM_WORLD, ierr)
-call MPI_Barrier(MPI_COMM_WORLD, ierr)
-call MPI_Barrier(MPI_COMM_WORLD, ierr)
-call flush(6)
-call MPI_Barrier(MPI_COMM_WORLD, ierr)
-call MPI_Barrier(MPI_COMM_WORLD, ierr)
-call MPI_Barrier(MPI_COMM_WORLD, ierr)
-call MPI_Barrier(MPI_COMM_WORLD, ierr)
+
 allocate(packBuffer(totalMessageSize))
 allocate(unpackBuffer(totalMessageSize))
 
@@ -1383,15 +1295,6 @@ globNz = nz
 dx = get_grid_length(1)/(nx + 1)
 dy = get_grid_length(2)/(ny + 1)
 dz = get_grid_length(3)/(nz + 1)
-if (rank == 0) print *, "nx,ny,nz = ", nx, ny, nz
-if (rank == 0) print *, "dx,dy,dz = ", dx, dy, dz
-if (rank == 0) print *, "lx, ly, lz = ", get_grid_length(1), get_grid_length(2), get_grid_length(3)
-if (rank == 0) print *, "gx begin, end:", gridIndicesStart(1), gridIndicesEnd(1)
-if (rank == 0) print *, "gy begin, end:", gridIndicesStart(2), gridIndicesEnd(2)
-if (rank == 0) print *, "gz begin, end:", gridIndicesStart(3), gridIndicesEnd(3)
-if (rank == 1) print *, "gx begin, end:", gridIndicesStart(1), gridIndicesEnd(1)
-if (rank == 1) print *, "gy begin, end:", gridIndicesStart(2), gridIndicesEnd(2)
-if (rank == 1) print *, "gz begin, end:", gridIndicesStart(3), gridIndicesEnd(3)
 
 globDx = dx
 globDy = dy
@@ -1399,8 +1302,7 @@ globDz = dz
 
 angleAlpha = 3.14/8.0
 angleBeta = 3.14/8.0
-!angleAlpha = 0.1
-!angleBeta = -0.1
+
 nu1 = 1.0
 nu2 = 2.0
 nu3 = 5.0
@@ -1433,7 +1335,6 @@ if (rank == 0) print *, "coefs = ", coefs
 ! The pack is incorrect
 
 numIters = 100
-!numIters = 1
 
 call MPI_Barrier(MPI_COMM_WORLD, ierr)
 call MPI_Barrier(MPI_COMM_WORLD, ierr)
@@ -1483,6 +1384,15 @@ do iIter = 1, numIters, 2
                           residualMax
 
 enddo
+
+
+deallocate(packBuffer)
+deallocate(unpackBuffer)
+
+deallocate(domain)
+deallocate(tmpDomain)
+deallocate(solution)
+deallocate(rhs)
 
 call MPI_Finalize(ierr)
 

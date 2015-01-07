@@ -148,11 +148,11 @@ contains
   ! Determine the domain size 
   numTotalElems = nx*ny*nz
 
-  print *, "nx, ny, nz, numTotalElems = ", nx, ny, nz, numTotalElems
+  if (rank == 0) print *, "nx, ny, nz, numTotalElems = ", nx, ny, nz, numTotalElems
   if (mod(numTotalElems, numProcs) .eq. 0) then
     numLocalElems = numTotalElems/numProcs
   else
-    print *, "Error: nx * ny * nz = ", numTotalElems, " not divisible by the number of processes ", numProcs
+    if (rank == 0) print *, "Error: nx * ny * nz = ", numTotalElems, " not divisible by the number of processes ", numProcs
   endif
 
   allocate(coordinates(3,numLocalElems))
@@ -180,13 +180,13 @@ contains
     endif
     counter = counter + 1
     if (counter .gt. 100) then
-      print *, "Error: nx,ny,nz must be factors of 2"
+      if (rank == 0) print *, "Error: nx,ny,nz must be factors of 2"
       exit
     endif
   enddo
 
   if (rank .eq. 0) then
-    print *, "factors = ", factors
+    if (rank == 0) print *, "factors = ", factors
   endif
 
 
@@ -204,6 +204,7 @@ contains
   endIndex(2) = startIndex(2) + factors(2) - 1
   endIndex(3) = startIndex(3) + factors(3) - 1
 
+#if DEBUG
   call MPI_Barrier(gridComm, ierr)
   call MPI_Barrier(gridComm, ierr)
   call flush(6)
@@ -219,7 +220,7 @@ contains
     call MPI_Barrier(gridComm, ierr)
     call MPI_Barrier(gridComm, ierr)
   enddo
-
+#endif
   end subroutine grid_3d_decomp_num_elements
 
 
@@ -273,7 +274,7 @@ contains
   integer :: tmpDirX, tmpDirY, tmpDirZ
   integer :: totalMessageSize, i
   logical :: found
-
+#if DEBUG
   do iRank = 0, numProcs - 1
     if (iRank == rank) then
       print *, "Rank: start ", gridIndicesStart, ", end ", gridIndicesEnd
@@ -292,7 +293,7 @@ contains
     call MPI_Barrier(MPI_COMM_WORLD, ierr)
     call MPI_Barrier(MPI_COMM_WORLD, ierr)
   enddo
-
+#endif
   elemRankCounter = 0
   ! Determine number of neighbors
   do iz = gridIndicesStart(3) - 1, gridIndicesEnd(3) + 1
@@ -410,7 +411,7 @@ contains
     totalMessageSize = totalMessageSize + msgSizes(i)
   enddo
   msgOffsets(numMessages+1) = totalMessageSize
-
+#if DEBUG
   do iRank = 0, numProcs - 1
     if (iRank == rank) then
       print *, "Rank ", rank, " has ", numMessages, " neighbors"
@@ -425,7 +426,7 @@ contains
     call MPI_Barrier(MPI_COMM_WORLD, ierr)
     call MPI_Barrier(MPI_COMM_WORLD, ierr)
   enddo
-
+#endif
   end subroutine
 
 end module 
