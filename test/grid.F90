@@ -31,6 +31,7 @@ module grid_data
   public :: getElemRank
   public :: determineCommSchedule
   public :: get_num_cells
+  public :: get_grid_length
 
 contains
 
