@@ -1125,11 +1125,8 @@ do k = gridIndicesStart(3), gridIndicesEnd(3)
       x = i*dx
       y = j*dy
       z = k*dz
-      solution(i,j,k) = sin(x)*sin(y)*sin(z)
-      !solution(i,j,k) = 0.0
-      !solution(i,j,k) = (x**2 - x**4)*(y**2 - y**4)*(z**2 - z**4)
-      !solution(i,j,k) = x*(1-x) + y*(1-y) + z*(1-z)
-      !solution(i,j,k) = x*(1-x)
+      !solution(i,j,k) = sin(x)*sin(y)*sin(z)
+      solution(i,j,k) = 0.0
     enddo
   enddo
 enddo
@@ -1155,8 +1152,8 @@ do k = gridIndicesStart(3), gridIndicesEnd(3)
       y = j*dy
       z = k*dz
       !rhs(i,j,k) = 3.0*sin(x)*sin(y)*sin(z)
-      rhs(i,j,k) = (nu1 + nu2 + nu3)*sin(x)*sin(y)*sin(z)
-      !rhs(i,j,k) = 0.0
+      !rhs(i,j,k) = (nu1 + nu2 + nu3)*sin(x)*sin(y)*sin(z)
+      rhs(i,j,k) = 0.0
     enddo
   enddo
 enddo
@@ -1307,12 +1304,15 @@ nu1 = 1.0
 nu2 = 2.0
 nu3 = 5.0
 
-! Initialize to zero
-
 call setRhs(rhs,gridIndicesStart,gridIndicesEnd,dx,dy,dz,nu1,nu2,nu3)
 call setSolution(solution,gridIndicesStart,gridIndicesEnd,dx,dy,dz,nu1,nu2,nu3)
 
+call setOperator(nu1,nu2,nu3,dx,dy,dz,angleAlpha,angleBeta)
 
+!if (rank == 0) print *, "coefs = ", coefs
+
+! Set the numerical solution arrays to zero
+!   Note that this will provide Dirichlet zero boundary conditions
 domain = 0.0d0
 tmpDomain = 0.0d0
 do k = gridIndicesStart(3), gridIndicesEnd(3)
@@ -1323,32 +1323,14 @@ do k = gridIndicesStart(3), gridIndicesEnd(3)
   enddo
 enddo
 
-
-
 call calcL2Norm(domain, solution, gridIndicesStart, gridIndicesEnd, residualL2, residualMax, &
                 totalNumCells)
+
 if (rank == 0) print *, "Initial difference", residualL2, residualMax
-
-call setOperator(nu1,nu2,nu3,dx,dy,dz,angleAlpha,angleBeta)
-
-if (rank == 0) print *, "coefs = ", coefs
-! The pack is incorrect
 
 numIters = 100
 
-call MPI_Barrier(MPI_COMM_WORLD, ierr)
-call MPI_Barrier(MPI_COMM_WORLD, ierr)
-call MPI_Barrier(MPI_COMM_WORLD, ierr)
-call MPI_Barrier(MPI_COMM_WORLD, ierr)
-call flush(6)
-call MPI_Barrier(MPI_COMM_WORLD, ierr)
-call MPI_Barrier(MPI_COMM_WORLD, ierr)
-call MPI_Barrier(MPI_COMM_WORLD, ierr)
-call MPI_Barrier(MPI_COMM_WORLD, ierr)
-
-packBuffer = 666
-unpackBuffer = 666
-
+! Stride two 
 do iIter = 1, numIters, 2
 
   call packData(domain, gridIndicesStart, gridIndicesEnd,  &
