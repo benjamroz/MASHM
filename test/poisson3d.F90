@@ -54,22 +54,22 @@ derivZZ(0,0,0) = -2./(dz**2)
 derivZZ(0,0,1) = 1./(dz**2)
 
 derivXY = 0
-derivXY(-1,-1,0) = 1./(dx*dy)
-derivXY(-1,1,0) = -1./(dx*dy)
-derivXY(1,-1,0) = -1./(dx*dy)
-derivXY(1,1,0) = 1./(dx*dy)
+derivXY(-1,-1,0) = 1./(4*dx*dy)
+derivXY(-1,1,0) = -1./(4*dx*dy)
+derivXY(1,-1,0) = -1./(4*dx*dy)
+derivXY(1,1,0) = 1./(4*dx*dy)
 
 derivXZ = 0
-derivXZ(-1,0,-1) = 1./(dx*dz)
-derivXZ(-1,0,1) = -1./(dx*dz)
-derivXZ(1,0,-1) = -1./(dx*dz)
-derivXZ(1,0,1) = 1./(dx*dz)
+derivXZ(-1,0,-1) = 1./(4*dx*dz)
+derivXZ(-1,0,1) = -1./(4*dx*dz)
+derivXZ(1,0,-1) = -1./(4*dx*dz)
+derivXZ(1,0,1) = 1./(4*dx*dz)
 
 derivYZ = 0
-derivYZ(0,-1,-1) = 1./(dy*dz)
-derivYZ(0,-1,1) = -1./(dy*dz)
-derivYZ(0,1,-1) = -1./(dy*dz)
-derivYZ(0,1,1) = 1./(dy*dz)
+derivYZ(0,-1,-1) = 1./(4*dy*dz)
+derivYZ(0,-1,1) = -1./(4*dy*dz)
+derivYZ(0,1,-1) = -1./(4*dy*dz)
+derivYZ(0,1,1) = 1./(4*dy*dz)
 
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -1397,10 +1397,10 @@ globDx = dx
 globDy = dy
 globDz = dz
 
-!angleAlpha = 3.14/2.0
-!angleBeta = 3.14/2.0
-angleAlpha = 0.1
-angleBeta = -0.1
+angleAlpha = 3.14/8.0
+angleBeta = 3.14/8.0
+!angleAlpha = 0.1
+!angleBeta = -0.1
 nu1 = 1.0
 nu2 = 2.0
 nu3 = 5.0
@@ -1416,23 +1416,11 @@ tmpDomain = 0.0d0
 do k = gridIndicesStart(3), gridIndicesEnd(3)
   do j = gridIndicesStart(2), gridIndicesEnd(2)
     do i = gridIndicesStart(1), gridIndicesEnd(1)
-      !domain(i,j,k) = dsin(i*dx)*dsin(j*dy)*dsin(k*dz)+2*dsin(6*i*dx)*dsin(6*j*dy)*dsin(6*k*dz)
       domain(i,j,k) = dsin(10*i*dx)*dsin(10*j*dy)*dsin(10*k*dz)
-      !domain(i,j,k) = dsin(i*dx)*dsin(j*dy)*dsin(k*dz)
-      !domain(i,j,k) = 1.0
-      !domain(i,j,k) = 0.33333*(dsin(i*dx) + dsin(6*i*dx) + dsin(32*i*dx))
-      !domain(i,j,k) = dsin(3*i*dx)*dsin(3*
-      !domain(i,j,k) = dsin(10*i*dz)
-      !domain(i,j,k) = dsin(10*i*dx*PI)
-      !domain(i,j,k) = 0.0
     enddo
   enddo
 enddo
 
-!call setSolution(domain(gridIndicesStart(1):gridIndicesEnd(1),  &
-!                        gridIndicesStart(2):gridIndicesEnd(2),  &
-!                        gridIndicesStart(3):gridIndicesEnd(3)), & 
-!                        gridIndicesStart,gridIndicesEnd,dx,dy,dz)
 
 
 call calcL2Norm(domain, solution, gridIndicesStart, gridIndicesEnd, residualL2, residualMax, &
