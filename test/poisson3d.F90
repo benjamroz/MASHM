@@ -71,14 +71,6 @@ derivYZ(0,-1,1) = -1./(dy*dz)
 derivYZ(0,1,-1) = -1./(dy*dz)
 derivYZ(0,1,1) = 1./(dy*dz)
 
-factor = -(dx**2 * dy**2 * dz**2)/(2.0*dy**2*dz**2 + 2.0*dx**2*dz**2 + 2.0*dx**2*dy**2)
-
-derivXX = derivXX*factor
-derivYY = derivYY*factor
-derivZZ = derivZZ*factor
-derivXY = derivXY*factor
-derivXZ = derivXZ*factor
-derivYZ = derivYZ*factor
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !  The following defines the three dimensional tensor for general anisotropic
@@ -120,19 +112,24 @@ coefXZ = -2*nu1*dcos(angleBeta)*dsin(angleBeta)*dcos(angleAlpha) + &
 coefYZ =  2*nu1*dcos(angleBeta)*dsin(angleBeta)*dsin(angleAlpha) + &
          -2*nu3*dsin(angleBeta)*dcos(angleBeta)*dsin(angleAlpha)
 
-!coefXX = nu1
-!coefYY = nu2
-!coefZZ = nu3
-!coefXY = 0.0
-!coefXZ = 0.0
-!coefYZ = 0.0
-
 coefs = coefXX * derivXX &
       + coefYY * derivYY &
       + coefZZ * derivZZ &
       + coefXY * derivXY &
       + coefXZ * derivXZ &
       + coefYZ * derivYZ
+
+coefs = -coefs*(dx**2 * dy**2 * dz**2)
+factor = -(dx**2 * dy**2 * dz**2)/coefs(0,0,0)
+coefs = coefs/coefs(0,0,0)
+!factor = -(dx**2 * dy**2 * dz**2)/(2.0*dy**2*dz**2*nu1 + 2.0*dx**2*dz**2*nu2 + 2.0*dx**2*dy**2*nu3)
+
+!derivXX = derivXX*factor
+!derivYY = derivYY*factor
+!derivZZ = derivZZ*factor
+!derivXY = derivXY*factor
+!derivXZ = derivXZ*factor
+!derivYZ = derivYZ*factor
 
 print *, "coefs(0,0,0) = ", coefs(0,0,0)
 !coefs(0,0,0) = 0.0
@@ -1126,13 +1123,15 @@ allocate(sendStatus(MPI_STATUS_SIZE,numMessages))
 allocate(recvStatus(MPI_STATUS_SIZE,numMessages))
 end subroutine
 
-subroutine setSolution(solution, gridIndicesStart, gridIndicesEnd, dx, dy, dz)
+subroutine setSolution(solution, gridIndicesStart, gridIndicesEnd, dx, dy, dz, &
+                       nu1, nu2, nu3)
 implicit none
 integer, intent(in) :: gridIndicesStart(3), gridIndicesEnd(3)
 real*8, intent(out) :: solution(gridIndicesStart(1):gridIndicesEnd(1), &
                                 gridIndicesStart(2):gridIndicesEnd(2), &
                                 gridIndicesStart(3):gridIndicesEnd(3))
 real*8, intent(in) :: dx, dy, dz
+real*8, intent(in) :: nu1, nu2, nu3
 
 integer :: i, j, k
 real*8 :: x, y, z
@@ -1140,8 +1139,6 @@ real*8 :: x, y, z
 do k = gridIndicesStart(3), gridIndicesEnd(3)
   do j = gridIndicesStart(2), gridIndicesEnd(2)
     do i = gridIndicesStart(1), gridIndicesEnd(1)
-      !solution(i,j,k) = dsin(i*dx)
-      !solution(i,j,k) = 0.0
       x = i*dx
       y = j*dy
       z = k*dz
@@ -1155,13 +1152,15 @@ do k = gridIndicesStart(3), gridIndicesEnd(3)
 enddo
 end subroutine 
 
-subroutine setRhs(rhs, gridIndicesStart, gridIndicesEnd, dx, dy, dz)
+subroutine setRhs(rhs, gridIndicesStart, gridIndicesEnd, dx, dy, dz, &
+                  nu1, nu2, nu3)
 implicit none
 integer, intent(in) :: gridIndicesStart(3), gridIndicesEnd(3)
 real*8, intent(out) :: rhs(gridIndicesStart(1):gridIndicesEnd(1), &
                            gridIndicesStart(2):gridIndicesEnd(2), &
                            gridIndicesStart(3):gridIndicesEnd(3))
 real*8, intent(in) :: dx, dy, dz
+real*8, intent(in) :: nu1, nu2, nu3
 
 integer :: i, j, k
 real*8 :: x, y, z
@@ -1169,20 +1168,12 @@ real*8 :: x, y, z
 do k = gridIndicesStart(3), gridIndicesEnd(3)
   do j = gridIndicesStart(2), gridIndicesEnd(2)
     do i = gridIndicesStart(1), gridIndicesEnd(1)
-      !rhs(i,j,k) = -(1.0+1.0+1.0) * dsin(i*dx) * dsin(j*dy) * dsin(k*dz)
-      !rhs(i,j,k) = dsin(i*dx)
-      !rhs(i,j,k) = 0.0
       x = i*dx
       y = j*dy
       z = k*dz
-      !rhs(i,j,k) = 3.0*dsin(x)*dsin(y)*dsin(z)
-      rhs(i,j,k) = 3.0*sin(x)*sin(y)*sin(z)
+      !rhs(i,j,k) = 3.0*sin(x)*sin(y)*sin(z)
+      rhs(i,j,k) = (nu1 + nu2 + nu3)*sin(x)*sin(y)*sin(z)
       !rhs(i,j,k) = 0.0
-      !rhs(i,j,k) = -(2 - 12*x**2)*(y**2 - y**4)*(z**2 - z**4) &
-      !           - (2 - 12*y**2)*(x**2 - x**4)*(z**2 - z**4) &
-      !           - (2 - 12*z**2)*(x**2 - x**4)*(y**2 - y**4)
-      !rhs(i,j,k) = 6
-      !rhs(i,j,k) = 2
     enddo
   enddo
 enddo
@@ -1408,16 +1399,16 @@ globDz = dz
 
 !angleAlpha = 3.14/2.0
 !angleBeta = 3.14/2.0
-angleAlpha = 0.0
-angleBeta = 0.0
+angleAlpha = 0.1
+angleBeta = -0.1
 nu1 = 1.0
-nu2 = 1.0
-nu3 = 1.0
+nu2 = 2.0
+nu3 = 5.0
 
 ! Initialize to zero
 
-call setRhs(rhs,gridIndicesStart,gridIndicesEnd,dx,dy,dz)
-call setSolution(solution,gridIndicesStart,gridIndicesEnd,dx,dy,dz)
+call setRhs(rhs,gridIndicesStart,gridIndicesEnd,dx,dy,dz,nu1,nu2,nu3)
+call setSolution(solution,gridIndicesStart,gridIndicesEnd,dx,dy,dz,nu1,nu2,nu3)
 
 
 domain = 0.0d0
@@ -1453,7 +1444,7 @@ call setOperator(nu1,nu2,nu3,dx,dy,dz,angleAlpha,angleBeta)
 if (rank == 0) print *, "coefs = ", coefs
 ! The pack is incorrect
 
-numIters = 1000
+numIters = 100
 !numIters = 1
 
 call MPI_Barrier(MPI_COMM_WORLD, ierr)
@@ -1481,13 +1472,11 @@ do iIter = 1, numIters, 2
 
   call relaxation(domain, tmpDomain, rhs, gridIndicesStart, gridIndicesEnd)
 
-  domain = tmpDomain
-  call calcL2Norm(domain, solution, gridIndicesStart, gridIndicesEnd, residualL2, residualMax, &
+  call calcL2Norm(tmpDomain, solution, gridIndicesStart, gridIndicesEnd, residualL2, residualMax, &
                   totalNumCells)
 
   if (rank == 0) print *, "running iter ", iIter, " residual ", residualL2, &
                           residualMax
-  cycle
   call packData(tmpDomain, gridIndicesStart, gridIndicesEnd,  &
                 msgOffsets, msgSizes, packBuffer, msgDirIndex)
 
