@@ -28,84 +28,120 @@ implicit none
 
 interface
 
-  subroutine MashmInit(in_mashm, in_comm)
+  subroutine MashmInit(in_mashm, in_comm) &
+    bind(c, name='MashmInit')
     use, intrinsic :: iso_c_binding
+    implicit none
     Mashm :: in_mashm
     integer, value :: in_comm
   end subroutine
 
-  subroutine MashmDestroy(in_mashm)
+  subroutine MashmDestroy(in_mashm) &
+    bind(c, name='MashmDestroy')
     use, intrinsic :: iso_c_binding
+    implicit none
     Mashm :: in_mashm
   end subroutine
 
-  subroutine MashmPrintInfo(in_mashm)
+  subroutine MashmPrintInfo(in_mashm) &
+    bind(c,name='MashmPrintInfo')
+    use, intrinsic :: iso_c_binding
+    implicit none
+    Mashm, value :: in_mashm
+  end subroutine 
+
+  subroutine MashmPrintCommCollection(in_mashm) &
+    bind(c, name='MashmPrintCommCollection')
     use, intrinsic :: iso_c_binding
     Mashm, value :: in_mashm
   end subroutine 
 
-  subroutine MashmPrintCommCollection(in_mashm);
+  subroutine MashmSetNumComms(in_mashm, numComms) &
+    bind(c,name='MashmSetNumComms')
     use, intrinsic :: iso_c_binding
-    Mashm, value :: in_mashm
-  end subroutine 
-
-  subroutine MashmSetNumComms(in_mashm, numComms)
-    use, intrinsic :: iso_c_binding
+    implicit none
     Mashm, value :: in_mashm
     integer, value :: numComms
   end subroutine 
 
-  subroutine MashmAddSymComm(in_mashm, pairRank, msgSize)
+  subroutine MashmSetCommMethod(in_mashm, commMethod) &
+    bind(c, name='MashmSetCommMethod')
     use, intrinsic :: iso_c_binding
+    implicit none
+    Mashm :: in_mashm
+    integer, value :: commMethod
+  end subroutine
+
+
+  subroutine MashmAddSymComm(in_mashm, pairRank, msgSize) &
+    bind(c, name='MashmAddSymCom')
+    use, intrinsic :: iso_c_binding
+    implicit none
     Mashm, value :: in_mashm
     integer, value :: pairRank
     integer, value :: msgSize
   end subroutine 
 
-  subroutine MashmSetCommC(in_mashm, commIndex, pairRank, msgSize)
+  subroutine MashmSetCommC(in_mashm, commIndex, pairRank, msgSize) &
+    bind(c, name='MashmSetComm')
     use, intrinsic :: iso_c_binding
+    implicit none
     Mashm, value :: in_mashm
     integer(c_int), value :: commIndex
     integer(c_int), value :: pairRank
     integer(c_int), value :: msgSize
   end subroutine 
 
-  function MashmGetCommRank(in_mashm, commIndex) result(msgRank)
+  function MashmGetCommRank(in_mashm, commIndex) result(msgRank) &
+    bind(c, name='MashmGetCommRank')
     use, intrinsic :: iso_c_binding
+    implicit none
     Mashm, value :: in_mashm
     integer, value :: commIndex
     integer :: msgRank
   end function
 
-  function MashmGetCommSize(in_mashm, commIndex) result(msgSize)
+  function MashmGetCommSize(in_mashm, commIndex) result(msgSize) &
+    bind(c, name='MashmGetCommSize')
     use, intrinsic :: iso_c_binding
+    implicit none
     Mashm, value :: in_mashm
     integer(c_int), value :: commIndex
     integer(c_int) :: msgSize
   end function
 
-  subroutine MashmCommFinish(in_mashm)
+  subroutine MashmCommFinish(in_mashm) &
+    bind(c, name='MashmCommFinish')
     use, intrinsic :: iso_c_binding
+    implicit none
     Mashm, value :: in_mashm
   end subroutine 
 
-  subroutine MashmInterNodeCommBegin(in_mashm)
+  subroutine MashmInterNodeCommBegin(in_mashm) &
+    bind(c, name='MashmInterNodeCommBegin')
     use, intrinsic :: iso_c_binding
+    implicit none
     Mashm, value :: in_mashm
   end subroutine 
 
-  subroutine MashmInterNodeCommEnd(in_mashm)
+  subroutine MashmInterNodeCommEnd(in_mashm) &
+    bind(c, name='MashmInterNodeCommEnd')
     use, intrinsic :: iso_c_binding
+    implicit none
     Mashm, value :: in_mashm
   end subroutine 
 
-  subroutine MashmIntraNodeCommBegin(in_mashm)
+  subroutine MashmIntraNodeCommBegin(in_mashm) &
+    bind(c, name='MashmIntraNodeCommBegin')
     use, intrinsic :: iso_c_binding
+    implicit none
     Mashm, value :: in_mashm
   end subroutine 
 
-  subroutine MashmIntraNodeCommEnd(in_mashm)
+  subroutine MashmIntraNodeCommEnd(in_mashm) &
+    bind(c, name='MashmIntraNodeCommEnd')
     use, intrinsic :: iso_c_binding
+    implicit none
     Mashm, value :: in_mashm
   end subroutine 
 
@@ -127,17 +163,21 @@ interface
   !  type(c_ptr) :: bufferPointer
   !end function
 
-  subroutine MashmGetBufferPointer2C(in_mashm, i, sendReceive, bufferPointer)
+  subroutine MashmGetBufferPointer2C(in_mashm, i, sendReceive, bufferPointer) &
+    bind(c, name='MashmGetBufferPointer2')
     use, intrinsic :: iso_c_binding
     use Mashm_enum_mod
+    implicit none
     Mashm, value, intent(in) :: in_mashm
     integer(c_int), value, intent(in) :: i
     integer(c_int), value, intent(in) :: sendReceive
     type(c_ptr), intent(out) :: bufferPointer
   end subroutine
 
-  function MashmIsMsgOnNodeC(in_mashm, commIndex) result(isOnNode)
+  function MashmIsMsgOnNodeC(in_mashm, commIndex) result(isOnNode) &
+    bind(c, name='MashmIsMsgOnNode')
     use, intrinsic :: iso_c_binding
+    implicit none
     Mashm, value :: in_mashm
     integer, value :: commIndex
     integer :: isOnNode
@@ -167,6 +207,7 @@ contains
     type(MashmBufferPointer), intent(inout) :: ftnBufferPointer
     integer(c_int) :: msgSize
     integer(c_int) :: iBaseZero
+    integer :: fMsgSize
     iBaseZero = i - 1
 
     ! TODO: move to MashmGetBufferPointerC function call - not working for some
@@ -175,9 +216,9 @@ contains
     !ftnBufferPointer%cPtr = MashmGetBufferPointerC(in_mashm, iBaseZero, sendReceive)
 
     msgSize = MashmGetCommSize(in_mashm, iBaseZero)
-    !print *, "MashmGetBufferPointer size, inMsgSize = ", msgSize, inMsgSize
+    fMsgSize = msgSize
 
-    call c_f_pointer(cptr=ftnBufferPointer%cPtr,fptr=ftnBufferPointer%p,shape = (/ msgSize /))
+    call c_f_pointer(cptr=ftnBufferPointer%cPtr,fptr=ftnBufferPointer%p,shape = (/ fMsgSize /))
 
   end subroutine
 
@@ -193,7 +234,6 @@ contains
 
     ! Retire (nullify) the C pointer
     call MashmRetireBufferPointerC(in_mashm, ftnBufferPointer%cPtr)
-
   end subroutine
 
 
@@ -208,13 +248,13 @@ contains
     call MashmSetCommC(in_mashm, commIndexBaseZero, pairRank, msgSize)
   end subroutine 
 
-  function MashmIsMsgOnNode(in_mashm, commIndex) result(isOnNode)
+  function MashmIsMsgOnNode(in_mashm, commIndex) result(isOnNode) 
     use, intrinsic :: iso_c_binding
+    implicit none
     Mashm, value :: in_mashm
     integer, value :: commIndex
     logical :: isOnNode
-   
-    isOnNode = ( MashmIsMsgOnNodeC(in_mashm, commIndex - 1) .eq. 1 )
+    isOnNode = ( MashmIsMsgOnNodeC(in_mashm, int(commIndex - 1,kind=c_int)) .eq. 1 )
 
   end function
 end module Mashm_mod

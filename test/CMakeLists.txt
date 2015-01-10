@@ -11,18 +11,18 @@ INCLUDE_DIRECTORIES(
   ${CMAKE_BINARY_DIR}/src/fortran
   )
  
-#ADD_SUBDIRECTORY(testHelpers)
+ADD_SUBDIRECTORY(testHelpers)
 
 ADD_EXECUTABLE(nodalComm ${NODAL_COMM_SRCS})
 ADD_EXECUTABLE(nodalCommFtn nodalCommFtn.F90 testHelpers/decomp2d.c)
 
 #TARGET_LINK_LIBRARIES(nodalComm testHelpers mashm)
 TARGET_LINK_LIBRARIES(nodalComm mashm)
-TARGET_LINK_LIBRARIES(nodalCommFtn mashm mashm_ftn)
+TARGET_LINK_LIBRARIES(nodalCommFtn mashm mashm_ftn testHelpers)
 
 SET(POISSON_3D_SRCS
-  poisson3d.F90
   grid.F90
+  poisson3d.F90
 )
 
 ADD_EXECUTABLE(poisson3d ${POISSON_3D_SRCS})

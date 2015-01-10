@@ -7,18 +7,31 @@ end module
 module decomp2d_mod
   interface
 
-    subroutine decomp2dCreateGraph(m, n, rank, numProcs, numElems, elements, neighbors, msgSizes, numNeighbors)
+    subroutine decomp2dCreateGraph(m, n, rank, numProcs, numElems, &
+                 elements, neighbors, msgSizes, numNeighbors) &
+      BIND(C, NAME='decomp2dCreateGraph')
       use, intrinsic :: iso_c_binding
-      integer, value :: m, n, rank, numProcs
-      integer :: numElems
+      implicit none
+      integer(c_int), value, intent(in) :: m, n, rank, numProcs
+      integer(c_int), intent(out) :: numElems
       type(c_ptr) :: elements
       type(c_ptr) :: neighbors
       type(c_ptr) :: msgSizes
-      integer :: numNeighbors
+      integer(c_int), intent(out) :: numNeighbors
     end subroutine
 
-    subroutine decomp2dDestroyGraph(neighbors, msgSizes)
+    subroutine decomp2dDummy(m, n) &
+      BIND(C, NAME='decomp2dDummy')
       use, intrinsic :: iso_c_binding
+      implicit none
+      integer(c_int), value :: m
+      integer(c_int), value :: n
+    end subroutine
+
+    subroutine decomp2dDestroyGraph(neighbors, msgSizes) &
+      BIND(C, NAME='decomp2dDestroyGraph')
+      use, intrinsic :: iso_c_binding
+      implicit none
       type(c_ptr) :: neighbors
       type(c_ptr) :: msgSizes
     end subroutine
@@ -42,6 +55,7 @@ type(MashmBufferPointer), allocatable :: mashmRecvBufferPtrs(:)
 integer, pointer :: neighbors(:), msgSizes(:)
 integer :: m, n, numElems
 integer :: rank, numProcs
+integer(c_int) :: cM, cN, cRank, cNumProcs, cNumElems, cNumNeighbors
 !integer, pointer :: elements(:)
 integer :: j, sumMsgSizes
 integer, allocatable :: sendStatuses(:,:)
@@ -67,13 +81,26 @@ call MPI_Comm_rank(MPI_COMM_WORLD, rank, ierr)
 m = 10
 n = 10
 
-call decomp2dCreateGraph(m, n, rank, numProcs, numElems, cptrElements, cptrNeighbors, cptrMsgSizes, numNeighbors)
+!cM = m
+!cN = n
+!cRank = rank
+!cNumProcs = numProcs
+
+!call decomp2dDummy(m, n)
+
+call decomp2dCreateGraph(m, n, rank, numProcs, numElems, &
+         cptrElements, cptrNeighbors, cptrMsgSizes, numNeighbors)
+
+!numNeighbors = cNumNeighbors
+!numElems = cNumElems
 
 call c_f_pointer(cptrNeighbors, neighbors, (/numNeighbors/))
 call c_f_pointer(cptrMsgSizes, msgSizes, (/numNeighbors/))
 
 
+
 allocate(msgOffsets(numNeighbors))
+
 msgOffsets(1) = 0;
 do i = 2, numNeighbors
   msgOffsets(i) = msgOffsets(i-1) + msgSizes(i-1)
@@ -143,10 +170,6 @@ do i = 1, numNeighbors
     origBuffer(offset+j) = recvBuffers(i)%p(j)
   enddo
 enddo
-
-call MPI_Barrier(MPI_COMM_WORLD, ierr)
-call MPI_Barrier(MPI_COMM_WORLD, ierr)
-call flush(6)
 
 call MashmInit(myMashm, MPI_COMM_WORLD)
 

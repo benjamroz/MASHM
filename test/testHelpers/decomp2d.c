@@ -105,7 +105,6 @@ void decomp2dCreateGraph(int m, int n, int rank, int totalNumRanks, int* numElem
   int mIndexOther, nIndexOther;
   int neighborCounter;
   int numberOfElements;
-
   /* Determine the number of elements */
   numberOfElements = decomp2dRectNumElements(m, n, rank, totalNumRanks);
   *numElements = numberOfElements;
@@ -180,5 +179,9 @@ void decomp2dCreateGraph(int m, int n, int rank, int totalNumRanks, int* numElem
 void  decomp2dDestroyGraph(int** neighbors, int** msgSizes) {
   free(*neighbors);
   free(*msgSizes);
+}
+
+void decomp2dDummy(int m, int n) {
+  printf("Dummy m %d, n %d\n", m, n);
 }
 

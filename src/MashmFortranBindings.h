@@ -2,14 +2,18 @@
 #define MASHM_FORT_BIND_H
 
 #define MashmInitF2C FCI_GLOBAL(mashminit,MASHMINIT)
+//#define MashmIsMsgOnNode FCI_GLOBAL(mashmismsgonnodec,MASHMISMSGONNODEC)
+//#define MashmSetComm FCI_GLOBAL(mashmsetcommc,MASHMSETCOMMc)
+#define MashmGetBufferPointer FCI_GLOBAL(mashmgetbufferpointerc,MASHMGETBUFFERPOINTERC)
+//!#define MashmGetBufferPointer2 FCI_GLOBAL(mashmgetbufferpointer2c,MASHMGETBUFFERPOINTER2C)
+#define MashmRetireBufferPointer FCI_GLOBAL(mashmretirebufferpointerc,MASHMRETIREBUFFERPOINTERC)
 
+#if 0
 #define MashmGetComm FCI_GLOBAL(mashmgetcomm,MASHMGETCOMM)
 
 #define MashmGetSize FCI_GLOBAL(mashmgetsize,MASHMGETSIZE)
 
-#define MashmGetRank FCI_GLOBAL(MashmGetRank,MashmGetRank)
-
-#define MashmSetComm FCI_GLOBAL(mashmsetcommc,MASHMSETCOMMc)
+#define MashmGetRank FCI_GLOBAL(mashmgetrank,MashmGetRank)
 
 #define MashmGetCommRank FCI_GLOBAL(mashmgetcommrank,MASHMGETCOMMRANK)
 
@@ -19,7 +23,6 @@
 
 #define MashmPrintInfo FCI_GLOBAL(mashmprintinfo,MASHMPRINTINFO)
 
-#define MashmIsMsgOnNode FCI_GLOBAL(mashmismsgonnodec,MASHMISMSGONNODEC)
 
 #define MashmSetCommMethod FCI_GLOBAL(mashmsetcommmethod,MASHMSETCOMMMETHOD)
 
@@ -39,12 +42,7 @@
 
 #define MashmSetupStandardComm FCI_GLOBAL(mashmsetupstandardcomm,MASHMSETUPSTANDARDCOMM)
 
-#define MashmGetBufferPointer FCI_GLOBAL(mashmgetbufferpointerc,MASHMGETBUFFERPOINTERC)
-#define MashmGetBufferPointer2 FCI_GLOBAL(mashmgetbufferpointer2c,MASHMGETBUFFERPOINTER2C)
-
 #define MashmGetBufferPointerForDest FCI_GLOBAL(mashmgetbufferpointerfordest,MASHMGETBUFFERPOINTERFORDEST)
-
-#define MashmRetireBufferPointer FCI_GLOBAL(mashmretirebufferpointerc,MASHMRETIREBUFFERPOINTERC)
 
 #define MashmInterNodeCommBegin FCI_GLOBAL(mashminternodecommbegin,MASHMINTERNODECOMMBEGIN)
 
@@ -57,5 +55,5 @@
 #define MashmDestroy FCI_GLOBAL(mashmdestroy,MASHMDESTROY)
 
 #define MashmPrintCommCollection FCI_GLOBAL(mashmprintcommcollection,MASHMPRINTCOMMCOLLECTION)
-
+#endif
 #endif

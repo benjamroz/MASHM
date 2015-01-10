@@ -2009,6 +2009,9 @@ real*8 :: residualL2, residualMax
 integer :: totalNumCells
 integer :: counter 
 Mashm :: myMashm
+MashmCommType :: commMethod
+type(MashmBufferPointer), allocatable :: mashmSendBufferPtrs(:)
+type(MashmBufferPointer), allocatable :: mashmRecvBufferPtrs(:)
 
 integer, allocatable :: msgDirIndex2(:)
 integer :: msgIndex
@@ -2159,6 +2162,97 @@ do iIter = 1, numIters, 2
                           residualMax
 
 enddo
+
+if (rank == 0) print *, "point a"
+call MashmInit(myMashm, MPI_COMM_WORLD)
+
+if (rank == 0) print *, "point b"
+! Print nodal comm info
+call MashmPrintInfo(myMashm)
+
+if (rank == 0) print *, "point c"
+call MashmSetNumComms(myMashm, numMessages)
+
+if (rank == 0) print *, "point d"
+! Add communications calculated above
+do i = 1, numMessages
+  ! Fortran to C indexing 
+  call MashmSetComm(myMashm, i, neighborRanks(i), msgSizes(i))
+enddo
+
+if (rank == 0) print *, "point e"
+! Choose the communitcation method
+!commMethod = MASHM_COMM_INTRA_SHARED
+!commMethod = MASHM_COMM_INTRA_MSG
+!commMethod = MASHM_COMM_STANDARD
+commMethod = MASHM_COMM_MIN_AGG
+
+if (rank == 0) print *, "point f"
+call MashmSetCommMethod(myMashm, commMethod)
+
+if (rank == 0) print *, "point g"
+! Perform precalculation
+call MashmCommFinish(myMashm)
+
+if (rank == 0) print *, "point h"
+call MashmPrintCommCollection(myMashm)
+if (rank == 0) print *, "point i"
+
+! Retrieve pointers for buffers
+allocate(mashmSendBufferPtrs(numMessages))
+allocate(mashmRecvBufferPtrs(numMessages))
+
+do i = 1, numMessages
+  call MashmGetBufferPointer(myMashm, i, MASHM_SEND, mashmSendBufferPtrs(i))
+  call MashmGetBufferPointer(myMashm, i, MASHM_RECEIVE, mashmRecvBufferPtrs(i))
+enddo
+
+! Stride two 
+do iIter = 1, numIters, 2
+
+  do i = 1, numMessages
+    call packData2(domain, gridIndicesStart, gridIndicesEnd, mashmSendBufferPtrs(i)%p, msgDirIndex2(i))
+  enddo
+
+  !call communication(packBuffer, unpackBuffer, numMessages, neighborRanks, msgSizes, msgOffsets)
+
+  do i = 1, numMessages
+    call unpackData2(domain, gridIndicesStart, gridIndicesEnd, mashmRecvBufferPtrs(i)%p, msgDirIndex2(i))
+  enddo
+
+  call relaxation(domain, tmpDomain, rhs, gridIndicesStart, gridIndicesEnd)
+
+  call calcL2Norm(tmpDomain, solution, gridIndicesStart, gridIndicesEnd, residualL2, residualMax, &
+                  totalNumCells)
+
+  if (rank == 0) print *, "running iter ", iIter, " residual ", residualL2, &
+                          residualMax
+  do i = 1, numMessages
+    call packData2(tmpDomain, gridIndicesStart, gridIndicesEnd, mashmSendBufferPtrs(i)%p, msgDirIndex2(i))
+  enddo
+
+  !call communication(packBuffer, unpackBuffer, numMessages, neighborRanks, msgSizes, msgOffsets)
+
+  call MashmInterNodeCommBegin(myMashm)
+  call MashmIntraNodeCommBegin(myMashm)
+
+  call MashmIntraNodeCommEnd(myMashm)
+  call MashmInterNodeCommEnd(myMashm)
+
+  do i = 1, numMessages
+    call unpackData2(tmpDomain, gridIndicesStart, gridIndicesEnd, mashmRecvBufferPtrs(i)%p, msgDirIndex2(i))
+  enddo
+
+  call relaxation(tmpDomain, domain, rhs, gridIndicesStart, gridIndicesEnd)
+
+  call calcL2Norm(domain, solution, gridIndicesStart, gridIndicesEnd, residualL2, residualMax, &
+                  totalNumCells)
+
+  if (rank == 0) print *, "running iter ", iIter + 1, " residual ", residualL2, &
+                          residualMax
+
+enddo
+
 
 
 deallocate(packBuffer)
