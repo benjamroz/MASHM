@@ -2163,40 +2163,31 @@ do iIter = 1, numIters, 2
 
 enddo
 
-if (rank == 0) print *, "point a"
 call MashmInit(myMashm, MPI_COMM_WORLD)
 
-if (rank == 0) print *, "point b"
 ! Print nodal comm info
 call MashmPrintInfo(myMashm)
 
-if (rank == 0) print *, "point c"
 call MashmSetNumComms(myMashm, numMessages)
 
-if (rank == 0) print *, "point d"
 ! Add communications calculated above
 do i = 1, numMessages
   ! Fortran to C indexing 
   call MashmSetComm(myMashm, i, neighborRanks(i), msgSizes(i))
 enddo
 
-if (rank == 0) print *, "point e"
 ! Choose the communitcation method
 !commMethod = MASHM_COMM_INTRA_SHARED
 !commMethod = MASHM_COMM_INTRA_MSG
 !commMethod = MASHM_COMM_STANDARD
 commMethod = MASHM_COMM_MIN_AGG
 
-if (rank == 0) print *, "point f"
 call MashmSetCommMethod(myMashm, commMethod)
 
-if (rank == 0) print *, "point g"
 ! Perform precalculation
 call MashmCommFinish(myMashm)
 
-if (rank == 0) print *, "point h"
-call MashmPrintCommCollection(myMashm)
-if (rank == 0) print *, "point i"
+!call MashmPrintCommCollection(myMashm)
 
 ! Retrieve pointers for buffers
 allocate(mashmSendBufferPtrs(numMessages))
@@ -2207,6 +2198,22 @@ do i = 1, numMessages
   call MashmGetBufferPointer(myMashm, i, MASHM_RECEIVE, mashmRecvBufferPtrs(i))
 enddo
 
+! Reset the solution
+tmpDomain = 0.0
+do k = gridIndicesStart(3), gridIndicesEnd(3)
+  do j = gridIndicesStart(2), gridIndicesEnd(2)
+    do i = gridIndicesStart(1), gridIndicesEnd(1)
+      domain(i,j,k) = dsin(10*i*dx)*dsin(10*j*dy)*dsin(10*k*dz)
+    enddo
+  enddo
+enddo
+
+call calcL2Norm(domain, solution, gridIndicesStart, gridIndicesEnd, residualL2, residualMax, &
+                totalNumCells)
+
+if (rank == 0) print *, "Now running MASHM"
+if (rank == 0) print *, "Initial difference", residualL2, residualMax
+
 ! Stride two 
 do iIter = 1, numIters, 2
 
@@ -2215,6 +2222,11 @@ do iIter = 1, numIters, 2
   enddo
 
   !call communication(packBuffer, unpackBuffer, numMessages, neighborRanks, msgSizes, msgOffsets)
+  call MashmInterNodeCommBegin(myMashm)
+  call MashmIntraNodeCommBegin(myMashm)
+
+  call MashmIntraNodeCommEnd(myMashm)
+  call MashmInterNodeCommEnd(myMashm)
 
   do i = 1, numMessages
     call unpackData2(domain, gridIndicesStart, gridIndicesEnd, mashmRecvBufferPtrs(i)%p, msgDirIndex2(i))
@@ -2253,7 +2265,14 @@ do iIter = 1, numIters, 2
 
 enddo
 
+! Restore (nullify) the Mashm access pointers
+do i = 1, numMessages
+  call MashmRetireBufferPointer(myMashm, mashmSendBufferPtrs(i))
+  call MashmRetireBufferPointer(myMashm, mashmRecvBufferPtrs(i))
+enddo
 
+! Destroy the Mashm object
+call MashmDestroy(myMashm)
 
 deallocate(packBuffer)
 deallocate(unpackBuffer)
