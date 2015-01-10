@@ -2017,6 +2017,10 @@ integer, allocatable :: msgDirIndex2(:)
 integer :: msgIndex
 integer :: packInt3(3)
 
+real :: rate 
+integer :: cr, cm, clockStart, clockEnd
+real :: time1, time2, time3
+
 call MPI_Init(ierr)
 call MPI_Comm_size(MPI_COMM_WORLD, numProcs, ierr)
 call MPI_Comm_rank(MPI_COMM_WORLD, rank, ierr)
@@ -2115,6 +2119,11 @@ do k = gridIndicesStart(3), gridIndicesEnd(3)
   enddo
 enddo
 
+! Initialize system_clock for timers
+call system_clock(count_rate=cr)
+call system_clock(count_max=cm)
+rate = REAL(cr)
+
 call calcL2Norm(domain, solution, gridIndicesStart, gridIndicesEnd, residualL2, residualMax, &
                 totalNumCells)
 
@@ -2123,6 +2132,7 @@ if (rank == 0) print *, "Initial difference", residualL2, residualMax
 numIters = 100
 
 ! Stride two 
+call system_clock(clockStart)
 do iIter = 1, numIters, 2
 
   do i = 1, numMessages
@@ -2162,6 +2172,8 @@ do iIter = 1, numIters, 2
                           residualMax
 
 enddo
+call system_clock(clockEnd)
+time1 = (clockEnd - clockStart)/rate
 
 call MashmInit(myMashm, MPI_COMM_WORLD)
 
@@ -2215,6 +2227,7 @@ if (rank == 0) print *, "Now running MASHM"
 if (rank == 0) print *, "Initial difference", residualL2, residualMax
 
 ! Stride two 
+call system_clock(clockStart)
 do iIter = 1, numIters, 2
 
   do i = 1, numMessages
@@ -2264,6 +2277,124 @@ do iIter = 1, numIters, 2
                           residualMax
 
 enddo
+call system_clock(clockEnd)
+time2 = (clockEnd - clockStart)/rate
+
+
+! Reset the solution
+tmpDomain = 0.0
+do k = gridIndicesStart(3), gridIndicesEnd(3)
+  do j = gridIndicesStart(2), gridIndicesEnd(2)
+    do i = gridIndicesStart(1), gridIndicesEnd(1)
+      domain(i,j,k) = dsin(10*i*dx)*dsin(10*j*dy)*dsin(10*k*dz)
+    enddo
+  enddo
+enddo
+
+call calcL2Norm(domain, solution, gridIndicesStart, gridIndicesEnd, residualL2, residualMax, &
+                totalNumCells)
+
+if (rank == 0) print *, "Now running MASHM with asynchronous packing/unpacking"
+if (rank == 0) print *, "Initial difference", residualL2, residualMax
+
+! Stride two 
+call system_clock(clockStart)
+do iIter = 1, numIters, 2
+
+  do i = 1, numMessages
+    call packData2(domain, gridIndicesStart, gridIndicesEnd, mashmSendBufferPtrs(i)%p, msgDirIndex2(i))
+  enddo
+
+  do i = 1, numMessages
+    if (.not. MashmIsMsgOnNode(myMashm, i)) then
+      call packData2(domain, gridIndicesStart, gridIndicesEnd, mashmSendBufferPtrs(i)%p, msgDirIndex2(i))
+    endif
+  enddo
+
+  !call communication(packBuffer, unpackBuffer, numMessages, neighborRanks, msgSizes, msgOffsets)
+
+  call MashmInterNodeCommBegin(myMashm)
+
+  do i = 1, numMessages
+    if (MashmIsMsgOnNode(myMashm, i)) then
+      call packData2(domain, gridIndicesStart, gridIndicesEnd, mashmSendBufferPtrs(i)%p, msgDirIndex2(i))
+    endif
+  enddo
+
+  call MashmIntraNodeCommBegin(myMashm)
+
+  call MashmIntraNodeCommEnd(myMashm)
+
+  do i = 1, numMessages
+    if (MashmIsMsgOnNode(myMashm, i)) then
+      call unpackData2(domain, gridIndicesStart, gridIndicesEnd, mashmRecvBufferPtrs(i)%p, msgDirIndex2(i))
+    endif
+  enddo
+
+  call MashmInterNodeCommEnd(myMashm)
+
+  do i = 1, numMessages
+    if (.not. MashmIsMsgOnNode(myMashm, i)) then
+      call unpackData2(domain, gridIndicesStart, gridIndicesEnd, mashmRecvBufferPtrs(i)%p, msgDirIndex2(i))
+    endif
+  enddo
+
+  do i = 1, numMessages
+    call unpackData2(domain, gridIndicesStart, gridIndicesEnd, mashmRecvBufferPtrs(i)%p, msgDirIndex2(i))
+  enddo
+
+  call relaxation(domain, tmpDomain, rhs, gridIndicesStart, gridIndicesEnd)
+
+  call calcL2Norm(tmpDomain, solution, gridIndicesStart, gridIndicesEnd, residualL2, residualMax, &
+                  totalNumCells)
+
+  if (rank == 0) print *, "running iter ", iIter, " residual ", residualL2, &
+                          residualMax
+  do i = 1, numMessages
+    if (.not. MashmIsMsgOnNode(myMashm, i)) then
+      call packData2(tmpDomain, gridIndicesStart, gridIndicesEnd, mashmSendBufferPtrs(i)%p, msgDirIndex2(i))
+    endif
+  enddo
+
+  call MashmInterNodeCommBegin(myMashm)
+
+  do i = 1, numMessages
+    if (MashmIsMsgOnNode(myMashm, i)) then
+      call packData2(tmpDomain, gridIndicesStart, gridIndicesEnd, mashmSendBufferPtrs(i)%p, msgDirIndex2(i))
+    endif
+  enddo
+
+  call MashmIntraNodeCommBegin(myMashm)
+
+  call MashmIntraNodeCommEnd(myMashm)
+
+  do i = 1, numMessages
+    if (MashmIsMsgOnNode(myMashm, i)) then
+      call unpackData2(tmpDomain, gridIndicesStart, gridIndicesEnd, mashmRecvBufferPtrs(i)%p, msgDirIndex2(i))
+    endif
+  enddo
+
+  call MashmInterNodeCommEnd(myMashm)
+
+  do i = 1, numMessages
+    if (.not. MashmIsMsgOnNode(myMashm, i)) then
+      call unpackData2(tmpDomain, gridIndicesStart, gridIndicesEnd, mashmRecvBufferPtrs(i)%p, msgDirIndex2(i))
+    endif
+  enddo
+
+  call relaxation(tmpDomain, domain, rhs, gridIndicesStart, gridIndicesEnd)
+
+  call calcL2Norm(domain, solution, gridIndicesStart, gridIndicesEnd, residualL2, residualMax, &
+                  totalNumCells)
+
+  if (rank == 0) print *, "running iter ", iIter + 1, " residual ", residualL2, &
+                          residualMax
+
+enddo
+call system_clock(clockEnd)
+time3 = (clockEnd - clockStart)/rate
+
+
 
 ! Restore (nullify) the Mashm access pointers
 do i = 1, numMessages
@@ -2273,6 +2404,14 @@ enddo
 
 ! Destroy the Mashm object
 call MashmDestroy(myMashm)
+
+if (rank == 0) then
+  print *, "Number of dofs per rank = ", totalNumCells/numProcs
+  print *, "system_clock rate ",rate
+  print *, "Time of original method", time1
+  print *, "Time of mashm method", time2
+  print *, "Time of mashm method with overlap", time3
+endif
 
 deallocate(packBuffer)
 deallocate(unpackBuffer)

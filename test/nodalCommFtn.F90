@@ -272,7 +272,6 @@ do i = 1, numNeighbors
   call MashmRetireBufferPointer(myMashm, mashmRecvBufferPtrs(i))
 enddo
 
-
 ! Destroy the Mashm object
 call MashmDestroy(myMashm)
 
