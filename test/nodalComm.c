@@ -204,6 +204,10 @@ int main(int argc, char** argv) {
       commType = MASHM_COMM_MIN_AGG;
       break;
   }
+  printf("mcs %d\n", MASHM_COMM_STANDARD);
+  printf("mcim %d\n", MASHM_COMM_INTRA_MSG);
+  printf("mcis %d\n", MASHM_COMM_INTRA_SHARED);
+  printf("mcma %d\n", MASHM_COMM_MIN_AGG);
 
   MashmSetCommMethod(myMashm, commType);
 

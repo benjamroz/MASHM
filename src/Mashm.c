@@ -61,7 +61,9 @@ void MashmPrintCommCollection(const Mashm in_mashm) {
 }
 
 void MashmSetCommMethod(Mashm in_mashm, MashmCommType commType) {
+  printf("MashmSetCommMethod %d\n", commType);
   p_MashmSetCommMethod(in_mashm.p, commType);
+  printf("MashmSetCommMethod %d\n", in_mashm.p->commType);
 }
 
 MashmCommType MashmGetCommMethod(const Mashm in_mashm) {
@@ -69,6 +71,7 @@ MashmCommType MashmGetCommMethod(const Mashm in_mashm) {
 }
 
 void MashmCommFinish(Mashm in_mashm) {
+  printf("MashmCommFinish JJJ method %d\n", in_mashm.p->commType);
   p_MashmFinish(in_mashm.p);
 }
 

@@ -46,8 +46,9 @@ use Mashm_mod
 use mpi
 use arrayOfPointers_mod
 use decomp2d_mod
+use Mashm_type
 implicit none
-Mashm :: myMashm
+type(Mashm) :: myMashm
 integer :: ierr
 integer :: i, numNeighbors
 type(MashmBufferPointer), allocatable :: mashmSendBufferPtrs(:)
@@ -72,7 +73,8 @@ integer :: offset
 integer, allocatable :: msgOffsets(:)
 logical :: testFailed
 integer :: testFailedInt, numTestsFailed
-MashmCommType :: commMethod
+!MashmCommType :: commMethod
+integer(kind=c_int) :: commMethod
 
 call MPI_Init(ierr)
 call MPI_Comm_size(MPI_COMM_WORLD, numProcs, ierr)
@@ -189,13 +191,15 @@ enddo
 !commMethod = MASHM_COMM_INTRA_MSG
 !commMethod = MASHM_COMM_STANDARD
 commMethod = MASHM_COMM_MIN_AGG
+!commMethod = 3
 
 call MashmSetCommMethod(myMashm, commMethod)
+
+call MashmPrintCommCollection(myMashm)
 
 ! Perform precalculation
 call MashmCommFinish(myMashm)
 
-!call MashmPrintCommCollection(myMashm)
 
 ! Retrieve pointers for buffers
 allocate(mashmSendBufferPtrs(numNeighbors))

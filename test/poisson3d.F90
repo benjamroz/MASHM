@@ -1978,6 +1978,7 @@ use mpi
 use arrayOfPointers_mod
 use grid_data
 use commCycle
+use Mashm_type
 implicit none
 
 integer :: ierr
@@ -2008,8 +2009,9 @@ integer :: iIter, numIters
 real*8 :: residualL2, residualMax
 integer :: totalNumCells
 integer :: counter 
-Mashm :: myMashm
-MashmCommType :: commMethod
+type(Mashm) :: myMashm
+!MashmCommType :: commMethod
+integer(kind=c_int) :: commMethod
 type(MashmBufferPointer), allocatable :: mashmSendBufferPtrs(:)
 type(MashmBufferPointer), allocatable :: mashmRecvBufferPtrs(:)
 
@@ -2192,14 +2194,16 @@ enddo
 !commMethod = MASHM_COMM_INTRA_SHARED
 !commMethod = MASHM_COMM_INTRA_MSG
 !commMethod = MASHM_COMM_STANDARD
-commMethod = MASHM_COMM_MIN_AGG
+!commMethod = MASHM_COMM_MIN_AGG
+commMethod = 3
 
 call MashmSetCommMethod(myMashm, commMethod)
+
+call MashmPrintCommCollection(myMashm)
 
 ! Perform precalculation
 call MashmCommFinish(myMashm)
 
-!call MashmPrintCommCollection(myMashm)
 
 ! Retrieve pointers for buffers
 allocate(mashmSendBufferPtrs(numMessages))
