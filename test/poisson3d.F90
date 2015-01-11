@@ -2134,6 +2134,7 @@ if (rank == 0) print *, "Initial difference", residualL2, residualMax
 numIters = 100
 
 ! Stride two 
+call MPI_Barrier(MPI_COMM_WORLD, ierr)
 call system_clock(clockStart)
 do iIter = 1, numIters, 2
 
@@ -2152,8 +2153,8 @@ do iIter = 1, numIters, 2
   call calcL2Norm(tmpDomain, solution, gridIndicesStart, gridIndicesEnd, residualL2, residualMax, &
                   totalNumCells)
 
-  if (rank == 0) print *, "running iter ", iIter, " residual ", residualL2, &
-                          residualMax
+!  if (rank == 0) print *, "running iter ", iIter, " residual ", residualL2, &
+!                          residualMax
   do i = 1, numMessages
     call packData2(tmpDomain, gridIndicesStart, gridIndicesEnd, packBuffer(msgOffsets(i)+1:), msgDirIndex2(i))
   enddo
@@ -2170,10 +2171,11 @@ do iIter = 1, numIters, 2
   call calcL2Norm(domain, solution, gridIndicesStart, gridIndicesEnd, residualL2, residualMax, &
                   totalNumCells)
 
-  if (rank == 0) print *, "running iter ", iIter + 1, " residual ", residualL2, &
-                          residualMax
+!  if (rank == 0) print *, "running iter ", iIter + 1, " residual ", residualL2, &
+!                          residualMax
 
 enddo
+call MPI_Barrier(MPI_COMM_WORLD, ierr)
 call system_clock(clockEnd)
 time1 = (clockEnd - clockStart)/rate
 
@@ -2194,12 +2196,12 @@ enddo
 !commMethod = MASHM_COMM_INTRA_SHARED
 !commMethod = MASHM_COMM_INTRA_MSG
 !commMethod = MASHM_COMM_STANDARD
-!commMethod = MASHM_COMM_MIN_AGG
-commMethod = 3
+commMethod = MASHM_COMM_MIN_AGG
+!commMethod = 3
 
 call MashmSetCommMethod(myMashm, commMethod)
 
-call MashmPrintCommCollection(myMashm)
+!call MashmPrintCommCollection(myMashm)
 
 ! Perform precalculation
 call MashmCommFinish(myMashm)
@@ -2231,6 +2233,7 @@ if (rank == 0) print *, "Now running MASHM"
 if (rank == 0) print *, "Initial difference", residualL2, residualMax
 
 ! Stride two 
+call MPI_Barrier(MPI_COMM_WORLD, ierr)
 call system_clock(clockStart)
 do iIter = 1, numIters, 2
 
@@ -2254,8 +2257,8 @@ do iIter = 1, numIters, 2
   call calcL2Norm(tmpDomain, solution, gridIndicesStart, gridIndicesEnd, residualL2, residualMax, &
                   totalNumCells)
 
-  if (rank == 0) print *, "running iter ", iIter, " residual ", residualL2, &
-                          residualMax
+!  if (rank == 0) print *, "running iter ", iIter, " residual ", residualL2, &
+!                          residualMax
   do i = 1, numMessages
     call packData2(tmpDomain, gridIndicesStart, gridIndicesEnd, mashmSendBufferPtrs(i)%p, msgDirIndex2(i))
   enddo
@@ -2277,10 +2280,11 @@ do iIter = 1, numIters, 2
   call calcL2Norm(domain, solution, gridIndicesStart, gridIndicesEnd, residualL2, residualMax, &
                   totalNumCells)
 
-  if (rank == 0) print *, "running iter ", iIter + 1, " residual ", residualL2, &
-                          residualMax
+!  if (rank == 0) print *, "running iter ", iIter + 1, " residual ", residualL2, &
+!                          residualMax
 
 enddo
+call MPI_Barrier(MPI_COMM_WORLD, ierr)
 call system_clock(clockEnd)
 time2 = (clockEnd - clockStart)/rate
 
@@ -2302,6 +2306,7 @@ if (rank == 0) print *, "Now running MASHM with asynchronous packing/unpacking"
 if (rank == 0) print *, "Initial difference", residualL2, residualMax
 
 ! Stride two 
+call MPI_Barrier(MPI_COMM_WORLD, ierr)
 call system_clock(clockStart)
 do iIter = 1, numIters, 2
 
@@ -2352,8 +2357,8 @@ do iIter = 1, numIters, 2
   call calcL2Norm(tmpDomain, solution, gridIndicesStart, gridIndicesEnd, residualL2, residualMax, &
                   totalNumCells)
 
-  if (rank == 0) print *, "running iter ", iIter, " residual ", residualL2, &
-                          residualMax
+!  if (rank == 0) print *, "running iter ", iIter, " residual ", residualL2, &
+!                          residualMax
   do i = 1, numMessages
     if (.not. MashmIsMsgOnNode(myMashm, i)) then
       call packData2(tmpDomain, gridIndicesStart, gridIndicesEnd, mashmSendBufferPtrs(i)%p, msgDirIndex2(i))
@@ -2391,10 +2396,11 @@ do iIter = 1, numIters, 2
   call calcL2Norm(domain, solution, gridIndicesStart, gridIndicesEnd, residualL2, residualMax, &
                   totalNumCells)
 
-  if (rank == 0) print *, "running iter ", iIter + 1, " residual ", residualL2, &
-                          residualMax
+!  if (rank == 0) print *, "running iter ", iIter + 1, " residual ", residualL2, &
+!                          residualMax
 
 enddo
+call MPI_Barrier(MPI_COMM_WORLD, ierr)
 call system_clock(clockEnd)
 time3 = (clockEnd - clockStart)/rate
 

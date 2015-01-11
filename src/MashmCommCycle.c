@@ -56,7 +56,6 @@ void MashmCommCollectionInit(MashmCommCollection* commCollection) {
  * Set the size of the comm collection
  */
 void MashmCommCollectionSetSize(MashmCommCollection* commCollection, int numComms) {
-  printf("CommColledction size %d\n", numComms);
   /* Allocate at least two */
   if (commCollection->isAllocated) {
     free(commCollection->commArray);

@@ -1,5 +1,5 @@
-
 #include "MashmPrivate.h"
+
 
 typedef struct {
   int srcSharedMemRank;
@@ -48,7 +48,6 @@ void p_MashmInit(struct MashmPrivate* p_mashm, MPI_Comm in_comm) {
   int sharedMemNodeRank;
   int numSharedMemNodes;
   MPI_Comm rankComm;
-  printf("Initializing p_mashm\n");
   /* Set the communicator and get the size and rank */
   p_mashm->comm = in_comm;
 
@@ -380,46 +379,35 @@ void p_MashmCalcNumMpiMsgs(struct MashmPrivate* p_mashm) {
 
   /* This is usually zero */
 
-  printf("Ugh\n");
   switch (p_mashm->commType) {
     case MASHM_COMM_STANDARD:
-      printf("Ugh1\n");
       p_mashm->numIntraNodeMsgs = 0;
       p_mashm->numInterNodeMsgs = p_mashm->commCollection.commArraySize;
       break;
     case MASHM_COMM_INTRA_MSG:
-      printf("Ugh2\n");
       p_mashm->numIntraNodeMsgs = p_MashmNumIntraNodeMsgs(p_mashm);
       p_mashm->numInterNodeMsgs = p_mashm->commCollection.commArraySize - p_mashm->numIntraNodeMsgs;
       break;
     case MASHM_COMM_INTRA_SHARED:
-      printf("Ugh3\n");
       p_mashm->numIntraNodeMsgs = p_MashmNumIntraNodeMsgs(p_mashm);
       p_mashm->numInterNodeMsgs = p_mashm->commCollection.commArraySize - p_mashm->numIntraNodeMsgs;
       break;
     case MASHM_COMM_MIN_AGG:
-      printf("Ugh3\n");
       /* Shared memory messages */
       p_mashm->numIntraNodeMsgs = p_MashmNumIntraNodeMsgs(p_mashm);
-      printf("Ugh3a\n");
       /* Each node sends p_mashm->numSharedMemNodes MPI Messages 
        * Assign MPI messages in a round robin fashion */
       numNodalMessages = p_mashm->numSharedMemNodes;
-      printf("Ugh3b, size = %d\n", p_mashm->intraComm.size);
       floorNumMessagesPerRank = numNodalMessages/p_mashm->intraComm.size;
-      printf("Ugh3c\n");
       modNumMessagesPerRank = numNodalMessages % p_mashm->intraComm.size;
-      printf("Ugh3d\n");
 
       /* All ranks have at least this many messages */
       p_mashm->numInterNodeMsgs = floorNumMessagesPerRank;
-      printf("Ugh3e\n");
 
       /* Lower ranks may have one extra MPI message */
       if (p_mashm->intraComm.rank < modNumMessagesPerRank) {
         p_mashm->numInterNodeMsgs = floorNumMessagesPerRank + 1;
       }
-      printf("Ugh3f\n");
 
       break;
   }
@@ -1171,7 +1159,6 @@ void p_MashmFinish(struct MashmPrivate* p_mashm) {
   int iMsg, msgDestRank;
   int i;
   int numMessages;
-  printf("MashmFinish method %d\n", p_mashm->commType);
   /* Allocate data for the number of messages */
   numMessages = p_mashm->commCollection.commArraySize;
 
@@ -1189,15 +1176,12 @@ void p_MashmFinish(struct MashmPrivate* p_mashm) {
     p_mashm->pairSharedRanks[i] = MashmIntraNodeCommGetSharedRank(p_mashm->intraComm, p_mashm->pairRanks[i]);
   }
 
-  printf("Hi a\n");
   /* Determine the number of intranode and internode messages and calculate the sizes */
   /* TODO: these two methods should be condensed into one -
    *       they are doing similar things 
    */
   p_MashmCalcNumMpiMsgs(p_mashm);
-  printf("Hi a1\n");
   p_MashmCalcMsgBufferSize(p_mashm);
-  printf("Hi a2\n");
   /*
   printf("Buf size %d, shared buf size %d\n", p_mashm->bufferSize,p_mashm->sharedBufferSize);
   printf("Rank %d, intra rank %d sends %d MPI messages\n", p_mashm->rank, p_mashm->intraComm.rank, p_mashm->numInterNodeMsgs);
@@ -1207,7 +1191,6 @@ void p_MashmFinish(struct MashmPrivate* p_mashm) {
   p_mashm->p_regularSendBuffer = (double*) malloc(sizeof(double)*p_mashm->bufferSize);
   p_mashm->p_regularRecvBuffer = (double*) malloc(sizeof(double)*p_mashm->bufferSize);
 
-  printf("Hi b\n");
   /* Allocate MPI shared memory */
   if (p_mashm->commType == MASHM_COMM_INTRA_SHARED ||
       p_mashm->commType == MASHM_COMM_MIN_AGG) {
@@ -1215,7 +1198,6 @@ void p_MashmFinish(struct MashmPrivate* p_mashm) {
   }
   p_mashm->buffersInit = true;
 
-  printf("Hi c1\n");
   /* Set pointers to the buffer and shared buffer */
   if (p_mashm->commType == MASHM_COMM_MIN_AGG) {
     p_MashmCalculateNodalMsgSchedule(p_mashm);
@@ -1254,7 +1236,6 @@ void p_MashmFinish(struct MashmPrivate* p_mashm) {
       }
     }
   }
-  printf("Hi c\n");
 
   /* All communication types need to setup the data needed for MPI_Irecv/MPI_Isend */
   p_MashmSetupInterNodeComm(p_mashm);
@@ -1262,7 +1243,9 @@ void p_MashmFinish(struct MashmPrivate* p_mashm) {
   /* Perform some initialization for each comm method and set pointers to proper routines */
   switch (p_mashm->commType) {
     case MASHM_COMM_STANDARD:
+      /*
       printf("Using standard communication scheme\n");
+      */
       p_mashm->p_interNodeCommBegin = p_MashmStandardCommBegin;
       p_mashm->p_interNodeCommEnd = p_MashmStandardCommEnd;
 
@@ -1272,7 +1255,9 @@ void p_MashmFinish(struct MashmPrivate* p_mashm) {
       break;
 
     case MASHM_COMM_INTRA_MSG:
+      /*
       printf("Using INTRA_MSG communication scheme\n");
+      */
       p_MashmSetupIntraMsgComm(p_mashm);
 
       p_mashm->p_interNodeCommBegin = p_MashmStandardCommBegin;
@@ -1284,7 +1269,9 @@ void p_MashmFinish(struct MashmPrivate* p_mashm) {
       break;
 
     case MASHM_COMM_INTRA_SHARED:
+      /*
       printf("Using INTRA_SHARED communication scheme\n");
+      */
       /* Calculate shared memory indices etc. */
       p_MashmSetupIntraSharedComm(p_mashm);
 
@@ -1297,8 +1284,9 @@ void p_MashmFinish(struct MashmPrivate* p_mashm) {
       break;
 
     case MASHM_COMM_MIN_AGG:
-      /* Calculate */
+      /*
       printf("Using MIN_AGG communication scheme\n");
+      */
       p_MashmSetupIntraSharedComm(p_mashm);
 
       p_mashm->p_interNodeCommBegin = p_MashmMinAggCommBegin;
@@ -1426,9 +1414,7 @@ void p_MashmPrintCommCollection(const struct MashmPrivate* p_mashm) {
 }
 
 void p_MashmSetCommMethod(struct MashmPrivate* p_mashm, int commType) {
-  printf("p_ commType = %d\n", commType);
   p_mashm->commType = commType;
-  printf("p_-> commType = %d\n", p_mashm->commType);
 }
 
 MashmCommType p_MashmGetCommMethod(const struct MashmPrivate* p_mashm) {
