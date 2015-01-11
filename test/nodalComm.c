@@ -57,7 +57,7 @@ int main(int argc, char** argv) {
 
   m = 10;
   n = 10;
-
+  setbuf(stdout, NULL);
 #if 0
   numElems = decomp2dRectNumElements(m, n, rank, numProcs);
 
@@ -164,9 +164,7 @@ int main(int argc, char** argv) {
   MashmInit(&myMashm, MPI_COMM_WORLD);
 
   /* Print nodal comm info */
-  /*
   MashmPrintInfo(myMashm);
-  */
 
   /* Add communications calculated above */
   if (rank == 0) printf("Setting message information\n");
@@ -204,18 +202,19 @@ int main(int argc, char** argv) {
       commType = MASHM_COMM_MIN_AGG;
       break;
   }
-  printf("mcs %d\n", MASHM_COMM_STANDARD);
-  printf("mcim %d\n", MASHM_COMM_INTRA_MSG);
-  printf("mcis %d\n", MASHM_COMM_INTRA_SHARED);
-  printf("mcma %d\n", MASHM_COMM_MIN_AGG);
 
   MashmSetCommMethod(myMashm, commType);
 
   /* Perform precalculation */
   if (rank == 0) printf("Calling MashmCommFinish.\n");
   MashmCommFinish(myMashm);
-  /* Retrieve pointers for buffers */
 
+  /* Print the comm collection */
+  /*
+  MashmPrintCommCollection(myMashm);
+  */
+
+  /* Retrieve pointers for buffers */
   mashmSendBufferPtrs = (double**) malloc(sizeof(double*)*numNeighbors);
   mashmRecvBufferPtrs = (double**) malloc(sizeof(double*)*numNeighbors);
 
@@ -298,7 +297,6 @@ int main(int argc, char** argv) {
    * 
    * Now compare unpacked buffers
    ****************************************************************/
-
 
   if (rank == 0) printf("Testing Mashm data against original.\n");
   /* Test that the original buffer and the Mashm data are the same */

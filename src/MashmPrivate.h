@@ -214,4 +214,5 @@ void p_MashmIntraNodeCommEnd(struct MashmPrivate* p_mashm);
 /* Finish internode communication */
 void p_MashmInterNodeCommEnd(struct MashmPrivate* p_mashm);
 
+void p_MashmPrintInterNodeMessages(struct MashmPrivate* p_mashm);
 #endif

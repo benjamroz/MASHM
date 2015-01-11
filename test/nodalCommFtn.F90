@@ -195,7 +195,7 @@ commMethod = MASHM_COMM_MIN_AGG
 
 call MashmSetCommMethod(myMashm, commMethod)
 
-call MashmPrintCommCollection(myMashm)
+!call MashmPrintCommCollection(myMashm)
 
 ! Perform precalculation
 call MashmCommFinish(myMashm)

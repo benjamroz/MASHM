@@ -1,5 +1,5 @@
 #define DEBUG 0
-
+#define PRINT_ITER
 #define PI 3.1415926535897932384626
 
 module arrayOfPointers_mod
@@ -2150,11 +2150,13 @@ do iIter = 1, numIters, 2
 
   call relaxation(domain, tmpDomain, rhs, gridIndicesStart, gridIndicesEnd)
 
+#ifdef PRINT_ITER
   call calcL2Norm(tmpDomain, solution, gridIndicesStart, gridIndicesEnd, residualL2, residualMax, &
                   totalNumCells)
+  if (rank == 0) print *, "running iter ", iIter, " residual ", residualL2, &
+                          residualMax
+#endif
 
-!  if (rank == 0) print *, "running iter ", iIter, " residual ", residualL2, &
-!                          residualMax
   do i = 1, numMessages
     call packData2(tmpDomain, gridIndicesStart, gridIndicesEnd, packBuffer(msgOffsets(i)+1:), msgDirIndex2(i))
   enddo
@@ -2168,11 +2170,12 @@ do iIter = 1, numIters, 2
 
   call relaxation(tmpDomain, domain, rhs, gridIndicesStart, gridIndicesEnd)
 
+#ifdef PRINT_ITER
   call calcL2Norm(domain, solution, gridIndicesStart, gridIndicesEnd, residualL2, residualMax, &
                   totalNumCells)
-
-!  if (rank == 0) print *, "running iter ", iIter + 1, " residual ", residualL2, &
-!                          residualMax
+  if (rank == 0) print *, "running iter ", iIter + 1, " residual ", residualL2, &
+                          residualMax
+#endif
 
 enddo
 call MPI_Barrier(MPI_COMM_WORLD, ierr)
@@ -2206,7 +2209,6 @@ call MashmSetCommMethod(myMashm, commMethod)
 ! Perform precalculation
 call MashmCommFinish(myMashm)
 
-
 ! Retrieve pointers for buffers
 allocate(mashmSendBufferPtrs(numMessages))
 allocate(mashmRecvBufferPtrs(numMessages))
@@ -2215,7 +2217,6 @@ do i = 1, numMessages
   call MashmGetBufferPointer(myMashm, i, MASHM_SEND, mashmSendBufferPtrs(i))
   call MashmGetBufferPointer(myMashm, i, MASHM_RECEIVE, mashmRecvBufferPtrs(i))
 enddo
-
 ! Reset the solution
 tmpDomain = 0.0
 do k = gridIndicesStart(3), gridIndicesEnd(3)
@@ -2241,7 +2242,6 @@ do iIter = 1, numIters, 2
     call packData2(domain, gridIndicesStart, gridIndicesEnd, mashmSendBufferPtrs(i)%p, msgDirIndex2(i))
   enddo
 
-  !call communication(packBuffer, unpackBuffer, numMessages, neighborRanks, msgSizes, msgOffsets)
   call MashmInterNodeCommBegin(myMashm)
   call MashmIntraNodeCommBegin(myMashm)
 
@@ -2254,40 +2254,41 @@ do iIter = 1, numIters, 2
 
   call relaxation(domain, tmpDomain, rhs, gridIndicesStart, gridIndicesEnd)
 
+#ifdef PRINT_ITER
   call calcL2Norm(tmpDomain, solution, gridIndicesStart, gridIndicesEnd, residualL2, residualMax, &
                   totalNumCells)
 
-!  if (rank == 0) print *, "running iter ", iIter, " residual ", residualL2, &
-!                          residualMax
+  if (rank == 0) print *, "running iter ", iIter, " residual ", residualL2, &
+                          residualMax
+#endif
+
   do i = 1, numMessages
     call packData2(tmpDomain, gridIndicesStart, gridIndicesEnd, mashmSendBufferPtrs(i)%p, msgDirIndex2(i))
   enddo
-
-  !call communication(packBuffer, unpackBuffer, numMessages, neighborRanks, msgSizes, msgOffsets)
 
   call MashmInterNodeCommBegin(myMashm)
   call MashmIntraNodeCommBegin(myMashm)
 
   call MashmIntraNodeCommEnd(myMashm)
   call MashmInterNodeCommEnd(myMashm)
-
   do i = 1, numMessages
     call unpackData2(tmpDomain, gridIndicesStart, gridIndicesEnd, mashmRecvBufferPtrs(i)%p, msgDirIndex2(i))
   enddo
 
   call relaxation(tmpDomain, domain, rhs, gridIndicesStart, gridIndicesEnd)
 
+#ifdef PRINT_ITER
   call calcL2Norm(domain, solution, gridIndicesStart, gridIndicesEnd, residualL2, residualMax, &
                   totalNumCells)
 
-!  if (rank == 0) print *, "running iter ", iIter + 1, " residual ", residualL2, &
-!                          residualMax
+  if (rank == 0) print *, "running iter ", iIter + 1, " residual ", residualL2, &
+                          residualMax
+#endif
 
 enddo
 call MPI_Barrier(MPI_COMM_WORLD, ierr)
 call system_clock(clockEnd)
 time2 = (clockEnd - clockStart)/rate
-
 
 ! Reset the solution
 tmpDomain = 0.0
@@ -2320,8 +2321,6 @@ do iIter = 1, numIters, 2
     endif
   enddo
 
-  !call communication(packBuffer, unpackBuffer, numMessages, neighborRanks, msgSizes, msgOffsets)
-
   call MashmInterNodeCommBegin(myMashm)
 
   do i = 1, numMessages
@@ -2354,11 +2353,13 @@ do iIter = 1, numIters, 2
 
   call relaxation(domain, tmpDomain, rhs, gridIndicesStart, gridIndicesEnd)
 
+#ifdef PRINT_ITER
   call calcL2Norm(tmpDomain, solution, gridIndicesStart, gridIndicesEnd, residualL2, residualMax, &
                   totalNumCells)
+  if (rank == 0) print *, "running iter ", iIter, " residual ", residualL2, &
+                          residualMax
+#endif
 
-!  if (rank == 0) print *, "running iter ", iIter, " residual ", residualL2, &
-!                          residualMax
   do i = 1, numMessages
     if (.not. MashmIsMsgOnNode(myMashm, i)) then
       call packData2(tmpDomain, gridIndicesStart, gridIndicesEnd, mashmSendBufferPtrs(i)%p, msgDirIndex2(i))
@@ -2393,11 +2394,12 @@ do iIter = 1, numIters, 2
 
   call relaxation(tmpDomain, domain, rhs, gridIndicesStart, gridIndicesEnd)
 
+#ifdef PRINT_ITER
   call calcL2Norm(domain, solution, gridIndicesStart, gridIndicesEnd, residualL2, residualMax, &
                   totalNumCells)
-
-!  if (rank == 0) print *, "running iter ", iIter + 1, " residual ", residualL2, &
-!                          residualMax
+  if (rank == 0) print *, "running iter ", iIter + 1, " residual ", residualL2, &
+                          residualMax
+#endif
 
 enddo
 call MPI_Barrier(MPI_COMM_WORLD, ierr)
@@ -2430,7 +2432,6 @@ deallocate(domain)
 deallocate(tmpDomain)
 deallocate(solution)
 deallocate(rhs)
-
 call MPI_Finalize(ierr)
 
 end program nodalCommFtn
