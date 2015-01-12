@@ -173,6 +173,9 @@ contains
       if (mod(remainder, 2) .eq. 0) then
         factors(iDir) = factors(iDir)*2
         remainder = remainder/2
+      else if (mod(remainder, 3) .eq. 0) then
+        factors(iDir) = factors(iDir)*3
+        remainder = remainder/3
       endif
     enddo
     if (remainder .eq. 1) then
@@ -180,8 +183,8 @@ contains
     endif
     counter = counter + 1
     if (counter .gt. 100) then
-      if (rank == 0) print *, "Error: nx,ny,nz must be factors of 2"
-      exit
+      if (rank == 0) print *, "Error: nx,ny,nz must be factors of 2, 3"
+      stop
     endif
   enddo
 
@@ -326,6 +329,10 @@ contains
   rankCounter = rankCounter - 1
   numMessages = rankCounter
 
+  if (numMessages == 0) then
+    print *, "Error test/grid.F90 rank ", rank, " has zero messages"
+    stop
+  endif
   allocate(neighborRanks(numMessages))
   ! Determine neighbor ranks
   msgIndices = 0
@@ -378,7 +385,6 @@ contains
     enddo
   enddo
 
-  numMessages = numMessages
   allocate(msgSizes(numMessages))
   allocate(msgOffsets(numMessages+1))
   msgSizes = 0

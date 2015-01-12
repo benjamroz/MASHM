@@ -1341,7 +1341,21 @@ void p_MashmFinish(struct MashmPrivate* p_mashm) {
 
   }
 
+  // Test if there are more messages than intra-comm ranks
+  if (p_mashm->numNodalMsgs > p_mashm->intraComm.size) {
+    if (p_mashm->intraComm.rank == 0) {
+      printf("Node %d has more messages than ranks\n", p_mashm->sharedMemIndex);
+    }
+  }
+  //printf("Rank %d, owns %d messages\n", p_mashm->rank, p_mashm->numOwnedNodalMsgs);
+  //fflush(stdout);
+  //MPI_Barrier(MPI_COMM_WORLD);
+  //MPI_Barrier(MPI_COMM_WORLD);
+  //MPI_Barrier(MPI_COMM_WORLD);
+  //MPI_Barrier(MPI_COMM_WORLD);
+  //MPI_Barrier(MPI_COMM_WORLD);
   //p_MashmPrintInterNodeMessages(p_mashm);
+  
 }
 
 

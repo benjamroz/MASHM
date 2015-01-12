@@ -1,5 +1,5 @@
 #define DEBUG 0
-#define PRINT_ITER
+!#define PRINT_ITER
 #define PI 3.1415926535897932384626
 
 module arrayOfPointers_mod
@@ -2208,7 +2208,16 @@ call MashmSetCommMethod(myMashm, commMethod)
 
 ! Perform precalculation
 call MashmCommFinish(myMashm)
-
+call MPI_Barrier(MPI_COMM_WORLD, ierr)
+call MPI_Barrier(MPI_COMM_WORLD, ierr)
+call MPI_Barrier(MPI_COMM_WORLD, ierr)
+call MPI_Barrier(MPI_COMM_WORLD, ierr)
+if (rank == 0) print *, "Returned from finish"
+flush(6)
+call MPI_Barrier(MPI_COMM_WORLD, ierr)
+call MPI_Barrier(MPI_COMM_WORLD, ierr)
+call MPI_Barrier(MPI_COMM_WORLD, ierr)
+call MPI_Barrier(MPI_COMM_WORLD, ierr)
 ! Retrieve pointers for buffers
 allocate(mashmSendBufferPtrs(numMessages))
 allocate(mashmRecvBufferPtrs(numMessages))
