@@ -1,6 +1,8 @@
 # Note: Turned off Fortran support for now
 PROJECT(MASHM C Fortran)
-#PROJECT(MASHM C)
+
+# Add the cmake/Find*.cmake files to find packages
+SET (CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 ENABLE_LANGUAGE(Fortran) 
 INCLUDE(FortranCInterface)
@@ -18,6 +20,7 @@ IF (DOXYGEN_FOUND)
   ADD_SUBDIRECTORY(doc)
 ENDIF()
 
+FIND_PACKAGE(GPTL REQUIRED)
 
 ADD_SUBDIRECTORY(src)
 ADD_SUBDIRECTORY(test)

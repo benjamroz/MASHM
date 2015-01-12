@@ -1979,6 +1979,7 @@ use arrayOfPointers_mod
 use grid_data
 use commCycle
 use Mashm_type
+use gptl
 implicit none
 
 integer :: ierr
@@ -2019,9 +2020,7 @@ integer, allocatable :: msgDirIndex2(:)
 integer :: msgIndex
 integer :: packInt3(3)
 
-real :: rate 
-integer :: cr, cm, clockStart, clockEnd
-real :: time1, time2, time3
+integer :: gptlError
 
 call MPI_Init(ierr)
 call MPI_Comm_size(MPI_COMM_WORLD, numProcs, ierr)
@@ -2029,6 +2028,9 @@ call MPI_Comm_rank(MPI_COMM_WORLD, rank, ierr)
 
 ! Read namelist
 call read_grid_data_namelist(MPI_COMM_WORLD)
+
+! Initialize gptl
+gptlError = gptlinitialize()
 
 ! Get the grid decomposition
 call grid_3d_decomp_num_elements(rank, numProcs)
@@ -2121,11 +2123,6 @@ do k = gridIndicesStart(3), gridIndicesEnd(3)
   enddo
 enddo
 
-! Initialize system_clock for timers
-call system_clock(count_rate=cr)
-call system_clock(count_max=cm)
-rate = REAL(cr)
-
 call calcL2Norm(domain, solution, gridIndicesStart, gridIndicesEnd, residualL2, residualMax, &
                 totalNumCells)
 
@@ -2133,16 +2130,18 @@ if (rank == 0) print *, "Initial difference", residualL2, residualMax
 
 numIters = 100
 
-! Stride two 
 call MPI_Barrier(MPI_COMM_WORLD, ierr)
-call system_clock(clockStart)
+gptlError = gptlstart('method1')
+
 do iIter = 1, numIters, 2
 
   do i = 1, numMessages
     call packData2(domain, gridIndicesStart, gridIndicesEnd, packBuffer(msgOffsets(i)+1:), msgDirIndex2(i))
   enddo
 
+  gptlError = gptlstart('communication1')
   call communication(packBuffer, unpackBuffer, numMessages, neighborRanks, msgSizes, msgOffsets)
+  gptlError = gptlstop('communication1')
 
   do i = 1, numMessages
     call unpackData2(domain, gridIndicesStart, gridIndicesEnd, unpackBuffer(msgOffsets(i)+1:), msgDirIndex2(i))
@@ -2161,7 +2160,9 @@ do iIter = 1, numIters, 2
     call packData2(tmpDomain, gridIndicesStart, gridIndicesEnd, packBuffer(msgOffsets(i)+1:), msgDirIndex2(i))
   enddo
 
+  gptlError = gptlstart('communication1')
   call communication(packBuffer, unpackBuffer, numMessages, neighborRanks, msgSizes, msgOffsets)
+  gptlError = gptlstop('communication1')
 
 
   do i = 1, numMessages
@@ -2178,9 +2179,7 @@ do iIter = 1, numIters, 2
 #endif
 
 enddo
-call MPI_Barrier(MPI_COMM_WORLD, ierr)
-call system_clock(clockEnd)
-time1 = (clockEnd - clockStart)/rate
+gptlError = gptlstop('method1')
 
 call MashmInit(myMashm, MPI_COMM_WORLD)
 
@@ -2244,18 +2243,20 @@ if (rank == 0) print *, "Initial difference", residualL2, residualMax
 
 ! Stride two 
 call MPI_Barrier(MPI_COMM_WORLD, ierr)
-call system_clock(clockStart)
+gptlError = gptlstart('method2')
 do iIter = 1, numIters, 2
 
   do i = 1, numMessages
     call packData2(domain, gridIndicesStart, gridIndicesEnd, mashmSendBufferPtrs(i)%p, msgDirIndex2(i))
   enddo
 
+  gptlError = gptlstart('communication2')
   call MashmInterNodeCommBegin(myMashm)
   call MashmIntraNodeCommBegin(myMashm)
 
   call MashmIntraNodeCommEnd(myMashm)
   call MashmInterNodeCommEnd(myMashm)
+  gptlError = gptlstop('communication2')
 
   do i = 1, numMessages
     call unpackData2(domain, gridIndicesStart, gridIndicesEnd, mashmRecvBufferPtrs(i)%p, msgDirIndex2(i))
@@ -2275,11 +2276,13 @@ do iIter = 1, numIters, 2
     call packData2(tmpDomain, gridIndicesStart, gridIndicesEnd, mashmSendBufferPtrs(i)%p, msgDirIndex2(i))
   enddo
 
+  gptlError = gptlstart('communication2')
   call MashmInterNodeCommBegin(myMashm)
   call MashmIntraNodeCommBegin(myMashm)
 
   call MashmIntraNodeCommEnd(myMashm)
   call MashmInterNodeCommEnd(myMashm)
+  gptlError = gptlstop('communication2')
   do i = 1, numMessages
     call unpackData2(tmpDomain, gridIndicesStart, gridIndicesEnd, mashmRecvBufferPtrs(i)%p, msgDirIndex2(i))
   enddo
@@ -2295,9 +2298,7 @@ do iIter = 1, numIters, 2
 #endif
 
 enddo
-call MPI_Barrier(MPI_COMM_WORLD, ierr)
-call system_clock(clockEnd)
-time2 = (clockEnd - clockStart)/rate
+gptlError = gptlstop('method2')
 
 ! Reset the solution
 tmpDomain = 0.0
@@ -2317,7 +2318,7 @@ if (rank == 0) print *, "Initial difference", residualL2, residualMax
 
 ! Stride two 
 call MPI_Barrier(MPI_COMM_WORLD, ierr)
-call system_clock(clockStart)
+gptlError = gptlstart('method3')
 do iIter = 1, numIters, 2
 
   do i = 1, numMessages
@@ -2330,7 +2331,9 @@ do iIter = 1, numIters, 2
     endif
   enddo
 
+  gptlError = gptlstart('communication3_inter')
   call MashmInterNodeCommBegin(myMashm)
+  gptlError = gptlstop('communication3_inter')
 
   do i = 1, numMessages
     if (MashmIsMsgOnNode(myMashm, i)) then
@@ -2338,9 +2341,10 @@ do iIter = 1, numIters, 2
     endif
   enddo
 
+  gptlError = gptlstart('communication3_intra')
   call MashmIntraNodeCommBegin(myMashm)
-
   call MashmIntraNodeCommEnd(myMashm)
+  gptlError = gptlstop('communication3_intra')
 
   do i = 1, numMessages
     if (MashmIsMsgOnNode(myMashm, i)) then
@@ -2348,7 +2352,9 @@ do iIter = 1, numIters, 2
     endif
   enddo
 
+  gptlError = gptlstart('communication3_inter')
   call MashmInterNodeCommEnd(myMashm)
+  gptlError = gptlstop('communication3_inter')
 
   do i = 1, numMessages
     if (.not. MashmIsMsgOnNode(myMashm, i)) then
@@ -2375,7 +2381,9 @@ do iIter = 1, numIters, 2
     endif
   enddo
 
+  gptlError = gptlstart('communication3_inter')
   call MashmInterNodeCommBegin(myMashm)
+  gptlError = gptlstop('communication3_inter')
 
   do i = 1, numMessages
     if (MashmIsMsgOnNode(myMashm, i)) then
@@ -2383,9 +2391,11 @@ do iIter = 1, numIters, 2
     endif
   enddo
 
+  gptlError = gptlstart('communication3_intra')
   call MashmIntraNodeCommBegin(myMashm)
 
   call MashmIntraNodeCommEnd(myMashm)
+  gptlError = gptlstop('communication3_intra')
 
   do i = 1, numMessages
     if (MashmIsMsgOnNode(myMashm, i)) then
@@ -2393,7 +2403,9 @@ do iIter = 1, numIters, 2
     endif
   enddo
 
+  gptlError = gptlstart('communication3_inter')
   call MashmInterNodeCommEnd(myMashm)
+  gptlError = gptlstop('communication3_inter')
 
   do i = 1, numMessages
     if (.not. MashmIsMsgOnNode(myMashm, i)) then
@@ -2411,12 +2423,8 @@ do iIter = 1, numIters, 2
 #endif
 
 enddo
-call MPI_Barrier(MPI_COMM_WORLD, ierr)
-call system_clock(clockEnd)
-time3 = (clockEnd - clockStart)/rate
-
-
-
+gptlError = gptlstop('method3')
+gptlError = gptlpr_summary(MPI_COMM_WORLD)
 ! Restore (nullify) the Mashm access pointers
 do i = 1, numMessages
   call MashmRetireBufferPointer(myMashm, mashmSendBufferPtrs(i))
@@ -2426,13 +2434,6 @@ enddo
 ! Destroy the Mashm object
 call MashmDestroy(myMashm)
 
-if (rank == 0) then
-  print *, "Number of dofs per rank = ", totalNumCells/numProcs
-  print *, "system_clock rate ",rate
-  print *, "Time of original method", time1
-  print *, "Time of mashm method", time2
-  print *, "Time of mashm method with overlap", time3
-endif
 
 deallocate(packBuffer)
 deallocate(unpackBuffer)

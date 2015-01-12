@@ -9,6 +9,7 @@ INCLUDE_DIRECTORIES(
   ${CMAKE_SOURCE_DIR}/src
   ${CMAKE_SOURCE_DIR}/src/fortran
   ${CMAKE_BINARY_DIR}/src/fortran
+  ${GPTL_INCLUDE_DIRS}
   )
  
 ADD_SUBDIRECTORY(testHelpers)
@@ -26,4 +27,4 @@ SET(POISSON_3D_SRCS
 )
 
 ADD_EXECUTABLE(poisson3d ${POISSON_3D_SRCS})
-TARGET_LINK_LIBRARIES(poisson3d mashm mashm_ftn)
+TARGET_LINK_LIBRARIES(poisson3d mashm mashm_ftn ${GPTL_LIBRARIES})
