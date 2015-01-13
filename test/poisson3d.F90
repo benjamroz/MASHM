@@ -2020,7 +2020,7 @@ integer, allocatable :: msgDirIndex2(:)
 integer :: msgIndex
 integer :: packInt3(3)
 
-integer :: gptlError
+integer :: gptlError, gptlRet
 
 call MPI_Init(ierr)
 call MPI_Comm_size(MPI_COMM_WORLD, numProcs, ierr)
@@ -2028,6 +2028,9 @@ call MPI_Comm_rank(MPI_COMM_WORLD, rank, ierr)
 
 ! Read namelist
 call read_grid_data_namelist(MPI_COMM_WORLD)
+
+! Set gptl to nanotime
+gptlError = gptlsetutr(gptlnanotime)
 
 ! Initialize gptl
 gptlError = gptlinitialize()
@@ -2424,7 +2427,8 @@ do iIter = 1, numIters, 2
 
 enddo
 gptlError = gptlstop('method3')
-gptlError = gptlpr_summary(MPI_COMM_WORLD)
+!gptlError = gptlpr_summary(MPI_COMM_WORLD)
+gptlError = gptlpr_file('poisson3d.timing')
 ! Restore (nullify) the Mashm access pointers
 do i = 1, numMessages
   call MashmRetireBufferPointer(myMashm, mashmSendBufferPtrs(i))
