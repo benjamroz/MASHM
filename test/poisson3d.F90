@@ -1829,6 +1829,7 @@ end subroutine
 
 subroutine communication(sendBuffer, recvBuffer, numMessages, neighborRanks, msgSizes, msgOffsets)
 use mpi
+use gptl
 implicit none
 real*8, intent(in) :: sendBuffer(:)
 real*8, intent(out) :: recvBuffer(:)
@@ -1841,15 +1842,7 @@ integer :: i
 
 integer :: ierr, errorCode, errorLen
 character(256) :: errorString
-
-do i = 1, numMessages
-  call MPI_Isend(sendBuffer(msgOffsets(i)+1),msgSizes(i),MPI_REAL8,neighborRanks(i),10,MPI_COMM_WORLD,sendRequest(i),ierr)
-  if(ierr .ne. MPI_SUCCESS) then
-    errorcode = ierr
-    call MPI_Error_String(errorcode,errorstring,errorlen,ierr)
-    print *,'Error after call to MPI_Isend: ',errorstring
-  endif
-end do
+integer :: gptlError
 
 do i = 1, numMessages
   call MPI_Irecv(recvBuffer(msgOffsets(i)+1),msgSizes(i),MPI_REAL8,neighborRanks(i),10,MPI_COMM_WORLD,recvRequest(i),ierr)
@@ -1860,10 +1853,62 @@ do i = 1, numMessages
   endif
 end do
 
-call MPI_Waitall(numMessages,sendRequest,sendStatus,ierr)
+do i = 1, numMessages
+  call MPI_Isend(sendBuffer(msgOffsets(i)+1),msgSizes(i),MPI_REAL8,neighborRanks(i),10,MPI_COMM_WORLD,sendRequest(i),ierr)
+  if(ierr .ne. MPI_SUCCESS) then
+    errorcode = ierr
+    call MPI_Error_String(errorcode,errorstring,errorlen,ierr)
+    print *,'Error after call to MPI_Isend: ',errorstring
+  endif
+end do
+
+gptlError = gptlstart('communication1_waitall')
 call MPI_Waitall(numMessages,recvRequest,recvStatus,ierr)
+call MPI_Waitall(numMessages,sendRequest,sendStatus,ierr)
+gptlError = gptlstop('communication1_waitall')
 
 end subroutine 
+
+subroutine communication_notimers(sendBuffer, recvBuffer, numMessages, neighborRanks, msgSizes, msgOffsets)
+use mpi
+use gptl
+implicit none
+real*8, intent(in) :: sendBuffer(:)
+real*8, intent(out) :: recvBuffer(:)
+integer, intent(in) :: numMessages
+integer, intent(in) :: neighborRanks(:)
+integer, intent(in) :: msgSizes(:)
+integer, intent(in) :: msgOffsets(:)
+
+integer :: i
+
+integer :: ierr, errorCode, errorLen
+character(256) :: errorString
+integer :: gptlError
+
+do i = 1, numMessages
+  call MPI_Irecv(recvBuffer(msgOffsets(i)+1),msgSizes(i),MPI_REAL8,neighborRanks(i),10,MPI_COMM_WORLD,recvRequest(i),ierr)
+  if(ierr .ne. MPI_SUCCESS) then
+     errorcode = ierr
+     call MPI_Error_String(errorcode,errorstring,errorlen,ierr)
+     print *,'Error after call to MPI_Irecv: ',errorstring
+  endif
+end do
+
+do i = 1, numMessages
+  call MPI_Isend(sendBuffer(msgOffsets(i)+1),msgSizes(i),MPI_REAL8,neighborRanks(i),10,MPI_COMM_WORLD,sendRequest(i),ierr)
+  if(ierr .ne. MPI_SUCCESS) then
+    errorcode = ierr
+    call MPI_Error_String(errorcode,errorstring,errorlen,ierr)
+    print *,'Error after call to MPI_Isend: ',errorstring
+  endif
+end do
+
+call MPI_Waitall(numMessages,recvRequest,recvStatus,ierr)
+call MPI_Waitall(numMessages,sendRequest,sendStatus,ierr)
+
+end subroutine 
+
 
 subroutine setupComm(numMessages)
 use mpi
@@ -2045,6 +2090,8 @@ call determineCommSchedule(rank, numProcs, gridIndicesStart, gridIndicesEnd, num
                            msgSizes, msgOffsets, neighborRanks)
 call setupComm(numMessages)
 
+!print *, "rank ", rank, ", numMessages = ", numMessages
+
 allocate(msgDirIndex2(numMessages))
 do k = -1,1
   do j = -1,1
@@ -2131,7 +2178,41 @@ call calcL2Norm(domain, solution, gridIndicesStart, gridIndicesEnd, residualL2, 
 
 if (rank == 0) print *, "Initial difference", residualL2, residualMax
 
-numIters = 100
+numIters = 10000
+
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!  "Warmup"
+!  Perform 2 cycles to ensure communication initialization is not timed
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+do iIter = 1, 2, 2
+
+  do i = 1, numMessages
+    call packData2(domain, gridIndicesStart, gridIndicesEnd, packBuffer(msgOffsets(i)+1:), msgDirIndex2(i))
+  enddo
+
+  call communication_notimers(packBuffer, unpackBuffer, numMessages, neighborRanks, msgSizes, msgOffsets)
+
+  do i = 1, numMessages
+    call unpackData2(domain, gridIndicesStart, gridIndicesEnd, unpackBuffer(msgOffsets(i)+1:), msgDirIndex2(i))
+  enddo
+
+  call relaxation(domain, tmpDomain, rhs, gridIndicesStart, gridIndicesEnd)
+
+  do i = 1, numMessages
+    call packData2(tmpDomain, gridIndicesStart, gridIndicesEnd, packBuffer(msgOffsets(i)+1:), msgDirIndex2(i))
+  enddo
+
+  call communication_notimers(packBuffer, unpackBuffer, numMessages, neighborRanks, msgSizes, msgOffsets)
+
+  do i = 1, numMessages
+    call unpackData2(tmpDomain, gridIndicesStart, gridIndicesEnd, unpackBuffer(msgOffsets(i)+1:), msgDirIndex2(i))
+  enddo
+
+  call relaxation(tmpDomain, domain, rhs, gridIndicesStart, gridIndicesEnd)
+
+enddo
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 call MPI_Barrier(MPI_COMM_WORLD, ierr)
 gptlError = gptlstart('method1')
@@ -2198,11 +2279,7 @@ do i = 1, numMessages
 enddo
 
 ! Choose the communitcation method
-!commMethod = MASHM_COMM_INTRA_SHARED
-!commMethod = MASHM_COMM_INTRA_MSG
-!commMethod = MASHM_COMM_STANDARD
 commMethod = MASHM_COMM_MIN_AGG
-!commMethod = 3
 
 call MashmSetCommMethod(myMashm, commMethod)
 
@@ -2244,7 +2321,48 @@ call calcL2Norm(domain, solution, gridIndicesStart, gridIndicesEnd, residualL2, 
 if (rank == 0) print *, "Now running MASHM"
 if (rank == 0) print *, "Initial difference", residualL2, residualMax
 
-! Stride two 
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!  "Warmup"
+!  Perform 2 cycles to ensure communication initialization is not timed
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+do iIter = 1, 2, 2
+
+  do i = 1, numMessages
+    call packData2(domain, gridIndicesStart, gridIndicesEnd, mashmSendBufferPtrs(i)%p, msgDirIndex2(i))
+  enddo
+
+  call MashmInterNodeCommBegin(myMashm)
+  call MashmIntraNodeCommBegin(myMashm)
+
+  call MashmIntraNodeCommEnd(myMashm)
+  call MashmInterNodeCommEnd(myMashm)
+
+  do i = 1, numMessages
+    call unpackData2(domain, gridIndicesStart, gridIndicesEnd, mashmRecvBufferPtrs(i)%p, msgDirIndex2(i))
+  enddo
+
+  call relaxation(domain, tmpDomain, rhs, gridIndicesStart, gridIndicesEnd)
+
+  do i = 1, numMessages
+    call packData2(tmpDomain, gridIndicesStart, gridIndicesEnd, mashmSendBufferPtrs(i)%p, msgDirIndex2(i))
+  enddo
+
+  call MashmInterNodeCommBegin(myMashm)
+  call MashmIntraNodeCommBegin(myMashm)
+
+  call MashmIntraNodeCommEnd(myMashm)
+  call MashmInterNodeCommEnd(myMashm)
+
+  do i = 1, numMessages
+    call unpackData2(tmpDomain, gridIndicesStart, gridIndicesEnd, mashmRecvBufferPtrs(i)%p, msgDirIndex2(i))
+  enddo
+
+  call relaxation(tmpDomain, domain, rhs, gridIndicesStart, gridIndicesEnd)
+
+enddo
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+
 call MPI_Barrier(MPI_COMM_WORLD, ierr)
 gptlError = gptlstart('method2')
 do iIter = 1, numIters, 2
@@ -2258,7 +2376,9 @@ do iIter = 1, numIters, 2
   call MashmIntraNodeCommBegin(myMashm)
 
   call MashmIntraNodeCommEnd(myMashm)
+  gptlError = gptlstart('communication2_waitall')
   call MashmInterNodeCommEnd(myMashm)
+  gptlError = gptlstop('communication2_waitall')
   gptlError = gptlstop('communication2')
 
   do i = 1, numMessages
@@ -2284,7 +2404,9 @@ do iIter = 1, numIters, 2
   call MashmIntraNodeCommBegin(myMashm)
 
   call MashmIntraNodeCommEnd(myMashm)
+  gptlError = gptlstart('communication2_waitall')
   call MashmInterNodeCommEnd(myMashm)
+  gptlError = gptlstop('communication2_waitall')
   gptlError = gptlstop('communication2')
   do i = 1, numMessages
     call unpackData2(tmpDomain, gridIndicesStart, gridIndicesEnd, mashmRecvBufferPtrs(i)%p, msgDirIndex2(i))
@@ -2319,14 +2441,88 @@ call calcL2Norm(domain, solution, gridIndicesStart, gridIndicesEnd, residualL2, 
 if (rank == 0) print *, "Now running MASHM with asynchronous packing/unpacking"
 if (rank == 0) print *, "Initial difference", residualL2, residualMax
 
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!  "Warmup"
+!  Perform 2 cycles to ensure communication initialization is not timed
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+do iIter = 1, 2, 2
+
+  do i = 1, numMessages
+    if (.not. MashmIsMsgOnNode(myMashm, i)) then
+      call packData2(domain, gridIndicesStart, gridIndicesEnd, mashmSendBufferPtrs(i)%p, msgDirIndex2(i))
+    endif
+  enddo
+
+  call MashmInterNodeCommBegin(myMashm)
+
+  do i = 1, numMessages
+    if (MashmIsMsgOnNode(myMashm, i)) then
+      call packData2(domain, gridIndicesStart, gridIndicesEnd, mashmSendBufferPtrs(i)%p, msgDirIndex2(i))
+    endif
+  enddo
+
+  call MashmIntraNodeCommBegin(myMashm)
+  call MashmIntraNodeCommEnd(myMashm)
+
+  do i = 1, numMessages
+    if (MashmIsMsgOnNode(myMashm, i)) then
+      call unpackData2(domain, gridIndicesStart, gridIndicesEnd, mashmRecvBufferPtrs(i)%p, msgDirIndex2(i))
+    endif
+  enddo
+
+  call MashmInterNodeCommEnd(myMashm)
+
+  do i = 1, numMessages
+    if (.not. MashmIsMsgOnNode(myMashm, i)) then
+      call unpackData2(domain, gridIndicesStart, gridIndicesEnd, mashmRecvBufferPtrs(i)%p, msgDirIndex2(i))
+    endif
+  enddo
+
+  call relaxation(domain, tmpDomain, rhs, gridIndicesStart, gridIndicesEnd)
+
+  do i = 1, numMessages
+    if (.not. MashmIsMsgOnNode(myMashm, i)) then
+      call packData2(tmpDomain, gridIndicesStart, gridIndicesEnd, mashmSendBufferPtrs(i)%p, msgDirIndex2(i))
+    endif
+  enddo
+
+  call MashmInterNodeCommBegin(myMashm)
+
+  do i = 1, numMessages
+    if (MashmIsMsgOnNode(myMashm, i)) then
+      call packData2(tmpDomain, gridIndicesStart, gridIndicesEnd, mashmSendBufferPtrs(i)%p, msgDirIndex2(i))
+    endif
+  enddo
+
+  call MashmIntraNodeCommBegin(myMashm)
+
+  call MashmIntraNodeCommEnd(myMashm)
+
+  do i = 1, numMessages
+    if (MashmIsMsgOnNode(myMashm, i)) then
+      call unpackData2(tmpDomain, gridIndicesStart, gridIndicesEnd, mashmRecvBufferPtrs(i)%p, msgDirIndex2(i))
+    endif
+  enddo
+
+  call MashmInterNodeCommEnd(myMashm)
+
+  do i = 1, numMessages
+    if (.not. MashmIsMsgOnNode(myMashm, i)) then
+      call unpackData2(tmpDomain, gridIndicesStart, gridIndicesEnd, mashmRecvBufferPtrs(i)%p, msgDirIndex2(i))
+    endif
+  enddo
+
+  call relaxation(tmpDomain, domain, rhs, gridIndicesStart, gridIndicesEnd)
+
+enddo
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+
 ! Stride two 
 call MPI_Barrier(MPI_COMM_WORLD, ierr)
 gptlError = gptlstart('method3')
 do iIter = 1, numIters, 2
-
-  do i = 1, numMessages
-    call packData2(domain, gridIndicesStart, gridIndicesEnd, mashmSendBufferPtrs(i)%p, msgDirIndex2(i))
-  enddo
 
   do i = 1, numMessages
     if (.not. MashmIsMsgOnNode(myMashm, i)) then
@@ -2335,7 +2531,9 @@ do iIter = 1, numIters, 2
   enddo
 
   gptlError = gptlstart('communication3_inter')
+  gptlError = gptlstart('communication3')
   call MashmInterNodeCommBegin(myMashm)
+  gptlError = gptlstop('communication3')
   gptlError = gptlstop('communication3_inter')
 
   do i = 1, numMessages
@@ -2345,8 +2543,10 @@ do iIter = 1, numIters, 2
   enddo
 
   gptlError = gptlstart('communication3_intra')
+  gptlError = gptlstart('communication3')
   call MashmIntraNodeCommBegin(myMashm)
   call MashmIntraNodeCommEnd(myMashm)
+  gptlError = gptlstop('communication3')
   gptlError = gptlstop('communication3_intra')
 
   do i = 1, numMessages
@@ -2355,18 +2555,18 @@ do iIter = 1, numIters, 2
     endif
   enddo
 
+  gptlError = gptlstart('communication3_waitall')
   gptlError = gptlstart('communication3_inter')
+  gptlError = gptlstart('communication3')
   call MashmInterNodeCommEnd(myMashm)
+  gptlError = gptlstop('communication3')
   gptlError = gptlstop('communication3_inter')
+  gptlError = gptlstop('communication3_waitall')
 
   do i = 1, numMessages
     if (.not. MashmIsMsgOnNode(myMashm, i)) then
       call unpackData2(domain, gridIndicesStart, gridIndicesEnd, mashmRecvBufferPtrs(i)%p, msgDirIndex2(i))
     endif
-  enddo
-
-  do i = 1, numMessages
-    call unpackData2(domain, gridIndicesStart, gridIndicesEnd, mashmRecvBufferPtrs(i)%p, msgDirIndex2(i))
   enddo
 
   call relaxation(domain, tmpDomain, rhs, gridIndicesStart, gridIndicesEnd)
@@ -2385,7 +2585,9 @@ do iIter = 1, numIters, 2
   enddo
 
   gptlError = gptlstart('communication3_inter')
+  gptlError = gptlstart('communication3')
   call MashmInterNodeCommBegin(myMashm)
+  gptlError = gptlstop('communication3')
   gptlError = gptlstop('communication3_inter')
 
   do i = 1, numMessages
@@ -2395,9 +2597,10 @@ do iIter = 1, numIters, 2
   enddo
 
   gptlError = gptlstart('communication3_intra')
+  gptlError = gptlstart('communication3')
   call MashmIntraNodeCommBegin(myMashm)
-
   call MashmIntraNodeCommEnd(myMashm)
+  gptlError = gptlstop('communication3')
   gptlError = gptlstop('communication3_intra')
 
   do i = 1, numMessages
@@ -2406,9 +2609,13 @@ do iIter = 1, numIters, 2
     endif
   enddo
 
+  gptlError = gptlstart('communication3_waitall')
   gptlError = gptlstart('communication3_inter')
+  gptlError = gptlstart('communication3')
   call MashmInterNodeCommEnd(myMashm)
+  gptlError = gptlstop('communication3')
   gptlError = gptlstop('communication3_inter')
+  gptlError = gptlstop('communication3_waitall')
 
   do i = 1, numMessages
     if (.not. MashmIsMsgOnNode(myMashm, i)) then
@@ -2427,8 +2634,8 @@ do iIter = 1, numIters, 2
 
 enddo
 gptlError = gptlstop('method3')
-!gptlError = gptlpr_summary(MPI_COMM_WORLD)
-gptlError = gptlpr_file('poisson3d.timing')
+gptlError = gptlpr_summary_file(MPI_COMM_WORLD,'poisson3d.timing')
+!gptlError = gptlpr_file('poisson3d.timing')
 ! Restore (nullify) the Mashm access pointers
 do i = 1, numMessages
   call MashmRetireBufferPointer(myMashm, mashmSendBufferPtrs(i))
