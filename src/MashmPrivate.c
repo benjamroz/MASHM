@@ -1,6 +1,7 @@
 #include "MashmPrivate.h"
-
-
+#define MAX(x, y) (((x) > (y)) ? (x) : (y))
+#define MIN(x, y) (((x) < (y)) ? (x) : (y))
+/* datatype required to use qsort */
 typedef struct {
   int srcSharedMemRank;
   int destGlobalRank;
@@ -47,7 +48,6 @@ void p_MashmInit(struct MashmPrivate* p_mashm, MPI_Comm in_comm) {
   int ierr;
   int sharedMemNodeRank;
   int numSharedMemNodes;
-  MPI_Comm rankComm;
   /* Set the communicator and get the size and rank */
   p_mashm->comm = in_comm;
 
@@ -65,12 +65,11 @@ void p_MashmInit(struct MashmPrivate* p_mashm, MPI_Comm in_comm) {
   MashmIntraNodeCommInit(&(p_mashm->intraComm),p_mashm->comm);
 
   /* Now calculate the number of shared memory indices */
-  ierr = MPI_Comm_split(p_mashm->comm, p_mashm->intraComm.rank, p_mashm->rank, &rankComm);
- 
+  ierr = MPI_Comm_split(p_mashm->comm, p_mashm->intraComm.rank, p_mashm->rank, &(p_mashm->rankComm));
   /* Only the nodal root is participates */
   if (p_mashm->intraComm.rank == 0) {
-    ierr = MPI_Comm_size(rankComm, &numSharedMemNodes);
-    ierr = MPI_Comm_rank(rankComm, &sharedMemNodeRank);
+    ierr = MPI_Comm_size(p_mashm->rankComm, &numSharedMemNodes);
+    ierr = MPI_Comm_rank(p_mashm->rankComm, &sharedMemNodeRank);
     /* The number of shared memory nodes */
     p_mashm->numSharedMemNodes = numSharedMemNodes;
     /* The index of each shared memory node */
@@ -81,9 +80,6 @@ void p_MashmInit(struct MashmPrivate* p_mashm, MPI_Comm in_comm) {
     }
     */
   }
-
-  /* Destroy this comm */
-  ierr = MPI_Comm_free(&rankComm);
 
   /* Broadcast (to the shared sub comm) the number of shared memory nodes */
   ierr = MPI_Bcast(&(p_mashm->numSharedMemNodes), 1, MPI_INT, 0, p_mashm->intraComm.comm);
@@ -767,6 +763,24 @@ void p_MashmCalculateNodalMsgSchedule(struct MashmPrivate* p_mashm) {
     }
     p_mashm->numNodalSubMsgs = sumNumMsgs - commArrayOffset;
 
+    /* Calculate the msg sizes */
+    p_mashm->allMsgSizes = 0;
+    p_mashm->intraMsgSizes = 0;
+    p_mashm->interMsgSizes = 0;
+    p_mashm->minIntraMsgSize = 100000000;
+    p_mashm->maxIntraMsgSize = 0;
+    p_mashm->minInterMsgSize = 100000000;
+    p_mashm->maxInterMsgSize = 0;
+    p_mashm->minNodalMsgSize = 100000000;
+    p_mashm->maxNodalMsgSize = 0;
+    p_mashm->sumNodalMsgSize = 0;
+    for (i = 0; i < commArrayOffset; i++) {
+      p_mashm->allMsgSizes += commArray[i].msgSize;
+      p_mashm->intraMsgSizes += commArray[i].msgSize;
+      p_mashm->minIntraMsgSize = MIN(commArray[i].msgSize,p_mashm->minIntraMsgSize);
+      p_mashm->maxIntraMsgSize = MAX(commArray[i].msgSize,p_mashm->maxIntraMsgSize);
+    }
+
     /* Count unique nodes to which we'll be messaging */
     nodeCounter = 0;
     for (i = commArrayOffset; i < sumNumMsgs; i++) {
@@ -776,6 +790,10 @@ void p_MashmCalculateNodalMsgSchedule(struct MashmPrivate* p_mashm) {
       else if (commArray[i].destNodeIndex != commArray[i-1].destNodeIndex) {
         nodeCounter += 1;
       }
+      p_mashm->interMsgSizes += commArray[i].msgSize;
+      p_mashm->allMsgSizes += commArray[i].msgSize;
+      p_mashm->minInterMsgSize=MIN(commArray[i].msgSize,p_mashm->minInterMsgSize);
+      p_mashm->maxInterMsgSize=MAX(commArray[i].msgSize,p_mashm->maxInterMsgSize);
     }
     p_mashm->numNodalMsgs = nodeCounter;
     /*
@@ -844,6 +862,11 @@ void p_MashmCalculateNodalMsgSchedule(struct MashmPrivate* p_mashm) {
 
     }
     */
+    for (i = 0; i < p_mashm->numNodalMsgs; i++) {
+      p_mashm->minNodalMsgSize = MIN(p_mashm->nodalMsgSizes[i],p_mashm->minNodalMsgSize);
+      p_mashm->maxNodalMsgSize = MAX(p_mashm->nodalMsgSizes[i],p_mashm->maxNodalMsgSize);
+      p_mashm->sumNodalMsgSize = p_mashm->sumNodalMsgSize + p_mashm->nodalMsgSizes[i];
+    }
 
     for (i = 0; i < sumNumMsgs; i++) {
       allSrcSharedMemRanks[i] = commArray[i].srcSharedMemRank;
@@ -874,6 +897,7 @@ void p_MashmCalculateNodalMsgSchedule(struct MashmPrivate* p_mashm) {
   ierr = MPI_Bcast(&p_mashm->numNodalSubMsgs, 1, MPI_INT, 0, p_mashm->intraComm.comm);
   ierr = MPI_Bcast(&p_mashm->numNodalMsgs, 1, MPI_INT, 0, p_mashm->intraComm.comm);
   ierr = MPI_Bcast(&p_mashm->numCommNodes, 1, MPI_INT, 0, p_mashm->intraComm.comm);
+  p_mashm->sumNumMsgs = sumNumMsgs;
 
   if (!p_mashm->intraComm.isMasterProc) {
     allSrcSharedMemRanks = (int*) malloc(sizeof(int)*sumNumMsgs);
@@ -1005,10 +1029,6 @@ void p_MashmSetupAggType(struct MashmPrivate* p_mashm) {
   p_mashm->nodalRecvRank = (int*) malloc(sizeof(int)*numNodalMsgs);
   /* For this we need the nodal Comm again */
 
-  MPI_Comm rankComm; 
-
-  ierr = MPI_Comm_split(p_mashm->comm, p_mashm->intraComm.rank, p_mashm->rank, &rankComm);
- 
   /* Only the nodal root is participates */
   if (p_mashm->intraComm.rank == 0) {
 
@@ -1024,13 +1044,13 @@ void p_MashmSetupAggType(struct MashmPrivate* p_mashm) {
       sharedRankMsgOwner = p_mashm->nodalMsgOwner[i];
       globalRankMsgOwner = p_mashm->intraComm.parentRanksOnNode[sharedRankMsgOwner];
       ierr = MPI_Irecv(&(p_mashm->nodalRecvRank[i]), 1, MPI_INT,
-                       p_mashm->uniqueNodeIndices[i+1], 1, rankComm, &(tmpRecvRequests[i])); 
+                       p_mashm->uniqueNodeIndices[i+1], 1, p_mashm->rankComm, &(tmpRecvRequests[i])); 
     }
     for (i = 0; i < numNodalMsgs; i++) {
       sharedRankMsgOwner = p_mashm->nodalMsgOwner[i];
       globalRankMsgOwner = p_mashm->intraComm.parentRanksOnNode[sharedRankMsgOwner];
       ierr = MPI_Isend(&globalRankMsgOwner, 1, MPI_INT,
-                       p_mashm->uniqueNodeIndices[i+1], 1, rankComm, &(tmpSendRequests[i])); 
+                       p_mashm->uniqueNodeIndices[i+1], 1, p_mashm->rankComm, &(tmpSendRequests[i])); 
     }
     ierr = MPI_Waitall(numNodalMsgs, tmpRecvRequests, tmpSendStatuses);
     ierr = MPI_Waitall(numNodalMsgs, tmpSendRequests, tmpSendStatuses);
@@ -1040,9 +1060,6 @@ void p_MashmSetupAggType(struct MashmPrivate* p_mashm) {
     free(tmpRecvStatuses);
     free(tmpSendStatuses);
   }
-
-  /* Destroy this rank comm */
-  ierr = MPI_Comm_free(&rankComm);
 
   ierr = MPI_Bcast(p_mashm->nodalRecvRank, numNodalMsgs, MPI_INT, 0, p_mashm->intraComm.comm);
 }
@@ -1351,7 +1368,84 @@ void p_MashmFinish(struct MashmPrivate* p_mashm) {
   //MPI_Barrier(MPI_COMM_WORLD);
   //MPI_Barrier(MPI_COMM_WORLD);
   //p_MashmPrintInterNodeMessages(p_mashm);
-  
+
+  p_MashmPrintMessageInformation(p_mashm);
+
+}
+
+void p_MashmPrintMessageInformation(struct MashmPrivate* p_mashm) {
+
+  /* Determine the number of total messages, intranode message, and internode messages
+   *   Determine the min, max, and avg. msg size
+   *   Determine the min, max, and avg. nodal msg. size */
+
+  /* Reduce all of the data */ 
+  int numTotalMsgs;
+  int numIntraNodeMsgs, numInterNodeMsgs;
+  int ierr;
+
+  if (p_mashm->intraComm.isMasterProc) {
+    /* Note that all data is for a node */
+    int intraCommNumTotalMsgs = p_mashm->sumNumMsgs;
+    int intraCommNumInterNodeMsgs = p_mashm->numNodalSubMsgs;
+    int intraCommNumIntraNodeMsgs = intraCommNumTotalMsgs - intraCommNumInterNodeMsgs;
+    int intraCommNumNodalMsgs = p_mashm->numNodalMsgs;
+    int intraSizeMin, intraSizeMax, interSizeMin, interSizeMax;
+
+    int numTotalMsgs, numInterNodeMsgs, numIntraNodeMsgs, numNodalMsgs;
+    int totalAllMsgSizes, totalIntraMsgSizes, totalInterMsgSizes;
+    int minNodalMsgSize, maxNodalMsgSize, sumNodalMsgSize;
+
+    // Reduce to master rank of rankComm
+    ierr = MPI_Reduce(&intraCommNumTotalMsgs, &numTotalMsgs, 1, MPI_INT, 
+                      MPI_SUM, 0, p_mashm->rankComm);
+    ierr = MPI_Reduce(&intraCommNumInterNodeMsgs, &numInterNodeMsgs, 1, MPI_INT, 
+                      MPI_SUM, 0, p_mashm->rankComm);
+    ierr = MPI_Reduce(&intraCommNumIntraNodeMsgs, &numIntraNodeMsgs, 1, MPI_INT, 
+                      MPI_SUM, 0, p_mashm->rankComm);
+    ierr = MPI_Reduce(&intraCommNumNodalMsgs, &numNodalMsgs, 1, MPI_INT, 
+                      MPI_SUM, 0, p_mashm->rankComm);
+    ierr = MPI_Reduce(&(p_mashm->allMsgSizes), &(totalAllMsgSizes), 1, MPI_INT,
+                      MPI_SUM, 0, p_mashm->rankComm);
+    ierr = MPI_Reduce(&(p_mashm->intraMsgSizes), &(totalIntraMsgSizes), 1, MPI_INT,
+                      MPI_SUM, 0, p_mashm->rankComm);
+    ierr = MPI_Reduce(&(p_mashm->interMsgSizes), &(totalInterMsgSizes), 1, MPI_INT,
+                      MPI_SUM, 0, p_mashm->rankComm);
+
+
+    ierr = MPI_Reduce(&(p_mashm->minIntraMsgSize), &(intraSizeMin), 1, MPI_INT,
+                      MPI_MIN, 0, p_mashm->rankComm);
+    ierr = MPI_Reduce(&(p_mashm->maxIntraMsgSize), &(intraSizeMax), 1, MPI_INT,
+                      MPI_MAX, 0, p_mashm->rankComm);
+    ierr = MPI_Reduce(&(p_mashm->minInterMsgSize), &(interSizeMin), 1, MPI_INT,
+                      MPI_MIN, 0, p_mashm->rankComm);
+    ierr = MPI_Reduce(&(p_mashm->maxInterMsgSize), &(interSizeMax), 1, MPI_INT,
+                      MPI_MAX, 0, p_mashm->rankComm);
+    ierr = MPI_Reduce(&(p_mashm->minNodalMsgSize), &(minNodalMsgSize), 1, MPI_INT,
+                      MPI_MIN, 0, p_mashm->rankComm);
+    ierr = MPI_Reduce(&(p_mashm->maxNodalMsgSize), &(maxNodalMsgSize), 1, MPI_INT,
+                      MPI_MAX, 0, p_mashm->rankComm);
+    ierr = MPI_Reduce(&(p_mashm->sumNodalMsgSize), &(sumNodalMsgSize), 1, MPI_INT,
+                      MPI_SUM, 0, p_mashm->rankComm);
+
+
+    // Allocate data for sizes
+    if (p_mashm->rank == 0) {
+      /* Note that the XXX is to easily parse this data */
+      printf("XXX Total number of messages %d\n", numTotalMsgs);
+      printf("XXX Size of all messages %d\n", totalAllMsgSizes);
+      printf("XXX Number internode messages %d\n", numInterNodeMsgs);
+      printf("XXX Size of internode messages %d\n", totalInterMsgSizes);
+      printf("XXX   Min, Max, Avg %d, %f, %d\n", interSizeMin, ((double)totalInterMsgSizes/numInterNodeMsgs), interSizeMax);
+      printf("XXX Number intranode messages %d\n", numIntraNodeMsgs);
+      printf("XXX Size of intranode messages %d\n", totalIntraMsgSizes);
+      printf("XXX   Min, Max, Avg %d, %f, %d\n", intraSizeMin, ((double) totalIntraMsgSizes)/numIntraNodeMsgs, intraSizeMax);
+      printf("XXX Number of nodal messages %d\n", numNodalMsgs);
+      printf("XXX   Min, Max, Avg %d, %f, %d\n", minNodalMsgSize, ((double) totalInterMsgSizes)/numNodalMsgs, maxNodalMsgSize);
+    }
+  }
+ 
+
 }
 
 
@@ -1364,7 +1458,10 @@ void p_Destroy(struct MashmPrivate* p_mashm) {
 
   /* Destroy the intra-node subcommunicator */
   MashmIntraNodeCommDestroy(&(p_mashm->intraComm));
- 
+
+  /* Destroy the rank communicator */
+  ierr = MPI_Comm_free(&(p_mashm->rankComm));
+
   if (p_mashm->buffersInit) {
     free(p_mashm->sendBufferPointers);
     free(p_mashm->recvBufferPointers);

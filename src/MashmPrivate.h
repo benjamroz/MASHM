@@ -18,6 +18,10 @@ struct MashmPrivate {
   MashmIntraNodeComm intraComm;
   int numSharedMemNodes;
   int sharedMemIndex;
+
+  /* Across node sub-communicator (ie. intraComm.rank = 0 on all nodes) */
+  MPI_Comm rankComm;
+
   int isInit;
   MashmCommCollection commCollection;
   MashmCommType commType;
@@ -102,6 +106,19 @@ struct MashmPrivate {
   MPI_Win recvNodalSharedMemWindow;
   double** sendNodalSharedBufferIndex;
   double** recvNodalSharedBufferIndex;
+
+  int sumNumMsgs;
+  int allMsgSizes;
+  int intraMsgSizes;
+  int interMsgSizes;
+
+  int minIntraMsgSize;
+  int maxIntraMsgSize;
+  int minInterMsgSize;
+  int maxInterMsgSize;
+  int minNodalMsgSize;
+  int maxNodalMsgSize;
+  int sumNodalMsgSize;
 
 };
 
@@ -215,4 +232,6 @@ void p_MashmIntraNodeCommEnd(struct MashmPrivate* p_mashm);
 void p_MashmInterNodeCommEnd(struct MashmPrivate* p_mashm);
 
 void p_MashmPrintInterNodeMessages(struct MashmPrivate* p_mashm);
+
+void p_MashmPrintMessageInformation(struct MashmPrivate* p_mashm);
 #endif

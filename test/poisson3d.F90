@@ -2281,7 +2281,6 @@ enddo
 ! Choose the communitcation method
 commMethod = MASHM_COMM_MIN_AGG
 
-call MashmCommFinish(myMashm)
 call MPI_Barrier(MPI_COMM_WORLD, ierr)
 call MPI_Barrier(MPI_COMM_WORLD, ierr)
 call MPI_Barrier(MPI_COMM_WORLD, ierr)
@@ -2295,10 +2294,11 @@ call MPI_Barrier(MPI_COMM_WORLD, ierr)
 
 call MashmSetCommMethod(myMashm, commMethod)
 
-!call MashmPrintCommCollection(myMashm)
-
 ! Perform precalculation
 call MashmCommFinish(myMashm)
+
+!call MashmPrintCommCollection(myMashm)
+
 call MPI_Barrier(MPI_COMM_WORLD, ierr)
 call MPI_Barrier(MPI_COMM_WORLD, ierr)
 call MPI_Barrier(MPI_COMM_WORLD, ierr)
