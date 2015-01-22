@@ -1,5 +1,8 @@
-# Note: Turned off Fortran support for now
+# Fortran Bindings required for now
 PROJECT(MASHM C Fortran)
+
+# Require a "recent" version of CMake
+CMAKE_MINIMUM_REQUIRED(VERSION 2.8)
 
 # Add the cmake/Find*.cmake files to find packages
 SET (CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
