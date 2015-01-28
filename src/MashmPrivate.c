@@ -243,6 +243,32 @@ void p_MashmStandardCommEnd(struct MashmPrivate* p_mashm) {
 
   if (p_mashm->commType == MASHM_COMM_MIN_AGG) {
     numMsgs = p_mashm->numOwnedNodalMsgs;
+
+    
+#if 0
+    /* The following code is used for debugging the nodal communication schedule */
+    char filenameSubstring[17];
+    sprintf(filenameSubstring, "nodalComm_rank%d", p_mashm->rank);
+    FILE *f = fopen(filenameSubstring,"w");
+    if (f == NULL) {
+      printf("Error opening file!\n");
+    }
+    fprintf(f, "Rank %d\n", p_mashm->rank);
+    fprintf(f, "NodeIndex %d\n", p_mashm->sharedMemIndex);
+    fprintf(f, "NumberNodalMsgs %d\n", p_mashm->numOwnedNodalMsgs);
+    fprintf(f, "Nodal Recv Rank, size:\n");
+
+    int msgCounter = 0;
+    int iMsg;
+    for (iMsg = 0; iMsg < p_mashm->numNodalMsgs; iMsg++) {
+      int sharedRankMsgOwner = p_mashm->nodalMsgOwner[iMsg];
+      if (sharedRankMsgOwner == p_mashm->intraComm.rank) {
+        fprintf(f, "%d %d, %d\n", p_mashm->nodalRecvRank[iMsg], p_mashm->nodalMsgSizes[iMsg], p_mashm->uniqueNodeIndices[iMsg+1]);
+        msgCounter += 1;
+      }
+    }
+    fclose(f);
+#endif
   }
   else {
     numMsgs = p_mashm->numInterNodeMsgs;
@@ -1038,30 +1064,41 @@ void p_MashmSetupAggType(struct MashmPrivate* p_mashm) {
     tmpRecvStatuses = (MPI_Status*) malloc(sizeof(MPI_Status)*numNodalMsgs);
     tmpSendStatuses = (MPI_Status*) malloc(sizeof(MPI_Status)*numNodalMsgs);
 
-    /* in this ... the rank is the node index ... */
+    /* Buffer to write the messaged data */
+    int* nodalSendData = (int*) malloc(sizeof(int)*numNodalMsgs);
+
+    /* The rank is the node index ... */
     /* Exchange the ranks with the */
     for (i = 0; i < numNodalMsgs; i++) {
-      sharedRankMsgOwner = p_mashm->nodalMsgOwner[i];
-      globalRankMsgOwner = p_mashm->intraComm.parentRanksOnNode[sharedRankMsgOwner];
       ierr = MPI_Irecv(&(p_mashm->nodalRecvRank[i]), 1, MPI_INT,
                        p_mashm->uniqueNodeIndices[i+1], 1, p_mashm->rankComm, &(tmpRecvRequests[i])); 
+      if (ierr != MPI_SUCCESS) {
+        printf("Error in MPI_Irecv %d\n", ierr);
+      }
     }
     for (i = 0; i < numNodalMsgs; i++) {
       sharedRankMsgOwner = p_mashm->nodalMsgOwner[i];
-      globalRankMsgOwner = p_mashm->intraComm.parentRanksOnNode[sharedRankMsgOwner];
-      ierr = MPI_Isend(&globalRankMsgOwner, 1, MPI_INT,
+      nodalSendData[i] = p_mashm->intraComm.parentRanksOnNode[sharedRankMsgOwner];
+      ierr = MPI_Isend(&(nodalSendData[i]), 1, MPI_INT,
                        p_mashm->uniqueNodeIndices[i+1], 1, p_mashm->rankComm, &(tmpSendRequests[i])); 
+      if (ierr != MPI_SUCCESS) {
+        printf("Error in MPI_Isend %d\n", ierr);
+      }
     }
-    ierr = MPI_Waitall(numNodalMsgs, tmpRecvRequests, tmpSendStatuses);
+    ierr = MPI_Waitall(numNodalMsgs, tmpRecvRequests, tmpRecvStatuses);
     ierr = MPI_Waitall(numNodalMsgs, tmpSendRequests, tmpSendStatuses);
-
     free(tmpRecvRequests);
     free(tmpSendRequests);
     free(tmpRecvStatuses);
     free(tmpSendStatuses);
+
+    free(nodalSendData);
+
   }
 
+  /* Broadcast this information to all of the processes within the node */
   ierr = MPI_Bcast(p_mashm->nodalRecvRank, numNodalMsgs, MPI_INT, 0, p_mashm->intraComm.comm);
+
 }
 
 
@@ -1167,7 +1204,6 @@ void p_MashmMinAggCommBegin(struct MashmPrivate* p_mashm) {
     sharedRankMsgOwner = p_mashm->nodalMsgOwner[iMsg];
     if (sharedRankMsgOwner == p_mashm->intraComm.rank) {
       msgCounter += 1;
-      globalRankMsgOwner = p_mashm->intraComm.parentRanksOnNode[sharedRankMsgOwner];
       ierr = MPI_Irecv(&(p_mashm->p_recvNodalSharedBuffer[p_mashm->nodalOffsets[iMsg]]),
                        p_mashm->nodalMsgSizes[iMsg], MPI_DOUBLE,
                        p_mashm->nodalRecvRank[iMsg],
@@ -1182,7 +1218,6 @@ void p_MashmMinAggCommBegin(struct MashmPrivate* p_mashm) {
     sharedRankMsgOwner = p_mashm->nodalMsgOwner[iMsg];
     if (sharedRankMsgOwner == p_mashm->intraComm.rank) {
       msgCounter += 1;
-      globalRankMsgOwner = p_mashm->intraComm.parentRanksOnNode[sharedRankMsgOwner];
       ierr = MPI_Isend(&(p_mashm->p_sendNodalSharedBuffer[p_mashm->nodalOffsets[iMsg]]),
                        p_mashm->nodalMsgSizes[iMsg], MPI_DOUBLE,
                        p_mashm->nodalRecvRank[iMsg],
