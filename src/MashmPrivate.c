@@ -234,6 +234,7 @@ void p_MashmStandardCommBegin(struct MashmPrivate* p_mashm) {
  *
  * Wait for all internode communication to be completed. Here, we call the MPI_Waitall corresponding to the MPI_Irecv/MPI_Isend calls in MashmInterNodeCommBegin.
  */
+inline 
 void p_MashmStandardCommEnd(struct MashmPrivate* p_mashm) {
   int ierr;
 
@@ -274,15 +275,17 @@ void p_MashmStandardCommEnd(struct MashmPrivate* p_mashm) {
     numMsgs = p_mashm->numInterNodeMsgs;
   }
 
-  
   ierr = MPI_Waitall(numMsgs, p_mashm->recvRequests, 
                      p_mashm->recvStatuses);
+
   ierr = MPI_Waitall(numMsgs, p_mashm->sendRequests, 
                      p_mashm->sendStatuses);
+
   if (p_mashm->commType == MASHM_COMM_MIN_AGG) {
-    ierr = MPI_Win_fence(0,p_mashm->sendNodalSharedMemWindow);
-    ierr = MPI_Win_fence(0,p_mashm->recvNodalSharedMemWindow);
+    ierr = MPI_Win_fence(MPI_MODE_NOSTORE,p_mashm->sendNodalSharedMemWindow);
+    ierr = MPI_Win_fence(MPI_MODE_NOPUT,p_mashm->recvNodalSharedMemWindow);
   }
+
 }
 
 void p_MashmIntraMsgsCommBegin(struct MashmPrivate* p_mashm) {
@@ -355,7 +358,7 @@ void p_MashmIntraMsgsCommEnd(struct MashmPrivate* p_mashm) {
                      p_mashm->intraSendStatuses);
 }
 
-
+inline
 void p_MashmIntraSharedCommBegin(struct MashmPrivate* p_mashm) {
   int iMsg, msgCounter;
   int ierr;
@@ -383,9 +386,9 @@ void p_MashmIntraSharedCommBegin(struct MashmPrivate* p_mashm) {
   }
 }
 
+inline
 void p_MashmIntraSharedCommEnd(struct MashmPrivate* p_mashm) {
-  int ierr;
-  ierr = MPI_Win_fence(MPI_MODE_NOSTORE,p_mashm->sendSharedMemWindow);
+  int ierr = MPI_Win_fence(MPI_MODE_NOSTORE,p_mashm->sendSharedMemWindow);
 }
 
 /* @brief Blank function for function pointers
@@ -1186,6 +1189,7 @@ void p_MashmCalcMsgIndicesMinAgg(struct MashmPrivate* p_mashm) {
 #endif
 }
 
+inline
 void p_MashmMinAggCommBegin(struct MashmPrivate* p_mashm) {
   int ierr;
   int iMsg;
@@ -1194,11 +1198,12 @@ void p_MashmMinAggCommBegin(struct MashmPrivate* p_mashm) {
   double* buf;
   int msgCounter, sharedRankMsgOwner, globalRankMsgOwner;
 
-  /* MPI_Win_fence */
-  ierr = MPI_Win_fence(0,p_mashm->sendNodalSharedMemWindow);
-  ierr = MPI_Win_fence(0,p_mashm->recvNodalSharedMemWindow);
 
-  /* First do the Irecvs */
+  /* Post the receives for the next cycle */
+
+  /* MPI_Win_fence */
+  ierr = MPI_Win_fence(MPI_MODE_NOSTORE,p_mashm->recvNodalSharedMemWindow);
+
   msgCounter = -1;
   for (iMsg = 0; iMsg < p_mashm->numNodalMsgs; iMsg++) {
     sharedRankMsgOwner = p_mashm->nodalMsgOwner[iMsg];
@@ -1208,11 +1213,15 @@ void p_MashmMinAggCommBegin(struct MashmPrivate* p_mashm) {
                        p_mashm->nodalMsgSizes[iMsg], MPI_DOUBLE,
                        p_mashm->nodalRecvRank[iMsg],
                        1, p_mashm->comm, &(p_mashm->recvRequests[msgCounter]));
-      if (ierr != 0) {
-        printf("Error in MPI_Irecv message%d\n", iMsg);
-      }
+      //if (ierr != 0) {
+      //  printf("Error in MPI_Irecv message%d\n", iMsg);
+      //}
     }
   }
+
+  /* MPI_Win_fence */
+  ierr = MPI_Win_fence(MPI_MODE_NOPUT,p_mashm->sendNodalSharedMemWindow);
+
   msgCounter = -1;
   for (iMsg = 0; iMsg < p_mashm->numNodalMsgs; iMsg++) {
     sharedRankMsgOwner = p_mashm->nodalMsgOwner[iMsg];
@@ -1222,9 +1231,9 @@ void p_MashmMinAggCommBegin(struct MashmPrivate* p_mashm) {
                        p_mashm->nodalMsgSizes[iMsg], MPI_DOUBLE,
                        p_mashm->nodalRecvRank[iMsg],
                        1, p_mashm->comm, &(p_mashm->sendRequests[msgCounter]));
-      if (ierr != 0) {
-        printf("Error in MPI_Isend message%d\n", iMsg);
-      }
+      //if (ierr != 0) {
+      //  printf("Error in MPI_Isend message%d\n", iMsg);
+      //}
     }
   }
 }
@@ -1405,7 +1414,6 @@ void p_MashmFinish(struct MashmPrivate* p_mashm) {
   //p_MashmPrintInterNodeMessages(p_mashm);
 
   p_MashmPrintMessageInformation(p_mashm);
-
 }
 
 void p_MashmPrintMessageInformation(struct MashmPrivate* p_mashm) {
@@ -1468,13 +1476,13 @@ void p_MashmPrintMessageInformation(struct MashmPrivate* p_mashm) {
     if (p_mashm->rank == 0) {
       /* Note that the XXX is to easily parse this data */
       printf("XXX Total number of messages %d\n", numTotalMsgs);
-      printf("XXX Size of all messages %d\n", totalAllMsgSizes);
+      printf("XXX Size of all messages %d B\n", totalAllMsgSizes*8);
       printf("XXX Number internode messages %d\n", numInterNodeMsgs);
-      printf("XXX Size of internode messages %d\n", totalInterMsgSizes);
-      printf("XXX   Min, Max, Avg %d, %f, %d\n", interSizeMin, ((double)totalInterMsgSizes/numInterNodeMsgs), interSizeMax);
+      printf("XXX Size of internode messages %d B\n", totalInterMsgSizes*8);
+      printf("XXX   Min, Max, Avg %d, %f, %d B\n", interSizeMin*8, ((double)totalInterMsgSizes*8/numInterNodeMsgs), interSizeMax*8);
       printf("XXX Number intranode messages %d\n", numIntraNodeMsgs);
-      printf("XXX Size of intranode messages %d\n", totalIntraMsgSizes);
-      printf("XXX   Min, Max, Avg %d, %f, %d\n", intraSizeMin, ((double) totalIntraMsgSizes)/numIntraNodeMsgs, intraSizeMax);
+      printf("XXX Size of intranode messages %d B\n", totalIntraMsgSizes*8);
+      printf("XXX   Min, Max, Avg %d, %f, %d B\n", intraSizeMin*8, ((double) totalIntraMsgSizes)/numIntraNodeMsgs*8, intraSizeMax*8);
       printf("XXX Number of nodal messages %d\n", numNodalMsgs);
       printf("XXX   Min, Max, Avg %d, %f, %d\n", minNodalMsgSize, ((double) totalInterMsgSizes)/numNodalMsgs, maxNodalMsgSize);
     }
@@ -1606,22 +1614,27 @@ MashmCommType p_MashmGetCommMethod(const struct MashmPrivate* p_mashm) {
   return p_mashm->commType;
 }
 
+inline
 MashmBool p_MashmIsMsgOnNode(const struct MashmPrivate* p_mashm, int msgIndex) {
   return p_mashm->onNodeMessage[msgIndex];
 }
 
+inline 
 void p_MashmInterNodeCommBegin(struct MashmPrivate* p_mashm) {
   p_mashm->p_interNodeCommBegin(p_mashm);
 }
 
+inline 
 void p_MashmIntraNodeCommBegin(struct MashmPrivate* p_mashm) {
   p_mashm->p_intraNodeCommBegin(p_mashm);
 }
 
+inline 
 void p_MashmIntraNodeCommEnd(struct MashmPrivate* p_mashm) {
   p_mashm->p_intraNodeCommEnd(p_mashm);
 }
 
+inline 
 void p_MashmInterNodeCommEnd(struct MashmPrivate* p_mashm) {
   p_mashm->p_interNodeCommEnd(p_mashm);
 }

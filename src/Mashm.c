@@ -72,6 +72,7 @@ void MashmCommFinish(Mashm in_mashm) {
   p_MashmFinish(in_mashm.p);
 }
 
+inline
 MashmBool MashmIsMsgOnNode(Mashm in_mashm, int msgIndex) {
   return p_MashmIsMsgOnNode(in_mashm.p, msgIndex);
 }
@@ -111,18 +112,22 @@ void MashmDestroy(Mashm* in_mashm) {
 
 }
 
+inline
 void MashmInterNodeCommBegin(Mashm in_mashm) {
   p_MashmInterNodeCommBegin(in_mashm.p);
 }
 
+inline
 void MashmIntraNodeCommBegin(Mashm in_mashm) {
   p_MashmIntraNodeCommBegin(in_mashm.p);
 }
 
+inline
 void MashmIntraNodeCommEnd(Mashm in_mashm) {
   p_MashmIntraNodeCommEnd(in_mashm.p);
 }
 
+inline
 void MashmInterNodeCommEnd(Mashm in_mashm) {
   p_MashmInterNodeCommEnd(in_mashm.p);
 }

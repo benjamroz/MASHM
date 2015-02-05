@@ -175,11 +175,17 @@ void p_MashmIntraMsgsCommBegin(struct MashmPrivate* p_mashm);
 void p_MashmIntraMsgsCommEnd(struct MashmPrivate* p_mashm);
 
 /* Communication routines for intranode shared memory - INTRA_SHARED and MIN_AGG */
+inline 
 void p_MashmIntraSharedCommBegin(struct MashmPrivate* p_mashm);
+
+inline
 void p_MashmIntraSharedCommEnd(struct MashmPrivate* p_mashm);
 
 /* Communication routines for single nodal messages - MIN_AGG only */
+inline
 void p_MashmMinAggCommBegin(struct MashmPrivate* p_mashm);
+
+inline
 void p_MashmMinAggCommEnd(struct MashmPrivate* p_mashm);
 
 /* Null function to satisfy function pointer assignment */
@@ -217,18 +223,23 @@ void p_MashmSetCommMethod(struct MashmPrivate* in_mashm, int commType);
 MashmCommType p_MashmGetCommMethod(const struct MashmPrivate* p_mashm);
 
 /* Whether the message is on node or not */
+inline
 MashmBool p_MashmIsMsgOnNode(const struct MashmPrivate* p_mashm, int msgIndex);
 
 /* Begin internode communication */
+inline
 void p_MashmInterNodeCommBegin(struct MashmPrivate* p_mashm);
 
 /* Begin intranode communication */
+inline
 void p_MashmIntraNodeCommBegin(struct MashmPrivate* p_mashm);
 
 /* Finish intranode communication */
+inline
 void p_MashmIntraNodeCommEnd(struct MashmPrivate* p_mashm);
 
 /* Finish internode communication */
+inline
 void p_MashmInterNodeCommEnd(struct MashmPrivate* p_mashm);
 
 void p_MashmPrintInterNodeMessages(struct MashmPrivate* p_mashm);

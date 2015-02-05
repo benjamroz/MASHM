@@ -114,6 +114,7 @@ void MashmPrintInfo(const Mashm in_mashm);
  *  True if rank on shared memory node
  *  False if the rank is on shared memory node
  */
+inline
 MashmBool MashmIsMsgOnNode(Mashm in_mashm, int msgIndex);
 
 /**
@@ -187,6 +188,7 @@ double* MashmGetBufferPointerForDest(Mashm in_mashm, int destRank, MashmSendRece
  *  @brief Begin the internode communication
  *  @param in_mashm Mashm object
  */
+inline
 void MashmInterNodeCommBegin(Mashm in_mashm);
 
 /**
@@ -194,6 +196,7 @@ void MashmInterNodeCommBegin(Mashm in_mashm);
  *  @brief Finish the internode communication
  *  @param in_mashm Mashm object
  */
+inline
 void MashmInterNodeCommEnd(Mashm in_mashm);
 
 /**
@@ -201,6 +204,7 @@ void MashmInterNodeCommEnd(Mashm in_mashm);
  *  @brief Begin the intranode communication
  *  @param in_mashm Mashm object
  */
+inline
 void MashmIntraNodeCommBegin(Mashm in_mashm);
 
 /**
@@ -208,6 +212,7 @@ void MashmIntraNodeCommBegin(Mashm in_mashm);
  *  @brief Finish the intranode communication
  *  @param in_mashm Mashm object
  */
+inline
 void MashmIntraNodeCommEnd(Mashm in_mashm);
 
 /**

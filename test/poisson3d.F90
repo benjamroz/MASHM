@@ -2265,6 +2265,13 @@ do iIter = 1, numIters, 2
 enddo
 gptlError = gptlstop('method1')
 
+#ifndef PRINT_ITER
+call calcL2Norm(domain, solution, gridIndicesStart, gridIndicesEnd, residualL2, residualMax, &
+                totalNumCells)
+if (rank == 0) print *, "running iter ", iIter, " residual ", residualL2, &
+                        residualMax
+#endif
+
 call MashmInit(myMashm, MPI_COMM_WORLD)
 
 ! Print nodal comm info
@@ -2436,6 +2443,13 @@ do iIter = 1, numIters, 2
 
 enddo
 gptlError = gptlstop('method2')
+
+#ifndef PRINT_ITER
+call calcL2Norm(domain, solution, gridIndicesStart, gridIndicesEnd, residualL2, residualMax, &
+                totalNumCells)
+if (rank == 0) print *, "running iter ", iIter, " residual ", residualL2, &
+                        residualMax
+#endif
 
 ! Reset the solution
 tmpDomain = 0.0
@@ -2646,6 +2660,14 @@ do iIter = 1, numIters, 2
 
 enddo
 gptlError = gptlstop('method3')
+
+#ifndef PRINT_ITER
+call calcL2Norm(domain, solution, gridIndicesStart, gridIndicesEnd, residualL2, residualMax, &
+                totalNumCells)
+if (rank == 0) print *, "running iter ", iIter, " residual ", residualL2, &
+                        residualMax
+#endif
+
 gptlError = gptlpr_summary_file(MPI_COMM_WORLD,'poisson3d.timing')
 !gptlError = gptlpr_file('poisson3d.timing')
 ! Restore (nullify) the Mashm access pointers
