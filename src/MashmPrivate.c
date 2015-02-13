@@ -27,16 +27,20 @@ int commTupleCmpFunc (const void * a, const void * b) {
    }
   }
 
+  /* Sort the destination nodes */
   diff1 =  ( (*(commTuple*)a).destNodeIndex - (*(commTuple*)b).destNodeIndex );
   if (diff1 != 0) {
    return diff1;
   }
   else {
+   /* If the destination nodes are the same, first sort by sender rank 
+    *   Note this has implications for shared memory */
    diff2 = ( (*(commTuple*)a).srcSharedMemRank - (*(commTuple*)b).srcSharedMemRank );
    if (diff2 != 0) {
      return diff2;
    }
    else {
+     /* If the sender is the same sort by destination rank */
      diff3 = ( (*(commTuple*)a).destGlobalRank - (*(commTuple*)b).destGlobalRank );
      return diff3;
    }
@@ -274,9 +278,20 @@ void p_MashmStandardCommEnd(struct MashmPrivate* p_mashm) {
   else {
     numMsgs = p_mashm->numInterNodeMsgs;
   }
-
+  MPI_Errhandler_set(MPI_COMM_WORLD,MPI_ERRORS_RETURN);
   ierr = MPI_Waitall(numMsgs, p_mashm->recvRequests, 
                      p_mashm->recvStatuses);
+  if (ierr != MPI_SUCCESS) {
+    //int resultlen, errclass;
+    resultlen;
+    printf("Error reported in MPI_Waitall line 282\n");
+    MPI_Error_class(ierr,&errclass);
+    int i;
+    for (i = 0; i < numMsgs; i++) {
+      MPI_Error_string((p_mashm->recvStatuses[i].MPI_ERROR),err_buffer,&resultlen);
+      fprintf(stderr,err_buffer);
+    }
+  }
 
   ierr = MPI_Waitall(numMsgs, p_mashm->sendRequests, 
                      p_mashm->sendStatuses);
@@ -524,15 +539,19 @@ void p_MashmAllocateSharedMemory(struct MashmPrivate* p_mashm, int bufferSize) {
   MPI_Request *recvRequests, *sendRequests;
   MPI_Status *recvStatuses, *sendStatuses;
 
+  MPI_Info info_noncontig;
+  ierr = MPI_Info_create(&info_noncontig);
+  ierr = MPI_Info_set(info_noncontig, "alloc_shared_noncontig", "true");
+
   ierr = MPI_Win_allocate_shared(sizeof(double)*bufferSize, sizeof(double),
-                                 MPI_INFO_NULL, p_mashm->intraComm.comm,
+                                 info_noncontig, p_mashm->intraComm.comm,
                                  &(p_mashm->p_sharedSendBuffer),&(p_mashm->sendSharedMemWindow));
   if (ierr != 0) {
     printf("Error in MPI_Win_allocate_shared1\n");
   }
 
   ierr = MPI_Win_allocate_shared(sizeof(double)*bufferSize, sizeof(double),
-                                 MPI_INFO_NULL, p_mashm->intraComm.comm,
+                                 info_noncontig, p_mashm->intraComm.comm,
                                  &(p_mashm->p_sharedRecvBuffer),&(p_mashm->recvSharedMemWindow));
   if (ierr != 0) {
     printf("Error in MPI_Win_allocate_shared2\n");
@@ -597,21 +616,26 @@ void p_MashmAllocateSharedMemoryMinAgg(struct MashmPrivate* p_mashm) {
   MPI_Aint otherWinSize;
   int otherDispUnit;
 
-  allocateSize = p_mashm->nodalSharedBufferSize;
+  MPI_Info info_noncontig;
+  ierr = MPI_Info_create(&info_noncontig);
+  ierr = MPI_Info_set(info_noncontig, "alloc_shared_noncontig", "true");
+
+  allocateSize = p_mashm->nodalSharedBufferSize+7;
   /* Some MPI implementations don't like size zero arrays */
   if (allocateSize == 0) {
-    allocateSize = 1;
+    /* Make this a full cache-line */
+    allocateSize = 8;
   }
 
   ierr = MPI_Win_allocate_shared(sizeof(double)*allocateSize, sizeof(double),
-                                 MPI_INFO_NULL, p_mashm->intraComm.comm,
+                                 info_noncontig, p_mashm->intraComm.comm,
                                  &(p_mashm->p_sendNodalSharedBuffer),&(p_mashm->sendNodalSharedMemWindow));
   if (ierr != 0) {
     printf("Error in MPI_Win_allocate_shared1\n");
   }
 
   ierr = MPI_Win_allocate_shared(sizeof(double)*allocateSize, sizeof(double),
-                                 MPI_INFO_NULL, p_mashm->intraComm.comm,
+                                 info_noncontig, p_mashm->intraComm.comm,
                                  &(p_mashm->p_recvNodalSharedBuffer),&(p_mashm->recvNodalSharedMemWindow));
   if (ierr != 0) {
     printf("Error in MPI_Win_allocate_shared2\n");
@@ -867,8 +891,14 @@ void p_MashmCalculateNodalMsgSchedule(struct MashmPrivate* p_mashm) {
       msgOffsets[0] = 0;
     }
 
+
+#if 0
     tmpMsgSize = commArray[commArrayOffset].msgSize;
 
+    if (commArray[commArrayOffset+1].srcSharedMemRank != commArray[commArrayOffset].srcSharedMemRank) {
+      /* Add 7 doubles to cache block */
+      tmpMsgSize += 7;
+    }
     for (i = 1; i < p_mashm->numNodalSubMsgs; i++) {
       iOffset = i+commArrayOffset;
       if (commArray[iOffset].destNodeIndex != commArray[iOffset-1].destNodeIndex) {
@@ -877,10 +907,43 @@ void p_MashmCalculateNodalMsgSchedule(struct MashmPrivate* p_mashm) {
         tmpMsgSize = 0;
       }
       msgOffsets[i] = tmpMsgSize;
+      if (i < p_mashm->numNodalSubMsgs - 1) {
+        if (commArray[iOffset+1].srcSharedMemRank != commArray[iOffset].srcSharedMemRank) {
+          /* Add 7 doubles to cache block */
+          tmpMsgSize += 7;
+        }
+      }
       tmpMsgSize += commArray[iOffset].msgSize;
     }
 
-    p_mashm->nodalMsgSizes[nodeCounter] = tmpMsgSize; // - 
+    /* For the last index */
+    //if (commArray[commArrayOffset+p_mashm->numNodalSubMsgs].srcSharedMemRank != commArray[commArrayOffset+p_mashm->numNodalSubMsgs].srcSharedMemRank) {
+      /* Add 7 doubles to cache block */
+    //  tmpMsgSize += 7;
+    //}
+    p_mashm->nodalMsgSizes[nodeCounter] = tmpMsgSize;
+#else
+
+    tmpMsgSize = 0;
+    msgOffsets[0] = 0;
+    for (i = 0; i < p_mashm->numNodalSubMsgs-1; i++) {
+      iOffset = i+commArrayOffset;
+      tmpMsgSize += commArray[iOffset].msgSize;
+      if (commArray[iOffset+1].destNodeIndex != commArray[iOffset].destNodeIndex) {
+        p_mashm->nodalMsgSizes[nodeCounter] = tmpMsgSize;
+        nodeCounter += 1;
+        tmpMsgSize = 0;
+      }
+      else if (commArray[iOffset+1].srcSharedMemRank != commArray[iOffset].srcSharedMemRank) {
+        /* Add 7 doubles to cache block for writing */
+        tmpMsgSize += 7;
+      }
+      msgOffsets[i+1] = tmpMsgSize;
+    }
+    tmpMsgSize += commArray[p_mashm->numNodalSubMsgs - 1 + commArrayOffset].msgSize;
+    p_mashm->nodalMsgSizes[nodeCounter] = tmpMsgSize;
+
+#endif
     //for (i = 1; i < p_mashm->numNodalMsgs; i++) {
     //  p_mashm->nodalMsgSizes[i] = p_mashm->nodalMsgSizes[i] - p_mashm->nodalMsgSizes[i-1];
     //}
