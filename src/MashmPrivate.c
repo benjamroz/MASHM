@@ -178,9 +178,9 @@ void p_MashmSetupIntraSharedComm(struct MashmPrivate* p_mashm) {
 void p_MashmStandardCommBegin(struct MashmPrivate* p_mashm) {
   int ierr;
   int iMsg;
-  int numMsgs = p_mashm->commCollection.commArraySize;
-  int i;
-  double* buf;
+  //int numMsgs = p_mashm->commCollection.commArraySize;
+  //int i;
+  //double* buf;
   int msgCounter;
 
   /* First do the Irecvs */
@@ -202,9 +202,11 @@ void p_MashmStandardCommBegin(struct MashmPrivate* p_mashm) {
                        MPI_DOUBLE,
                        p_mashm->commCollection.commArray[iMsg].pairRank, 
                        1, p_mashm->comm, &(p_mashm->recvRequests[msgCounter]));
+#if 0
       if (ierr != 0) {
         printf("Error in receiving message %d\n", iMsg);
       }
+#endif
     }
   }
   /* Next do the Isends */
@@ -225,9 +227,11 @@ void p_MashmStandardCommBegin(struct MashmPrivate* p_mashm) {
                        MPI_DOUBLE,
                        p_mashm->commCollection.commArray[iMsg].pairRank, 
                        1, p_mashm->comm, &(p_mashm->sendRequests[msgCounter]));
+#if 0
       if (ierr != 0) {
         printf("Error in sending message %d\n", iMsg);
       }
+#endif
     }
   }
 }
@@ -243,8 +247,8 @@ void p_MashmStandardCommEnd(struct MashmPrivate* p_mashm) {
   int ierr;
 
   int numMsgs;
-  char err_buffer[MPI_MAX_ERROR_STRING];
-  int errclass, resultlen;
+  //char err_buffer[MPI_MAX_ERROR_STRING];
+  //int errclass, resultlen;
 
   if (p_mashm->commType == MASHM_COMM_MIN_AGG) {
     numMsgs = p_mashm->numOwnedNodalMsgs;
@@ -278,9 +282,10 @@ void p_MashmStandardCommEnd(struct MashmPrivate* p_mashm) {
   else {
     numMsgs = p_mashm->numInterNodeMsgs;
   }
-  MPI_Errhandler_set(MPI_COMM_WORLD,MPI_ERRORS_RETURN);
+  //MPI_Errhandler_set(MPI_COMM_WORLD,MPI_ERRORS_RETURN);
   ierr = MPI_Waitall(numMsgs, p_mashm->recvRequests, 
                      p_mashm->recvStatuses);
+#if 0
   if (ierr != MPI_SUCCESS) {
     //int resultlen, errclass;
     resultlen;
@@ -292,7 +297,7 @@ void p_MashmStandardCommEnd(struct MashmPrivate* p_mashm) {
       fprintf(stderr,err_buffer);
     }
   }
-
+#endif
   ierr = MPI_Waitall(numMsgs, p_mashm->sendRequests, 
                      p_mashm->sendStatuses);
 
@@ -378,11 +383,7 @@ void p_MashmIntraSharedCommBegin(struct MashmPrivate* p_mashm) {
   int iMsg, msgCounter;
   int ierr;
   int i;
-  int mpiFenceMode;
   int sharedBufferOffset;
-
-  mpiFenceMode = MPI_MODE_NOPUT;
-
 
   ierr = MPI_Win_fence(MPI_MODE_NOPUT,p_mashm->sendSharedMemWindow);
 
@@ -1256,10 +1257,10 @@ inline
 void p_MashmMinAggCommBegin(struct MashmPrivate* p_mashm) {
   int ierr;
   int iMsg;
-  int numMsgs = p_mashm->commCollection.commArraySize;
-  int i;
-  double* buf;
-  int msgCounter, sharedRankMsgOwner, globalRankMsgOwner;
+  //int numMsgs = p_mashm->commCollection.commArraySize;
+  //int i;
+  //double* buf;
+  int msgCounter, sharedRankMsgOwner;
 
 
   /* Post the receives for the next cycle */

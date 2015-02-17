@@ -170,12 +170,14 @@ contains
   counter = 0
   do while (.true.)
     do iDir = 1,3
-      if (mod(remainder, 2) .eq. 0) then
-        factors(iDir) = factors(iDir)*2
-        remainder = remainder/2
-      else if (mod(remainder, 3) .eq. 0) then
+      if (mod(remainder, 3) .eq. 0 .and. mod(cellsInDir(iDir),3) .eq. 0) then
+        cellsInDir(iDir) = cellsInDir(iDir)/3
         factors(iDir) = factors(iDir)*3
         remainder = remainder/3
+      else if (mod(remainder, 2) .eq. 0 .and. mod(cellsInDir(iDir),2) .eq. 0) then
+        cellsInDir(iDir) = cellsInDir(iDir)/2
+        factors(iDir) = factors(iDir)*2
+        remainder = remainder/2
       endif
     enddo
     if (remainder .eq. 1) then
