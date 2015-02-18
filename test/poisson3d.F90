@@ -2275,7 +2275,7 @@ if (rank == 0) print *, "running iter ", iIter, " residual ", residualL2, &
 call MashmInit(myMashm, MPI_COMM_WORLD)
 
 ! Print nodal comm info
-call MashmPrintInfo(myMashm)
+!call MashmPrintInfo(myMashm)
 
 call MashmSetNumComms(myMashm, numMessages)
 

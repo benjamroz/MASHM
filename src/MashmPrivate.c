@@ -963,7 +963,7 @@ void p_MashmCalculateNodalMsgSchedule(struct MashmPrivate* p_mashm) {
     tmpMsgSize += commArray[p_mashm->numNodalSubMsgs - 1 + commArrayOffset].msgSize;
     p_mashm->nodalMsgSendSizes[nodeCounter] = tmpMsgSize;
 
-
+#if 0
     printf("Rank %d has %d nodal messages\n", p_mashm->sharedMemIndex, p_mashm->numNodalMsgs);
     /* Usual point to point communication */
     for (i = 0; i < p_mashm->numNodalMsgs; i++) {
@@ -972,7 +972,7 @@ void p_MashmCalculateNodalMsgSchedule(struct MashmPrivate* p_mashm) {
     for (i = 0; i < p_mashm->numNodalMsgs; i++) {
       printf("Rank %d sending rank %d message\n", p_mashm->sharedMemIndex, p_mashm->uniqueNodeIndices[i+1]);
     }
-
+#endif
     recvRequests = (MPI_Request*) malloc(sizeof(MPI_Request)*p_mashm->numNodalMsgs);
     sendRequests = (MPI_Request*) malloc(sizeof(MPI_Request)*p_mashm->numNodalMsgs);
     recvStatuses = (MPI_Status*) malloc(sizeof(MPI_Status)*p_mashm->numNodalMsgs);
@@ -980,11 +980,11 @@ void p_MashmCalculateNodalMsgSchedule(struct MashmPrivate* p_mashm) {
 
     /* Usual point to point communication */
     for (i = 0; i < p_mashm->numNodalMsgs; i++) {
-      printf("Rank %d receiving message from rank %d\n", p_mashm->sharedMemIndex, p_mashm->uniqueNodeIndices[i+1]);
+      //printf("Rank %d receiving message from rank %d\n", p_mashm->sharedMemIndex, p_mashm->uniqueNodeIndices[i+1]);
       ierr = MPI_Irecv(&(p_mashm->nodalMsgRecvSizes[i]), 1, MPI_INT, p_mashm->uniqueNodeIndices[i+1], 0, p_mashm->rankComm, &recvRequests[i]);
     }
     for (i = 0; i < p_mashm->numNodalMsgs; i++) {
-      printf("Rank %d sending rank %d message\n", p_mashm->sharedMemIndex, p_mashm->uniqueNodeIndices[i+1]);
+      //printf("Rank %d sending rank %d message\n", p_mashm->sharedMemIndex, p_mashm->uniqueNodeIndices[i+1]);
       ierr = MPI_Isend(&(p_mashm->nodalMsgSendSizes[i]), 1, MPI_INT, p_mashm->uniqueNodeIndices[i+1], 0, p_mashm->rankComm, &sendRequests[i]);
     }
 
@@ -995,7 +995,7 @@ void p_MashmCalculateNodalMsgSchedule(struct MashmPrivate* p_mashm) {
     free(recvStatuses);
     free(sendStatuses);
 
-
+#if 0
     for (iRank = 0; iRank < p_mashm->numSharedMemNodes; iRank++) {
 
       ierr = MPI_Barrier(p_mashm->rankComm);
@@ -1026,7 +1026,7 @@ void p_MashmCalculateNodalMsgSchedule(struct MashmPrivate* p_mashm) {
       ierr = MPI_Barrier(p_mashm->rankComm);
       ierr = MPI_Barrier(p_mashm->rankComm);
     }
-
+#endif
 #endif
     //for (i = 1; i < p_mashm->numNodalMsgs; i++) {
     //  p_mashm->nodalMsgSendSizes[i] = p_mashm->nodalMsgSendSizes[i] - p_mashm->nodalMsgSendSizes[i-1];
@@ -1543,7 +1543,7 @@ void p_MashmFinish(struct MashmPrivate* p_mashm) {
       break;
 
   }
-
+#if 0
   if (p_mashm->intraComm.isMasterProc) {
     printf("Node %d has %d nodal messages.\n", p_mashm->sharedMemIndex, p_mashm->numNodalMsgs);
   }
@@ -1563,6 +1563,7 @@ void p_MashmFinish(struct MashmPrivate* p_mashm) {
   //p_MashmPrintInterNodeMessages(p_mashm);
 
   p_MashmPrintMessageInformation(p_mashm);
+#endif
 }
 
 void p_MashmPrintMessageInformation(struct MashmPrivate* p_mashm) {
