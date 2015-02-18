@@ -89,7 +89,8 @@ struct MashmPrivate {
 
   int* msgNodeIndices;
   int numNodalSubMsgs;
-  int* nodalMsgSizes;
+  int* nodalMsgSendSizes;
+  int* nodalMsgRecvSizes;
 
   int* nodalMsgOwner;
   MashmMinAggType minAggScheme;
