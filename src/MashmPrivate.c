@@ -826,6 +826,7 @@ void p_MashmCalculateNodalMsgSchedule(struct MashmPrivate* p_mashm) {
     }
 #endif
 
+    commArrayOffset = 0;
     /* Now advance the commArray to the first non-self node */
     for (i = 0; i < sumNumMsgs; i++) {
       if (commArray[i].destNodeIndex != p_mashm->sharedMemIndex) {
@@ -962,36 +963,33 @@ void p_MashmCalculateNodalMsgSchedule(struct MashmPrivate* p_mashm) {
     tmpMsgSize += commArray[p_mashm->numNodalSubMsgs - 1 + commArrayOffset].msgSize;
     p_mashm->nodalMsgSendSizes[nodeCounter] = tmpMsgSize;
 
-    /* nodeCounter was previously an index */
-    nodeCounter += 1;
 
-
-    printf("Rank %d has %d nodal messages (%d) \n", p_mashm->sharedMemIndex, nodeCounter, p_mashm->numNodalMsgs);
+    printf("Rank %d has %d nodal messages\n", p_mashm->sharedMemIndex, p_mashm->numNodalMsgs);
     /* Usual point to point communication */
-    for (i = 0; i < nodeCounter; i++) {
+    for (i = 0; i < p_mashm->numNodalMsgs; i++) {
       printf("Rank %d receiving message from rank %d\n", p_mashm->sharedMemIndex, p_mashm->uniqueNodeIndices[i+1]);
     }
-    for (i = 0; i < nodeCounter; i++) {
+    for (i = 0; i < p_mashm->numNodalMsgs; i++) {
       printf("Rank %d sending rank %d message\n", p_mashm->sharedMemIndex, p_mashm->uniqueNodeIndices[i+1]);
     }
 
-    recvRequests = (MPI_Request*) malloc(sizeof(MPI_Request)*nodeCounter);
-    sendRequests = (MPI_Request*) malloc(sizeof(MPI_Request)*nodeCounter);
-    recvStatuses = (MPI_Status*) malloc(sizeof(MPI_Status)*nodeCounter);
-    sendStatuses = (MPI_Status*) malloc(sizeof(MPI_Status)*nodeCounter);
+    recvRequests = (MPI_Request*) malloc(sizeof(MPI_Request)*p_mashm->numNodalMsgs);
+    sendRequests = (MPI_Request*) malloc(sizeof(MPI_Request)*p_mashm->numNodalMsgs);
+    recvStatuses = (MPI_Status*) malloc(sizeof(MPI_Status)*p_mashm->numNodalMsgs);
+    sendStatuses = (MPI_Status*) malloc(sizeof(MPI_Status)*p_mashm->numNodalMsgs);
 
     /* Usual point to point communication */
-    for (i = 0; i < nodeCounter; i++) {
+    for (i = 0; i < p_mashm->numNodalMsgs; i++) {
       printf("Rank %d receiving message from rank %d\n", p_mashm->sharedMemIndex, p_mashm->uniqueNodeIndices[i+1]);
       ierr = MPI_Irecv(&(p_mashm->nodalMsgRecvSizes[i]), 1, MPI_INT, p_mashm->uniqueNodeIndices[i+1], 0, p_mashm->rankComm, &recvRequests[i]);
     }
-    for (i = 0; i < nodeCounter; i++) {
+    for (i = 0; i < p_mashm->numNodalMsgs; i++) {
       printf("Rank %d sending rank %d message\n", p_mashm->sharedMemIndex, p_mashm->uniqueNodeIndices[i+1]);
       ierr = MPI_Isend(&(p_mashm->nodalMsgSendSizes[i]), 1, MPI_INT, p_mashm->uniqueNodeIndices[i+1], 0, p_mashm->rankComm, &sendRequests[i]);
     }
 
-    ierr = MPI_Waitall(nodeCounter,recvRequests,recvStatuses); 
-    ierr = MPI_Waitall(nodeCounter,sendRequests,sendStatuses); 
+    ierr = MPI_Waitall(p_mashm->numNodalMsgs,recvRequests,recvStatuses); 
+    ierr = MPI_Waitall(p_mashm->numNodalMsgs,sendRequests,sendStatuses); 
     free(recvRequests);
     free(sendRequests);
     free(recvStatuses);
