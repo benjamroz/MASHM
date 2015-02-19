@@ -2392,9 +2392,11 @@ do iIter = 1, numIters, 2
 
   gptlError = gptlstart('communication2')
   call MashmInterNodeCommBegin(myMashm)
+  gptlError = gptlstart('communication2_intra')
   call MashmIntraNodeCommBegin(myMashm)
 
   call MashmIntraNodeCommEnd(myMashm)
+  gptlError = gptlstop('communication2_intra')
   gptlError = gptlstart('communication2_waitall')
   call MashmInterNodeCommEnd(myMashm)
   gptlError = gptlstop('communication2_waitall')
@@ -2420,9 +2422,11 @@ do iIter = 1, numIters, 2
 
   gptlError = gptlstart('communication2')
   call MashmInterNodeCommBegin(myMashm)
+  gptlError = gptlstart('communication2_intra')
   call MashmIntraNodeCommBegin(myMashm)
-
   call MashmIntraNodeCommEnd(myMashm)
+  gptlError = gptlstop('communication2_intra')
+
   gptlError = gptlstart('communication2_waitall')
   call MashmInterNodeCommEnd(myMashm)
   gptlError = gptlstop('communication2_waitall')
