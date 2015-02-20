@@ -247,8 +247,6 @@ void p_MashmStandardCommEnd(struct MashmPrivate* p_mashm) {
   int ierr;
 
   int numMsgs;
-  char err_buffer[MPI_MAX_ERROR_STRING];
-  int errclass, resultlen;
 
   if (p_mashm->commType == MASHM_COMM_MIN_AGG) {
     numMsgs = p_mashm->numOwnedNodalMsgs;
@@ -282,9 +280,14 @@ void p_MashmStandardCommEnd(struct MashmPrivate* p_mashm) {
   else {
     numMsgs = p_mashm->numInterNodeMsgs;
   }
+#if 0
   MPI_Errhandler_set(MPI_COMM_WORLD,MPI_ERRORS_RETURN);
+#endif
   ierr = MPI_Waitall(numMsgs, p_mashm->recvRequests, 
                      p_mashm->recvStatuses);
+#if 0
+  char err_buffer[MPI_MAX_ERROR_STRING];
+  int errclass, resultlen;
   if (ierr != MPI_SUCCESS) {
     //int resultlen, errclass;
     resultlen;
@@ -298,6 +301,7 @@ void p_MashmStandardCommEnd(struct MashmPrivate* p_mashm) {
     }
 
   }
+#endif
   ierr = MPI_Waitall(numMsgs, p_mashm->sendRequests, 
                      p_mashm->sendStatuses);
 
