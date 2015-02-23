@@ -830,7 +830,7 @@ void p_MashmCalculateNodalMsgSchedule(struct MashmPrivate* p_mashm) {
     }
 #endif
 
-    commArrayOffset = 0;
+    commArrayOffset = sumNumMsgs;
     /* Now advance the commArray to the first non-self node */
     for (i = 0; i < sumNumMsgs; i++) {
       if (commArray[i].destNodeIndex != p_mashm->sharedMemIndex) {
@@ -1443,6 +1443,7 @@ void p_MashmFinish(struct MashmPrivate* p_mashm) {
   /* Allocate MPI shared memory */
   if (p_mashm->commType == MASHM_COMM_INTRA_SHARED ||
       p_mashm->commType == MASHM_COMM_MIN_AGG) {
+      printf("MASHM_COMM_MIN_AGG\n");
     p_MashmAllocateSharedMemory(p_mashm, p_mashm->sharedBufferSize);
   }
   p_mashm->buffersInit = true;
@@ -1760,7 +1761,7 @@ void p_MashmPrintCommCollection(const struct MashmPrivate* p_mashm) {
   }
 }
 
-void p_MashmSetCommMethod(struct MashmPrivate* p_mashm, int commType) {
+void p_MashmSetCommMethod(struct MashmPrivate* p_mashm, MashmCommType commType) {
   p_mashm->commType = commType;
 }
 

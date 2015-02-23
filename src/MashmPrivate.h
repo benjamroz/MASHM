@@ -217,8 +217,8 @@ int p_MashmGetCommSize(struct MashmPrivate* p_mashm, int commIndex);
 void p_MashmPrintCommCollection(const struct MashmPrivate* p_mashm);
 
 /* Set the communication method */
-//void p_MashmSetCommMethod(struct MashmPrivate* in_mashm, MashmCommType commType);
-void p_MashmSetCommMethod(struct MashmPrivate* in_mashm, int commType);
+void p_MashmSetCommMethod(struct MashmPrivate* in_mashm, MashmCommType commType);
+//void p_MashmSetCommMethod(struct MashmPrivate* in_mashm, int commType);
 
 /* Return the communication method */
 MashmCommType p_MashmGetCommMethod(const struct MashmPrivate* p_mashm);
