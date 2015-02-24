@@ -100,6 +100,8 @@ struct MashmPrivate {
   int* uniqueNodeIndices;
   int* nodalRecvRank;
 
+  MashmBool cacheBlocking;
+
   /* Nodal message data for the MIN_AGG scheme */
   double* p_sendNodalSharedBuffer;
   double* p_recvNodalSharedBuffer;
@@ -246,4 +248,7 @@ void p_MashmInterNodeCommEnd(struct MashmPrivate* p_mashm);
 void p_MashmPrintInterNodeMessages(struct MashmPrivate* p_mashm);
 
 void p_MashmPrintMessageInformation(struct MashmPrivate* p_mashm);
+
+void p_MashmSetCacheBlocking(struct MashmPrivate* p_mashm, MashmBool blockCache);
+
 #endif

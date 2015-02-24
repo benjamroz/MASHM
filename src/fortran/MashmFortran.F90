@@ -240,6 +240,16 @@ interface
 
   end subroutine
 
+  subroutine MashmSetCacheBlockingC(in_mashm, blockCache) &
+    bind(c, name='MashmSetCacheBlocking')
+    use, intrinsic :: iso_c_binding
+    use Mashm_type
+    implicit none
+    type(Mashm), value :: in_mashm
+    integer, value :: blockCache
+  end subroutine
+
+
 end interface
 
 contains
@@ -309,5 +319,23 @@ contains
     isOnNode = ( MashmIsMsgIntraNodalC(in_mashm, int(commIndex - 1,kind=c_int)) .eq. 1 )
 
   end function
+
+
+  subroutine MashmSetCacheBlocking(in_mashm, blockCache)
+    use, intrinsic :: iso_c_binding
+    use Mashm_type
+    implicit none
+    type(Mashm), value :: in_mashm
+    logical :: blockCache
+    integer :: blockCacheC
+
+    if (blockCache == .true.) then
+      blockCacheC = 1
+    else
+      blockCacheC = 0
+    endif
+    call MashmSetCacheBlockingC(in_mashm, blockCacheC)
+  end subroutine
+
 end module Mashm_mod
 

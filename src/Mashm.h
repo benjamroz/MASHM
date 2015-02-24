@@ -238,4 +238,12 @@ void MashmPrintCommCollection(const Mashm in_mashm);
  */
 void MashmPrintMessageStatus(const Mashm in_mashm);
 
+/** 
+ *  \memberof Mashm
+ *  @brief Set cache blocking
+ *  @param in_mashm Mashm object
+ *  @param blockCache whether to apply cache blocking to the shared memory data
+ */
+void MashmSetCacheBlocking(const Mashm in_mashm, MashmBool blockCache);
+
 #endif 

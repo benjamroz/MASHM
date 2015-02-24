@@ -2301,6 +2301,8 @@ call MPI_Barrier(MPI_COMM_WORLD, ierr)
 
 call MashmSetCommMethod(myMashm, commMethod)
 
+call MashmSetCacheBlocking(myMashm, .true.)
+
 ! Perform precalculation
 call MashmCommFinish(myMashm)
 

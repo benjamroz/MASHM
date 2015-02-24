@@ -108,6 +108,9 @@ void p_MashmInit(struct MashmPrivate* p_mashm, MPI_Comm in_comm) {
 
   p_mashm->minAggScheme = MASHM_MIN_AGG_ROUND_ROBIN;
   //p_mashm->minAggScheme = MASHM_MIN_AGG_ROOT_PROC;
+
+  /* Default is true */
+  p_mashm->cacheBlocking = true;
 }
 
 double* p_MashmGetBufferPointer(struct MashmPrivate* p_mashm, int msgIndex, MashmSendReceive sendReceive) {
@@ -585,6 +588,7 @@ void p_MashmAllocateSharedMemoryMinAgg(struct MashmPrivate* p_mashm) {
   ierr = MPI_Info_create(&info_noncontig);
   ierr = MPI_Info_set(info_noncontig, "alloc_shared_noncontig", "true");
 
+  /* Force padding on cache lines */
   allocateSize = p_mashm->nodalSharedBufferSize+7;
   /* Some MPI implementations don't like size zero arrays */
   if (allocateSize == 0) {
@@ -881,8 +885,9 @@ void p_MashmCalculateNodalMsgSchedule(struct MashmPrivate* p_mashm) {
         nodeCounter += 1;
         tmpMsgSize = 0;
       }
-      else if (commArray[iOffset+1].srcSharedMemRank != commArray[iOffset].srcSharedMemRank) {
-        /* Add 7 doubles to cache block for writing */
+      else if (p_mashm->cacheBlocking && 
+               commArray[iOffset+1].srcSharedMemRank != commArray[iOffset].srcSharedMemRank) {
+        /* Add 7 doubles to cache block writing to shared memory */
         tmpMsgSize += 7;
       }
       msgOffsets[i+1] = tmpMsgSize;
@@ -890,27 +895,37 @@ void p_MashmCalculateNodalMsgSchedule(struct MashmPrivate* p_mashm) {
     tmpMsgSize += commArray[p_mashm->numNodalSubMsgs - 1 + commArrayOffset].msgSize;
     p_mashm->nodalMsgSendSizes[nodeCounter] = tmpMsgSize;
 
-    recvRequests = (MPI_Request*) malloc(sizeof(MPI_Request)*p_mashm->numNodalMsgs);
-    sendRequests = (MPI_Request*) malloc(sizeof(MPI_Request)*p_mashm->numNodalMsgs);
-    recvStatuses = (MPI_Status*) malloc(sizeof(MPI_Status)*p_mashm->numNodalMsgs);
-    sendStatuses = (MPI_Status*) malloc(sizeof(MPI_Status)*p_mashm->numNodalMsgs);
+    if (p_mashm->cacheBlocking) {
+      /* When cache blocking we need to exchange the size of the 
+       *   nodal messages since they are no longer the same */
+      recvRequests = (MPI_Request*) malloc(sizeof(MPI_Request)*p_mashm->numNodalMsgs);
+      sendRequests = (MPI_Request*) malloc(sizeof(MPI_Request)*p_mashm->numNodalMsgs);
+      recvStatuses = (MPI_Status*) malloc(sizeof(MPI_Status)*p_mashm->numNodalMsgs);
+      sendStatuses = (MPI_Status*) malloc(sizeof(MPI_Status)*p_mashm->numNodalMsgs);
 
-    /* Usual point to point communication */
-    for (i = 0; i < p_mashm->numNodalMsgs; i++) {
-      //printf("Rank %d receiving message from rank %d\n", p_mashm->sharedMemIndex, p_mashm->uniqueNodeIndices[i+1]);
-      ierr = MPI_Irecv(&(p_mashm->nodalMsgRecvSizes[i]), 1, MPI_INT, p_mashm->uniqueNodeIndices[i+1], 0, p_mashm->rankComm, &recvRequests[i]);
-    }
-    for (i = 0; i < p_mashm->numNodalMsgs; i++) {
-      //printf("Rank %d sending rank %d message\n", p_mashm->sharedMemIndex, p_mashm->uniqueNodeIndices[i+1]);
-      ierr = MPI_Isend(&(p_mashm->nodalMsgSendSizes[i]), 1, MPI_INT, p_mashm->uniqueNodeIndices[i+1], 0, p_mashm->rankComm, &sendRequests[i]);
-    }
+      /* Usual point to point communication */
+      for (i = 0; i < p_mashm->numNodalMsgs; i++) {
+        //printf("Rank %d receiving message from rank %d\n", p_mashm->sharedMemIndex, p_mashm->uniqueNodeIndices[i+1]);
+        ierr = MPI_Irecv(&(p_mashm->nodalMsgRecvSizes[i]), 1, MPI_INT, p_mashm->uniqueNodeIndices[i+1], 0, p_mashm->rankComm, &recvRequests[i]);
+      }
+      for (i = 0; i < p_mashm->numNodalMsgs; i++) {
+        //printf("Rank %d sending rank %d message\n", p_mashm->sharedMemIndex, p_mashm->uniqueNodeIndices[i+1]);
+        ierr = MPI_Isend(&(p_mashm->nodalMsgSendSizes[i]), 1, MPI_INT, p_mashm->uniqueNodeIndices[i+1], 0, p_mashm->rankComm, &sendRequests[i]);
+      }
 
-    ierr = MPI_Waitall(p_mashm->numNodalMsgs,recvRequests,recvStatuses); 
-    ierr = MPI_Waitall(p_mashm->numNodalMsgs,sendRequests,sendStatuses); 
-    free(recvRequests);
-    free(sendRequests);
-    free(recvStatuses);
-    free(sendStatuses);
+      ierr = MPI_Waitall(p_mashm->numNodalMsgs,recvRequests,recvStatuses); 
+      ierr = MPI_Waitall(p_mashm->numNodalMsgs,sendRequests,sendStatuses); 
+      free(recvRequests);
+      free(sendRequests);
+      free(recvStatuses);
+      free(sendStatuses);
+    }
+    else {
+      /* Receive length of nodal messages is the same as the send lengths */
+      for (i = 0; i < p_mashm->numNodalMsgs; i++) {
+        p_mashm->nodalMsgRecvSizes[i] = p_mashm->nodalMsgSendSizes[i];
+      }
+    }
 
     for (i = 0; i < p_mashm->numNodalMsgs; i++) {
       p_mashm->minNodalMsgSize = MIN(p_mashm->nodalMsgSendSizes[i],p_mashm->minNodalMsgSize);
@@ -1677,4 +1692,8 @@ void p_MashmPrintInterNodeMessages(struct MashmPrivate* p_mashm) {
     ierr = MPI_Barrier(p_mashm->comm);
     ierr = MPI_Barrier(p_mashm->comm);
   }
+}
+
+void p_MashmSetCacheBlocking(struct MashmPrivate* p_mashm, MashmBool blockCache) {
+  p_mashm->cacheBlocking = blockCache;
 }
