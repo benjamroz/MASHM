@@ -148,7 +148,8 @@ MashmCommType MashmGetCommMethod(const Mashm in_mashm);
  *  @param pairRank Message pair rank
  *  @return Whether the specified rank is on the same shared memory node as the calling process
  */
-MashmBool MashmIsIntraNodeRank(Mashm in_mashm, int pairRank);
+inline
+MashmBool MashmIsIntraNodeRank(const Mashm in_mashm, int pairRank);
 
 /**
  *  \memberof Mashm
@@ -224,8 +225,17 @@ void MashmDestroy(Mashm* in_mashm);
 
 /** 
  *  \memberof Mashm
- *  @brief Print informatino about the messages
+ *  @brief Print information about the messages
  *  @param in_mashm Mashm object
  */
 void MashmPrintCommCollection(const Mashm in_mashm);
+
+
+/** 
+ *  \memberof Mashm
+ *  @brief Print statistics (min, max, avg) about messages
+ *  @param in_mashm Mashm object
+ */
+void MashmPrintMessageStatus(const Mashm in_mashm);
+
 #endif 

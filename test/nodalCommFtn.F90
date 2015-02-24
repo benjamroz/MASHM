@@ -216,7 +216,7 @@ enddo
 ! ************************************************************/
 !  /* Fill internode buffers */
 do i = 1, numNeighbors
-  if (.not. MashmIsMsgOnNode(myMashm, i))  then
+  if (.not. MashmIsMsgIntraNodal(myMashm, i))  then
     do j = 1, msgSizes(i)
       mashmSendBufferPtrs(i)%p(j) = rank*msgSizes(i)+j;
     enddo
@@ -228,7 +228,7 @@ if (rank == 0) print *, "Mashm Internode communication begin."
 call MashmInterNodeCommBegin(myMashm)
 
 do i = 1, numNeighbors
-  if (MashmIsMsgOnNode(myMashm, i)) then
+  if (MashmIsMsgIntraNodal(myMashm, i)) then
     do j = 1, msgSizes(i)
       mashmSendBufferPtrs(i)%p(j) = rank*msgSizes(i)+j
     enddo
@@ -246,7 +246,7 @@ call MashmIntraNodeCommEnd(myMashm)
 
 ! At this stage you have completed the intra-node communication
 do i = 1, numNeighbors
-  if (MashmIsMsgOnNode(myMashm, i)) then
+  if (MashmIsMsgIntraNodal(myMashm, i)) then
     offset = msgOffsets(i)
     do j = 1, msgSizes(i)
       mashmData(offset+j) = mashmRecvBufferPtrs(i)%p(j)
@@ -262,7 +262,7 @@ if (rank == 0) print *, "Mashm Internode communication end."
 call MashmInterNodeCommEnd(myMashm)
 
 do i = 1, numNeighbors
-  if (.not. MashmIsMsgOnNode(myMashm, i)) then
+  if (.not. MashmIsMsgIntraNodal(myMashm, i)) then
     offset = msgOffsets(i)
     do j = 1, msgSizes(i)
       mashmData(offset+j) = mashmRecvBufferPtrs(i)%p(j)

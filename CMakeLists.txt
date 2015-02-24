@@ -1,3 +1,5 @@
+CMAKE_MINIMUM_REQUIRED(VERSION 2.8.5)
+
 # Fortran Bindings required for now
 PROJECT(MASHM C Fortran)
 
@@ -14,9 +16,6 @@ INCLUDE_DIRECTORIES(${CMAKE_CURRENT_BINARY_DIR})
 FortranCInterface_HEADER(cmake_fortran_c_interface.h
                          MACRO_NAMESPACE  "FCI_")
 
-
-CMAKE_MINIMUM_REQUIRED(VERSION 2.8.5)
-
 # Doxygen
 FIND_PACKAGE(Doxygen)
 IF (DOXYGEN_FOUND)
@@ -24,6 +23,11 @@ IF (DOXYGEN_FOUND)
 ENDIF()
 
 FIND_PACKAGE(GPTL REQUIRED)
+
+# If enable debug set MASHM_DEBUG ifdef in src/MashmConfig.h
+IF (MASHM_ENABLE_DEBUG)
+  SET (MASHM_DEBUG TRUE)
+ENDIF ()
 
 ADD_SUBDIRECTORY(src)
 ADD_SUBDIRECTORY(test)

@@ -80,6 +80,14 @@ interface
     type(Mashm), value :: in_mashm
   end subroutine 
 
+  subroutine MashmPrintMessageStats(in_mashm) &
+    bind(c,name='MashmPrintMessageStats')
+    use, intrinsic :: iso_c_binding
+    use Mashm_type
+    implicit none
+    type(Mashm), value :: in_mashm
+  end subroutine 
+
   subroutine MashmSetNumComms(in_mashm, numComms) &
     bind(c,name='MashmSetNumComms')
     use, intrinsic :: iso_c_binding

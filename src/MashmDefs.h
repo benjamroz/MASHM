@@ -1,3 +1,5 @@
+#include "MashmConfig.h"
+
 #ifndef MASHM_DEFS_H
 #define MASHM_DEFS_H
 

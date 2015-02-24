@@ -233,7 +233,7 @@ int main(int argc, char** argv) {
 
   /* Fill internode buffers */
   for (i = 0; i < numNeighbors; i++) {
-    if (! MashmIsMsgOnNode(myMashm, i)) {
+    if (! MashmIsMsgIntraNodal(myMashm, i)) {
       for (j = 0; j < msgSizes[i]; j++) {
         mashmSendBufferPtrs[i][j] = rank*msgSizes[i]+j;
       }
@@ -248,7 +248,7 @@ int main(int argc, char** argv) {
    * Can asynchronously do work on nodal data 
    */
   for (i = 0; i < numNeighbors; i++) {
-    if (MashmIsMsgOnNode(myMashm, i)) {
+    if (MashmIsMsgIntraNodal(myMashm, i)) {
       for (j = 0; j < msgSizes[i]; j++) {
         mashmSendBufferPtrs[i][j] = rank*msgSizes[i]+j;
       }
@@ -268,7 +268,7 @@ int main(int argc, char** argv) {
 
   /* Asynchronously do work on nodal data */
   for (i = 0; i < numNeighbors; i++) {
-    if (MashmIsMsgOnNode(myMashm, i)) {
+    if (MashmIsMsgIntraNodal(myMashm, i)) {
       /* Unpack individual buffer */
       offset = msgOffsets[i];
       for (j = 0; j < msgSizes[i]; j++) {
@@ -282,7 +282,7 @@ int main(int argc, char** argv) {
   MashmInterNodeCommEnd(myMashm);
 
   for (i = 0; i < numNeighbors; i++) {
-    if (! MashmIsMsgOnNode(myMashm, i)) {
+    if (! MashmIsMsgIntraNodal(myMashm, i)) {
       /* Unpack individual buffer */
       offset = msgOffsets[i];
       for (j = 0; j < msgSizes[i]; j++) {

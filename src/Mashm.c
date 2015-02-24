@@ -132,7 +132,11 @@ void MashmInterNodeCommEnd(Mashm in_mashm) {
   p_MashmInterNodeCommEnd(in_mashm.p);
 }
 
-MashmBool MashmIsIntraNodeRank(Mashm in_mashm, int pairRank) {
+inline
+MashmBool MashmIsIntraNodeRank(const Mashm in_mashm, int pairRank) {
   return p_MashmIsIntraNodeRank(in_mashm.p, pairRank);
 }
 
+void MashmPrintMessageStats(const Mashm in_mashm) {
+  p_MashmPrintMessageInformation(in_mashm.p);
+}
