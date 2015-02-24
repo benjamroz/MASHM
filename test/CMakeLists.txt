@@ -25,6 +25,7 @@ TARGET_LINK_LIBRARIES(nodalCommFtn mashm mashm_ftn testHelpers)
 SET(POISSON_3D_SRCS
   grid.F90
   poisson3d.F90
+  poisson3dPack.F90
 )
 
 ADD_EXECUTABLE(poisson3d ${POISSON_3D_SRCS})
