@@ -212,8 +212,8 @@ interface
     type(c_ptr), intent(out) :: bufferPointer
   end subroutine
 
-  function MashmIsMsgOnNodeC(in_mashm, commIndex) result(isOnNode) &
-    bind(c, name='MashmIsMsgOnNode')
+  function MashmIsMsgIntraNodalC(in_mashm, commIndex) result(isOnNode) &
+    bind(c, name='MashmIsMsgIntraNodal')
     use, intrinsic :: iso_c_binding
     use Mashm_type
     implicit none
@@ -291,14 +291,14 @@ contains
     call MashmSetCommC(in_mashm, commIndexBaseZero, pairRank, msgSize)
   end subroutine 
 
-  function MashmIsMsgOnNode(in_mashm, commIndex) result(isOnNode) 
+  function MashmIsMsgIntraNodal(in_mashm, commIndex) result(isOnNode) 
     use, intrinsic :: iso_c_binding
     use Mashm_type
     implicit none
     type(Mashm), value :: in_mashm
     integer, value :: commIndex
     logical :: isOnNode
-    isOnNode = ( MashmIsMsgOnNodeC(in_mashm, int(commIndex - 1,kind=c_int)) .eq. 1 )
+    isOnNode = ( MashmIsMsgIntraNodalC(in_mashm, int(commIndex - 1,kind=c_int)) .eq. 1 )
 
   end function
 end module Mashm_mod

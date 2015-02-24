@@ -2479,7 +2479,7 @@ if (rank == 0) print *, "Initial difference", residualL2, residualMax
 do iIter = 1, 2, 2
 
   do i = 1, numMessages
-    if (.not. MashmIsMsgOnNode(myMashm, i)) then
+    if (.not. MashmIsMsgIntraNodal(myMashm, i)) then
       call packData2(domain, gridIndicesStart, gridIndicesEnd, mashmSendBufferPtrs(i)%p, msgDirIndex2(i))
     endif
   enddo
@@ -2487,7 +2487,7 @@ do iIter = 1, 2, 2
   call MashmInterNodeCommBegin(myMashm)
 
   do i = 1, numMessages
-    if (MashmIsMsgOnNode(myMashm, i)) then
+    if (MashmIsMsgIntraNodal(myMashm, i)) then
       call packData2(domain, gridIndicesStart, gridIndicesEnd, mashmSendBufferPtrs(i)%p, msgDirIndex2(i))
     endif
   enddo
@@ -2496,7 +2496,7 @@ do iIter = 1, 2, 2
   call MashmIntraNodeCommEnd(myMashm)
 
   do i = 1, numMessages
-    if (MashmIsMsgOnNode(myMashm, i)) then
+    if (MashmIsMsgIntraNodal(myMashm, i)) then
       call unpackData2(domain, gridIndicesStart, gridIndicesEnd, mashmRecvBufferPtrs(i)%p, msgDirIndex2(i))
     endif
   enddo
@@ -2504,7 +2504,7 @@ do iIter = 1, 2, 2
   call MashmInterNodeCommEnd(myMashm)
 
   do i = 1, numMessages
-    if (.not. MashmIsMsgOnNode(myMashm, i)) then
+    if (.not. MashmIsMsgIntraNodal(myMashm, i)) then
       call unpackData2(domain, gridIndicesStart, gridIndicesEnd, mashmRecvBufferPtrs(i)%p, msgDirIndex2(i))
     endif
   enddo
@@ -2512,7 +2512,7 @@ do iIter = 1, 2, 2
   call relaxation(domain, tmpDomain, rhs, gridIndicesStart, gridIndicesEnd)
 
   do i = 1, numMessages
-    if (.not. MashmIsMsgOnNode(myMashm, i)) then
+    if (.not. MashmIsMsgIntraNodal(myMashm, i)) then
       call packData2(tmpDomain, gridIndicesStart, gridIndicesEnd, mashmSendBufferPtrs(i)%p, msgDirIndex2(i))
     endif
   enddo
@@ -2520,7 +2520,7 @@ do iIter = 1, 2, 2
   call MashmInterNodeCommBegin(myMashm)
 
   do i = 1, numMessages
-    if (MashmIsMsgOnNode(myMashm, i)) then
+    if (MashmIsMsgIntraNodal(myMashm, i)) then
       call packData2(tmpDomain, gridIndicesStart, gridIndicesEnd, mashmSendBufferPtrs(i)%p, msgDirIndex2(i))
     endif
   enddo
@@ -2530,7 +2530,7 @@ do iIter = 1, 2, 2
   call MashmIntraNodeCommEnd(myMashm)
 
   do i = 1, numMessages
-    if (MashmIsMsgOnNode(myMashm, i)) then
+    if (MashmIsMsgIntraNodal(myMashm, i)) then
       call unpackData2(tmpDomain, gridIndicesStart, gridIndicesEnd, mashmRecvBufferPtrs(i)%p, msgDirIndex2(i))
     endif
   enddo
@@ -2538,7 +2538,7 @@ do iIter = 1, 2, 2
   call MashmInterNodeCommEnd(myMashm)
 
   do i = 1, numMessages
-    if (.not. MashmIsMsgOnNode(myMashm, i)) then
+    if (.not. MashmIsMsgIntraNodal(myMashm, i)) then
       call unpackData2(tmpDomain, gridIndicesStart, gridIndicesEnd, mashmRecvBufferPtrs(i)%p, msgDirIndex2(i))
     endif
   enddo
@@ -2555,7 +2555,7 @@ gptlError = gptlstart('method3')
 do iIter = 1, numIters, 2
 
   do i = 1, numMessages
-    if (.not. MashmIsMsgOnNode(myMashm, i)) then
+    if (.not. MashmIsMsgIntraNodal(myMashm, i)) then
       call packData2(domain, gridIndicesStart, gridIndicesEnd, mashmSendBufferPtrs(i)%p, msgDirIndex2(i))
     endif
   enddo
@@ -2567,7 +2567,7 @@ do iIter = 1, numIters, 2
   gptlError = gptlstop('communication3_inter')
 
   do i = 1, numMessages
-    if (MashmIsMsgOnNode(myMashm, i)) then
+    if (MashmIsMsgIntraNodal(myMashm, i)) then
       call packData2(domain, gridIndicesStart, gridIndicesEnd, mashmSendBufferPtrs(i)%p, msgDirIndex2(i))
     endif
   enddo
@@ -2580,7 +2580,7 @@ do iIter = 1, numIters, 2
   gptlError = gptlstop('communication3_intra')
 
   do i = 1, numMessages
-    if (MashmIsMsgOnNode(myMashm, i)) then
+    if (MashmIsMsgIntraNodal(myMashm, i)) then
       call unpackData2(domain, gridIndicesStart, gridIndicesEnd, mashmRecvBufferPtrs(i)%p, msgDirIndex2(i))
     endif
   enddo
@@ -2594,7 +2594,7 @@ do iIter = 1, numIters, 2
   gptlError = gptlstop('communication3_waitall')
 
   do i = 1, numMessages
-    if (.not. MashmIsMsgOnNode(myMashm, i)) then
+    if (.not. MashmIsMsgIntraNodal(myMashm, i)) then
       call unpackData2(domain, gridIndicesStart, gridIndicesEnd, mashmRecvBufferPtrs(i)%p, msgDirIndex2(i))
     endif
   enddo
@@ -2609,7 +2609,7 @@ do iIter = 1, numIters, 2
 #endif
 
   do i = 1, numMessages
-    if (.not. MashmIsMsgOnNode(myMashm, i)) then
+    if (.not. MashmIsMsgIntraNodal(myMashm, i)) then
       call packData2(tmpDomain, gridIndicesStart, gridIndicesEnd, mashmSendBufferPtrs(i)%p, msgDirIndex2(i))
     endif
   enddo
@@ -2621,7 +2621,7 @@ do iIter = 1, numIters, 2
   gptlError = gptlstop('communication3_inter')
 
   do i = 1, numMessages
-    if (MashmIsMsgOnNode(myMashm, i)) then
+    if (MashmIsMsgIntraNodal(myMashm, i)) then
       call packData2(tmpDomain, gridIndicesStart, gridIndicesEnd, mashmSendBufferPtrs(i)%p, msgDirIndex2(i))
     endif
   enddo
@@ -2634,7 +2634,7 @@ do iIter = 1, numIters, 2
   gptlError = gptlstop('communication3_intra')
 
   do i = 1, numMessages
-    if (MashmIsMsgOnNode(myMashm, i)) then
+    if (MashmIsMsgIntraNodal(myMashm, i)) then
       call unpackData2(tmpDomain, gridIndicesStart, gridIndicesEnd, mashmRecvBufferPtrs(i)%p, msgDirIndex2(i))
     endif
   enddo
@@ -2648,7 +2648,7 @@ do iIter = 1, numIters, 2
   gptlError = gptlstop('communication3_waitall')
 
   do i = 1, numMessages
-    if (.not. MashmIsMsgOnNode(myMashm, i)) then
+    if (.not. MashmIsMsgIntraNodal(myMashm, i)) then
       call unpackData2(tmpDomain, gridIndicesStart, gridIndicesEnd, mashmRecvBufferPtrs(i)%p, msgDirIndex2(i))
     endif
   enddo

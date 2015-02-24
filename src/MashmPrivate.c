@@ -1443,7 +1443,6 @@ void p_MashmFinish(struct MashmPrivate* p_mashm) {
   /* Allocate MPI shared memory */
   if (p_mashm->commType == MASHM_COMM_INTRA_SHARED ||
       p_mashm->commType == MASHM_COMM_MIN_AGG) {
-      printf("MASHM_COMM_MIN_AGG\n");
     p_MashmAllocateSharedMemory(p_mashm, p_mashm->sharedBufferSize);
   }
   p_mashm->buffersInit = true;

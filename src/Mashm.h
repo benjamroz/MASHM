@@ -115,7 +115,7 @@ void MashmPrintInfo(const Mashm in_mashm);
  *  False if the rank is on shared memory node
  */
 inline
-MashmBool MashmIsMsgOnNode(Mashm in_mashm, int msgIndex);
+MashmBool MashmIsMsgIntraNodal(Mashm in_mashm, int msgIndex);
 
 /**
  *  \memberof Mashm

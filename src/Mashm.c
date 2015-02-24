@@ -73,7 +73,7 @@ void MashmCommFinish(Mashm in_mashm) {
 }
 
 inline
-MashmBool MashmIsMsgOnNode(Mashm in_mashm, int msgIndex) {
+MashmBool MashmIsMsgIntraNodal(Mashm in_mashm, int msgIndex) {
   return p_MashmIsMsgOnNode(in_mashm.p, msgIndex);
 }
 
