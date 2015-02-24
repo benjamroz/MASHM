@@ -137,10 +137,10 @@ MashmBool MashmIsIntraNodeRank(const Mashm in_mashm, int pairRank) {
   return p_MashmIsIntraNodeRank(in_mashm.p, pairRank);
 }
 
-void MashmPrintMessageStats(const Mashm in_mashm) {
-  p_MashmPrintMessageInformation(in_mashm.p);
-}
-
 void MashmSetCacheBlocking(const Mashm in_mashm, MashmBool blockCache) {
   p_MashmSetCacheBlocking(in_mashm.p, blockCache);
+}
+
+void MashmPrintMessageStats(const Mashm in_mashm) {
+  p_MashmPrintMessageStats(in_mashm.p);
 }

@@ -246,4 +246,11 @@ void MashmPrintMessageStatus(const Mashm in_mashm);
  */
 void MashmSetCacheBlocking(const Mashm in_mashm, MashmBool blockCache);
 
+/** 
+ *  \memberof Mashm
+ *  @brief Print the message statistics
+ *  @param in_mashm Mashm object
+ */
+void MashmPrintMessageStats(const Mashm in_mashm);
+
 #endif 

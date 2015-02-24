@@ -1440,11 +1440,11 @@ void p_MashmFinish(struct MashmPrivate* p_mashm) {
   //MPI_Barrier(MPI_COMM_WORLD);
   //p_MashmPrintInterNodeMessages(p_mashm);
 
-  p_MashmPrintMessageInformation(p_mashm);
+  p_MashmPrintMessageStats(p_mashm);
 #endif
 }
 
-void p_MashmPrintMessageInformation(struct MashmPrivate* p_mashm) {
+void p_MashmPrintMessageStats(struct MashmPrivate* p_mashm) {
 
   /* Determine the number of total messages, intranode message, and internode messages
    *   Determine the min, max, and avg. msg size
@@ -1507,12 +1507,12 @@ void p_MashmPrintMessageInformation(struct MashmPrivate* p_mashm) {
       printf("MASHM: Size of all messages %d B\n", totalAllMsgSizes*8);
       printf("MASHM: Number internode messages %d\n", numInterNodeMsgs);
       printf("MASHM: Size of internode messages %d B\n", totalInterMsgSizes*8);
-      printf("MASHM:   Min, Max, Avg %d, %f, %d B\n", interSizeMin*8, ((double)totalInterMsgSizes*8/numInterNodeMsgs), interSizeMax*8);
+      printf("MASHM:   Min, Avg., Max %d, %f, %d B\n", interSizeMin*8, ((double)totalInterMsgSizes*8/numInterNodeMsgs), interSizeMax*8);
       printf("MASHM: Number intranode messages %d\n", numIntraNodeMsgs);
       printf("MASHM: Size of intranode messages %d B\n", totalIntraMsgSizes*8);
-      printf("MASHM:   Min, Max, Avg %d, %f, %d B\n", intraSizeMin*8, ((double) totalIntraMsgSizes)/numIntraNodeMsgs*8, intraSizeMax*8);
+      printf("MASHM:   Min, Avg., Max %d, %f, %d B\n", intraSizeMin*8, ((double) totalIntraMsgSizes)/numIntraNodeMsgs*8, intraSizeMax*8);
       printf("MASHM: Number of nodal messages %d\n", numNodalMsgs);
-      printf("MASHM:   Min, Max, Avg %d, %f, %d\n", minNodalMsgSize, ((double) totalInterMsgSizes)/numNodalMsgs, maxNodalMsgSize);
+      printf("MASHM:   Min, Avg., Max %d, %f, %d\n", minNodalMsgSize, ((double) totalInterMsgSizes)/numNodalMsgs, maxNodalMsgSize);
     }
   }
  

@@ -2306,6 +2306,8 @@ call MashmSetCacheBlocking(myMashm, .true.)
 ! Perform precalculation
 call MashmCommFinish(myMashm)
 
+! Print nodal messages statistics
+call MashmPrintMessageStats(myMashm)
 !call MashmPrintCommCollection(myMashm)
 
 call MPI_Barrier(MPI_COMM_WORLD, ierr)

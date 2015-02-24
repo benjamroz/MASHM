@@ -52,8 +52,7 @@ interface
     use, intrinsic :: iso_c_binding
     use Mashm_type
     implicit none
-    !Mashm :: in_mashm
-    type(Mashm) :: in_mashm
+    type(Mashm) :: in_mashm ! pass by reference, not value
     integer(c_int), value :: in_comm
   end subroutine
 
@@ -62,7 +61,7 @@ interface
     use, intrinsic :: iso_c_binding
     use Mashm_type
     implicit none
-    type(Mashm) :: in_mashm
+    type(Mashm) :: in_mashm ! pass by reference, not value
   end subroutine
 
   subroutine MashmPrintInfo(in_mashm) &

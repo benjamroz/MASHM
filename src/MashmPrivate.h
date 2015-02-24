@@ -247,7 +247,7 @@ void p_MashmInterNodeCommEnd(struct MashmPrivate* p_mashm);
 
 void p_MashmPrintInterNodeMessages(struct MashmPrivate* p_mashm);
 
-void p_MashmPrintMessageInformation(struct MashmPrivate* p_mashm);
+void p_MashmPrintMessageStats(struct MashmPrivate* p_mashm);
 
 void p_MashmSetCacheBlocking(struct MashmPrivate* p_mashm, MashmBool blockCache);
 
