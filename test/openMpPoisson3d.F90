@@ -363,16 +363,14 @@ end subroutine
 end module commCycle
 
 program nodalCommFtn
-#include "Mashmf.h"
 use iso_c_binding
-use Mashm_mod
 use mpi
 use arrayOfPointers_mod
 use grid_data
 use commCycle
-use Mashm_type
 use gptl
 use poisson3dPack
+use omp_lib
 implicit none
 
 integer :: ierr
@@ -403,17 +401,16 @@ integer :: iIter, numIters
 real*8 :: residualL2, residualMax
 integer :: totalNumCells
 integer :: counter 
-type(Mashm) :: myMashm
-!MashmCommType :: commMethod
-integer(kind=c_int) :: commMethod
-type(MashmBufferPointer), allocatable :: mashmSendBufferPtrs(:)
-type(MashmBufferPointer), allocatable :: mashmRecvBufferPtrs(:)
 
 integer, allocatable :: msgDirIndex2(:)
 integer :: msgIndex
 integer :: packInt3(3)
 
 integer :: gptlError, gptlRet
+
+! OpenMP variables
+integer :: numThreads, threadId
+integer :: totalThreads, globalThreadId
 
 call MPI_Init(ierr)
 call MPI_Comm_size(MPI_COMM_WORLD, numProcs, ierr)
@@ -428,15 +425,39 @@ gptlError = gptlsetutr(gptlnanotime)
 ! Initialize gptl
 gptlError = gptlinitialize()
 
+! Calculate the number of OpenMP threads
+!$OMP PARALLEL DEFAULT(SHARED), &
+!              PRIVATE(numThreads, threadId, totalThreads, numMessages, &
+!                      msgDirIndex, msgSizes, msgOffsets, globalThreadId, &
+!                      gridIndicesStart, gridIndicesEnd)
+numThreads = omp_get_num_threads()
+threadId = omp_get_thread_num()
+
+
+! TODO ensure that the number of openmp threads is the same across ranks
+
+totalThreads=numProcs*numThreads
+globalThreadId = numThreads*rank + threadId + 1
+
+!$OMP CRITICAL
+print *, "Rank ", rank, " thread ", threadId, "  num threads ", numThreads, " globalTid ", globalThreadId
+!$OMP END CRITICAL
+!$OMP BARRIER
+!$OMP END PARALLEL
+
 ! Get the grid decomposition
-call grid_3d_decomp_num_elements(rank, numProcs)
+!call grid_3d_decomp_num_elements(rank, numProcs)
+call grid_3d_decomp_num_elements(globalThreadId, totalThreads)
 
 call grid_3d_get_indices(numElems, gridIndicesStart, gridIndicesEnd)
 
 
 call determineCommSchedule(rank, numProcs, gridIndicesStart, gridIndicesEnd, numMessages, msgDirIndex, &
                            msgSizes, msgOffsets, neighborRanks)
-call setupComm(numMessages)
+!call determineCommSchedule(globalThreadId, totalThreads, gridIndicesStart, gridIndicesEnd, numMessages, msgDirIndex, &
+!                           msgSizes, msgOffsets, neighborRanks)
+
+call setupCommOpenMP(numMessages)
 
 !print *, "rank ", rank, ", numMessages = ", numMessages
 
@@ -620,421 +641,9 @@ if (rank == 0) print *, "running iter ", iIter, " residual ", residualL2, &
                         residualMax
 #endif
 
-call MashmInit(myMashm, MPI_COMM_WORLD)
-
-! Print nodal comm info
-!call MashmPrintInfo(myMashm)
-
-call MashmSetNumComms(myMashm, numMessages)
-
-! Add communications calculated above
-do i = 1, numMessages
-  ! Fortran to C indexing 
-  call MashmSetComm(myMashm, i, neighborRanks(i), msgSizes(i))
-enddo
-
-! Choose the communitcation method
-commMethod = MASHM_COMM_MIN_AGG
-
-call MPI_Barrier(MPI_COMM_WORLD, ierr)
-call MPI_Barrier(MPI_COMM_WORLD, ierr)
-call MPI_Barrier(MPI_COMM_WORLD, ierr)
-call MPI_Barrier(MPI_COMM_WORLD, ierr)
-if (rank == 0) print *, "Calling finish"
-flush(6)
-call MPI_Barrier(MPI_COMM_WORLD, ierr)
-call MPI_Barrier(MPI_COMM_WORLD, ierr)
-call MPI_Barrier(MPI_COMM_WORLD, ierr)
-call MPI_Barrier(MPI_COMM_WORLD, ierr)
-
-call MashmSetCommMethod(myMashm, commMethod)
-
-call MashmSetCacheBlocking(myMashm, .true.)
-
-! Perform precalculation
-call MashmCommFinish(myMashm)
-
-! Print nodal messages statistics
-call MashmPrintMessageStats(myMashm)
-!call MashmPrintCommCollection(myMashm)
-
-call MPI_Barrier(MPI_COMM_WORLD, ierr)
-call MPI_Barrier(MPI_COMM_WORLD, ierr)
-call MPI_Barrier(MPI_COMM_WORLD, ierr)
-call MPI_Barrier(MPI_COMM_WORLD, ierr)
-if (rank == 0) print *, "Returned from finish"
-flush(6)
-call MPI_Barrier(MPI_COMM_WORLD, ierr)
-call MPI_Barrier(MPI_COMM_WORLD, ierr)
-call MPI_Barrier(MPI_COMM_WORLD, ierr)
-call MPI_Barrier(MPI_COMM_WORLD, ierr)
-! Retrieve pointers for buffers
-allocate(mashmSendBufferPtrs(numMessages))
-allocate(mashmRecvBufferPtrs(numMessages))
-
-do i = 1, numMessages
-  call MashmGetBufferPointer(myMashm, i, MASHM_SEND, mashmSendBufferPtrs(i))
-  call MashmGetBufferPointer(myMashm, i, MASHM_RECEIVE, mashmRecvBufferPtrs(i))
-enddo
-! Reset the solution
-tmpDomain = 0.0
-do k = gridIndicesStart(3), gridIndicesEnd(3)
-  do j = gridIndicesStart(2), gridIndicesEnd(2)
-    do i = gridIndicesStart(1), gridIndicesEnd(1)
-      domain(i,j,k) = dsin(10*i*dx)*dsin(10*j*dy)*dsin(10*k*dz)
-    enddo
-  enddo
-enddo
-
-call calcL2Norm(domain, solution, gridIndicesStart, gridIndicesEnd, residualL2, residualMax, &
-                totalNumCells)
-
-if (rank == 0) print *, "Now running MASHM"
-if (rank == 0) print *, "Initial difference", residualL2, residualMax
-
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!  "Warmup"
-!  Perform 2 cycles to ensure communication initialization is not timed
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-do iIter = 1, 2, 2
-
-  do i = 1, numMessages
-    call packData(domain, gridIndicesStart, gridIndicesEnd, mashmSendBufferPtrs(i)%p, msgDirIndex2(i))
-  enddo
-
-  call MashmInterNodeCommBegin(myMashm)
-  call MashmIntraNodeCommBegin(myMashm)
-
-  call MashmIntraNodeCommEnd(myMashm)
-  call MashmInterNodeCommEnd(myMashm)
-
-  do i = 1, numMessages
-    call unpackData(domain, gridIndicesStart, gridIndicesEnd, mashmRecvBufferPtrs(i)%p, msgDirIndex2(i))
-  enddo
-
-  call relaxation(domain, tmpDomain, rhs, gridIndicesStart, gridIndicesEnd)
-
-  do i = 1, numMessages
-    call packData(tmpDomain, gridIndicesStart, gridIndicesEnd, mashmSendBufferPtrs(i)%p, msgDirIndex2(i))
-  enddo
-
-  call MashmInterNodeCommBegin(myMashm)
-  call MashmIntraNodeCommBegin(myMashm)
-
-  call MashmIntraNodeCommEnd(myMashm)
-  call MashmInterNodeCommEnd(myMashm)
-
-  do i = 1, numMessages
-    call unpackData(tmpDomain, gridIndicesStart, gridIndicesEnd, mashmRecvBufferPtrs(i)%p, msgDirIndex2(i))
-  enddo
-
-  call relaxation(tmpDomain, domain, rhs, gridIndicesStart, gridIndicesEnd)
-
-enddo
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
-
-call MPI_Barrier(MPI_COMM_WORLD, ierr)
-gptlError = gptlstart('method2')
-do iIter = 1, numIters, 2
-
-  do i = 1, numMessages
-    call packData(domain, gridIndicesStart, gridIndicesEnd, mashmSendBufferPtrs(i)%p, msgDirIndex2(i))
-  enddo
-
-  gptlError = gptlstart('communication2')
-  call MashmInterNodeCommBegin(myMashm)
-  gptlError = gptlstart('communication2_intra')
-  call MashmIntraNodeCommBegin(myMashm)
-
-  call MashmIntraNodeCommEnd(myMashm)
-  gptlError = gptlstop('communication2_intra')
-  gptlError = gptlstart('communication2_waitall')
-  call MashmInterNodeCommEnd(myMashm)
-  gptlError = gptlstop('communication2_waitall')
-  gptlError = gptlstop('communication2')
-
-  do i = 1, numMessages
-    call unpackData(domain, gridIndicesStart, gridIndicesEnd, mashmRecvBufferPtrs(i)%p, msgDirIndex2(i))
-  enddo
-
-  call relaxation(domain, tmpDomain, rhs, gridIndicesStart, gridIndicesEnd)
-
-#ifdef PRINT_ITER
-  call calcL2Norm(tmpDomain, solution, gridIndicesStart, gridIndicesEnd, residualL2, residualMax, &
-                  totalNumCells)
-
-  if (rank == 0) print *, "running iter ", iIter, " residual ", residualL2, &
-                          residualMax
-#endif
-
-  do i = 1, numMessages
-    call packData(tmpDomain, gridIndicesStart, gridIndicesEnd, mashmSendBufferPtrs(i)%p, msgDirIndex2(i))
-  enddo
-
-  gptlError = gptlstart('communication2')
-  call MashmInterNodeCommBegin(myMashm)
-  gptlError = gptlstart('communication2_intra')
-  call MashmIntraNodeCommBegin(myMashm)
-  call MashmIntraNodeCommEnd(myMashm)
-  gptlError = gptlstop('communication2_intra')
-
-  gptlError = gptlstart('communication2_waitall')
-  call MashmInterNodeCommEnd(myMashm)
-  gptlError = gptlstop('communication2_waitall')
-  gptlError = gptlstop('communication2')
-  do i = 1, numMessages
-    call unpackData(tmpDomain, gridIndicesStart, gridIndicesEnd, mashmRecvBufferPtrs(i)%p, msgDirIndex2(i))
-  enddo
-
-  call relaxation(tmpDomain, domain, rhs, gridIndicesStart, gridIndicesEnd)
-
-#ifdef PRINT_ITER
-  call calcL2Norm(domain, solution, gridIndicesStart, gridIndicesEnd, residualL2, residualMax, &
-                  totalNumCells)
-
-  if (rank == 0) print *, "running iter ", iIter + 1, " residual ", residualL2, &
-                          residualMax
-#endif
-
-enddo
-gptlError = gptlstop('method2')
-
-#ifndef PRINT_ITER
-call calcL2Norm(domain, solution, gridIndicesStart, gridIndicesEnd, residualL2, residualMax, &
-                totalNumCells)
-if (rank == 0) print *, "running iter ", iIter, " residual ", residualL2, &
-                        residualMax
-#endif
-
-! Reset the solution
-tmpDomain = 0.0
-do k = gridIndicesStart(3), gridIndicesEnd(3)
-  do j = gridIndicesStart(2), gridIndicesEnd(2)
-    do i = gridIndicesStart(1), gridIndicesEnd(1)
-      domain(i,j,k) = dsin(10*i*dx)*dsin(10*j*dy)*dsin(10*k*dz)
-    enddo
-  enddo
-enddo
-
-call calcL2Norm(domain, solution, gridIndicesStart, gridIndicesEnd, residualL2, residualMax, &
-                totalNumCells)
-
-if (rank == 0) print *, "Now running MASHM with asynchronous packing/unpacking"
-if (rank == 0) print *, "Initial difference", residualL2, residualMax
-
-
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!  "Warmup"
-!  Perform 2 cycles to ensure communication initialization is not timed
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-do iIter = 1, 2, 2
-
-  do i = 1, numMessages
-    if (.not. MashmIsMsgIntraNodal(myMashm, i)) then
-      call packData(domain, gridIndicesStart, gridIndicesEnd, mashmSendBufferPtrs(i)%p, msgDirIndex2(i))
-    endif
-  enddo
-
-  call MashmInterNodeCommBegin(myMashm)
-
-  do i = 1, numMessages
-    if (MashmIsMsgIntraNodal(myMashm, i)) then
-      call packData(domain, gridIndicesStart, gridIndicesEnd, mashmSendBufferPtrs(i)%p, msgDirIndex2(i))
-    endif
-  enddo
-
-  call MashmIntraNodeCommBegin(myMashm)
-  call MashmIntraNodeCommEnd(myMashm)
-
-  do i = 1, numMessages
-    if (MashmIsMsgIntraNodal(myMashm, i)) then
-      call unpackData(domain, gridIndicesStart, gridIndicesEnd, mashmRecvBufferPtrs(i)%p, msgDirIndex2(i))
-    endif
-  enddo
-
-  call MashmInterNodeCommEnd(myMashm)
-
-  do i = 1, numMessages
-    if (.not. MashmIsMsgIntraNodal(myMashm, i)) then
-      call unpackData(domain, gridIndicesStart, gridIndicesEnd, mashmRecvBufferPtrs(i)%p, msgDirIndex2(i))
-    endif
-  enddo
-
-  call relaxation(domain, tmpDomain, rhs, gridIndicesStart, gridIndicesEnd)
-
-  do i = 1, numMessages
-    if (.not. MashmIsMsgIntraNodal(myMashm, i)) then
-      call packData(tmpDomain, gridIndicesStart, gridIndicesEnd, mashmSendBufferPtrs(i)%p, msgDirIndex2(i))
-    endif
-  enddo
-
-  call MashmInterNodeCommBegin(myMashm)
-
-  do i = 1, numMessages
-    if (MashmIsMsgIntraNodal(myMashm, i)) then
-      call packData(tmpDomain, gridIndicesStart, gridIndicesEnd, mashmSendBufferPtrs(i)%p, msgDirIndex2(i))
-    endif
-  enddo
-
-  call MashmIntraNodeCommBegin(myMashm)
-
-  call MashmIntraNodeCommEnd(myMashm)
-
-  do i = 1, numMessages
-    if (MashmIsMsgIntraNodal(myMashm, i)) then
-      call unpackData(tmpDomain, gridIndicesStart, gridIndicesEnd, mashmRecvBufferPtrs(i)%p, msgDirIndex2(i))
-    endif
-  enddo
-
-  call MashmInterNodeCommEnd(myMashm)
-
-  do i = 1, numMessages
-    if (.not. MashmIsMsgIntraNodal(myMashm, i)) then
-      call unpackData(tmpDomain, gridIndicesStart, gridIndicesEnd, mashmRecvBufferPtrs(i)%p, msgDirIndex2(i))
-    endif
-  enddo
-
-  call relaxation(tmpDomain, domain, rhs, gridIndicesStart, gridIndicesEnd)
-
-enddo
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
-
-! Stride two 
-call MPI_Barrier(MPI_COMM_WORLD, ierr)
-gptlError = gptlstart('method3')
-do iIter = 1, numIters, 2
-
-  do i = 1, numMessages
-    if (.not. MashmIsMsgIntraNodal(myMashm, i)) then
-      call packData(domain, gridIndicesStart, gridIndicesEnd, mashmSendBufferPtrs(i)%p, msgDirIndex2(i))
-    endif
-  enddo
-
-  gptlError = gptlstart('communication3_inter')
-  gptlError = gptlstart('communication3')
-  call MashmInterNodeCommBegin(myMashm)
-  gptlError = gptlstop('communication3')
-  gptlError = gptlstop('communication3_inter')
-
-  do i = 1, numMessages
-    if (MashmIsMsgIntraNodal(myMashm, i)) then
-      call packData(domain, gridIndicesStart, gridIndicesEnd, mashmSendBufferPtrs(i)%p, msgDirIndex2(i))
-    endif
-  enddo
-
-  gptlError = gptlstart('communication3_intra')
-  gptlError = gptlstart('communication3')
-  call MashmIntraNodeCommBegin(myMashm)
-  call MashmIntraNodeCommEnd(myMashm)
-  gptlError = gptlstop('communication3')
-  gptlError = gptlstop('communication3_intra')
-
-  do i = 1, numMessages
-    if (MashmIsMsgIntraNodal(myMashm, i)) then
-      call unpackData(domain, gridIndicesStart, gridIndicesEnd, mashmRecvBufferPtrs(i)%p, msgDirIndex2(i))
-    endif
-  enddo
-
-  gptlError = gptlstart('communication3_waitall')
-  gptlError = gptlstart('communication3_inter')
-  gptlError = gptlstart('communication3')
-  call MashmInterNodeCommEnd(myMashm)
-  gptlError = gptlstop('communication3')
-  gptlError = gptlstop('communication3_inter')
-  gptlError = gptlstop('communication3_waitall')
-
-  do i = 1, numMessages
-    if (.not. MashmIsMsgIntraNodal(myMashm, i)) then
-      call unpackData(domain, gridIndicesStart, gridIndicesEnd, mashmRecvBufferPtrs(i)%p, msgDirIndex2(i))
-    endif
-  enddo
-
-  call relaxation(domain, tmpDomain, rhs, gridIndicesStart, gridIndicesEnd)
-
-#ifdef PRINT_ITER
-  call calcL2Norm(tmpDomain, solution, gridIndicesStart, gridIndicesEnd, residualL2, residualMax, &
-                  totalNumCells)
-  if (rank == 0) print *, "running iter ", iIter, " residual ", residualL2, &
-                          residualMax
-#endif
-
-  do i = 1, numMessages
-    if (.not. MashmIsMsgIntraNodal(myMashm, i)) then
-      call packData(tmpDomain, gridIndicesStart, gridIndicesEnd, mashmSendBufferPtrs(i)%p, msgDirIndex2(i))
-    endif
-  enddo
-
-  gptlError = gptlstart('communication3_inter')
-  gptlError = gptlstart('communication3')
-  call MashmInterNodeCommBegin(myMashm)
-  gptlError = gptlstop('communication3')
-  gptlError = gptlstop('communication3_inter')
-
-  do i = 1, numMessages
-    if (MashmIsMsgIntraNodal(myMashm, i)) then
-      call packData(tmpDomain, gridIndicesStart, gridIndicesEnd, mashmSendBufferPtrs(i)%p, msgDirIndex2(i))
-    endif
-  enddo
-
-  gptlError = gptlstart('communication3_intra')
-  gptlError = gptlstart('communication3')
-  call MashmIntraNodeCommBegin(myMashm)
-  call MashmIntraNodeCommEnd(myMashm)
-  gptlError = gptlstop('communication3')
-  gptlError = gptlstop('communication3_intra')
-
-  do i = 1, numMessages
-    if (MashmIsMsgIntraNodal(myMashm, i)) then
-      call unpackData(tmpDomain, gridIndicesStart, gridIndicesEnd, mashmRecvBufferPtrs(i)%p, msgDirIndex2(i))
-    endif
-  enddo
-
-  gptlError = gptlstart('communication3_waitall')
-  gptlError = gptlstart('communication3_inter')
-  gptlError = gptlstart('communication3')
-  call MashmInterNodeCommEnd(myMashm)
-  gptlError = gptlstop('communication3')
-  gptlError = gptlstop('communication3_inter')
-  gptlError = gptlstop('communication3_waitall')
-
-  do i = 1, numMessages
-    if (.not. MashmIsMsgIntraNodal(myMashm, i)) then
-      call unpackData(tmpDomain, gridIndicesStart, gridIndicesEnd, mashmRecvBufferPtrs(i)%p, msgDirIndex2(i))
-    endif
-  enddo
-
-  call relaxation(tmpDomain, domain, rhs, gridIndicesStart, gridIndicesEnd)
-
-#ifdef PRINT_ITER
-  call calcL2Norm(domain, solution, gridIndicesStart, gridIndicesEnd, residualL2, residualMax, &
-                  totalNumCells)
-  if (rank == 0) print *, "running iter ", iIter + 1, " residual ", residualL2, &
-                          residualMax
-#endif
-
-enddo
-gptlError = gptlstop('method3')
-
-#ifndef PRINT_ITER
-call calcL2Norm(domain, solution, gridIndicesStart, gridIndicesEnd, residualL2, residualMax, &
-                totalNumCells)
-if (rank == 0) print *, "running iter ", iIter, " residual ", residualL2, &
-                        residualMax
-#endif
-
-gptlError = gptlpr_summary_file(MPI_COMM_WORLD,'poisson3d.timing')
+gptlError = gptlpr_summary_file(MPI_COMM_WORLD,'openMpPoisson3d.timing')
 !gptlError = gptlpr_file('poisson3d.timing')
 ! Restore (nullify) the Mashm access pointers
-do i = 1, numMessages
-  call MashmRetireBufferPointer(myMashm, mashmSendBufferPtrs(i))
-  call MashmRetireBufferPointer(myMashm, mashmRecvBufferPtrs(i))
-enddo
-
-! Destroy the Mashm object
-call MashmDestroy(myMashm)
-
 
 deallocate(packBuffer)
 deallocate(unpackBuffer)

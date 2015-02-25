@@ -36,7 +36,7 @@ function packDirInt(packDir3d) result (packInt)
 
 end function
 
-subroutine packData2(inData, gridIndicesStart, gridIndicesEnd,  &
+subroutine packData(inData, gridIndicesStart, gridIndicesEnd,  &
                      packBuffer, packIndex)
 implicit none
 integer, intent(in) :: gridIndicesStart(3), gridIndicesEnd(3)
@@ -513,7 +513,7 @@ do ix = gridIndicesStart(1), gridIndicesEnd(1)
 enddo
 end subroutine
 
-subroutine unpackData2(inData, gridIndicesStart, gridIndicesEnd, unpackBuffer, packIndex)
+subroutine unpackData(inData, gridIndicesStart, gridIndicesEnd, unpackBuffer, packIndex)
 implicit none
 integer, intent(in) :: gridIndicesStart(3), gridIndicesEnd(3)
 real*8, intent(inout) :: inData(gridIndicesStart(1)-1:gridIndicesEnd(1)+1, &
