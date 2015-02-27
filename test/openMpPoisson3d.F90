@@ -158,6 +158,7 @@ real*8 :: relaxOmega
 relaxOmega = 1.0
 !relaxOmega = 2.0/3.0
 
+!$omp parallel do private(ix,iy,iz,i,j,k)
 do iz = gridIndicesStart(3), gridIndicesEnd(3)
   do iy = gridIndicesStart(2), gridIndicesEnd(2)
     do ix = gridIndicesStart(1), gridIndicesEnd(1)
@@ -191,22 +192,28 @@ integer :: ierr, errorCode, errorLen
 character(256) :: errorString
 integer :: gptlError
 
+!$omp parallel do private(i,ierr)
 do i = 1, numMessages
   call MPI_Irecv(recvBuffer(msgOffsets(i)+1),msgSizes(i),MPI_REAL8,neighborRanks(i),10,MPI_COMM_WORLD,recvRequest(i),ierr)
+#if DEBUG
   if(ierr .ne. MPI_SUCCESS) then
      errorcode = ierr
      call MPI_Error_String(errorcode,errorstring,errorlen,ierr)
      print *,'Error after call to MPI_Irecv: ',errorstring
   endif
+#endif
 end do
 
+!$omp parallel do private(i,ierr)
 do i = 1, numMessages
   call MPI_Isend(sendBuffer(msgOffsets(i)+1),msgSizes(i),MPI_REAL8,neighborRanks(i),10,MPI_COMM_WORLD,sendRequest(i),ierr)
+#if DEBUG
   if(ierr .ne. MPI_SUCCESS) then
     errorcode = ierr
     call MPI_Error_String(errorcode,errorstring,errorlen,ierr)
     print *,'Error after call to MPI_Isend: ',errorstring
   endif
+#endif
 end do
 
 gptlError = gptlstart('communication1_waitall')
@@ -411,10 +418,25 @@ integer :: gptlError, gptlRet
 ! OpenMP variables
 integer :: numThreads, threadId
 integer :: totalThreads, globalThreadId
+integer :: mpiThreadProvided
 
-call MPI_Init(ierr)
+call MPI_Init_thread(MPI_THREAD_MULTIPLE, mpiThreadProvided, ierr)
 call MPI_Comm_size(MPI_COMM_WORLD, numProcs, ierr)
 call MPI_Comm_rank(MPI_COMM_WORLD, rank, ierr)
+if (mpiThreadProvided .ne.  MPI_THREAD_MULTIPLE) then
+  if (rank == 0) then
+    print *, "MPI_THREAD_MULTIPLE not supported"
+    print *, "mpiThreadProvided = ", mpiThreadProvided
+    print *, "  single = ", MPI_THREAD_SINGLE
+    print *, "  funneled = ", MPI_THREAD_FUNNELED
+    print *, "  serialized = ", MPI_THREAD_SERIALIZED
+    print *, "  multiple = ", MPI_THREAD_MULTIPLE
+  endif
+else
+  if (rank == 0) then
+    print *, "MPI_THREAD_MULTIPLE is supported"
+  endif
+endif
 
 ! Read namelist
 call read_grid_data_namelist(MPI_COMM_WORLD)
@@ -427,9 +449,7 @@ gptlError = gptlinitialize()
 
 ! Calculate the number of OpenMP threads
 !$OMP PARALLEL DEFAULT(SHARED), &
-!              PRIVATE(numThreads, threadId, totalThreads, numMessages, &
-!                      msgDirIndex, msgSizes, msgOffsets, globalThreadId, &
-!                      gridIndicesStart, gridIndicesEnd)
+!$OMP&         PRIVATE(numThreads, threadId, totalThreads, globalThreadId)
 numThreads = omp_get_num_threads()
 threadId = omp_get_thread_num()
 
@@ -440,14 +460,14 @@ totalThreads=numProcs*numThreads
 globalThreadId = numThreads*rank + threadId + 1
 
 !$OMP CRITICAL
-print *, "Rank ", rank, " thread ", threadId, "  num threads ", numThreads, " globalTid ", globalThreadId
+!print *, "Rank ", rank, " thread ", threadId, "  num threads ", numThreads, " globalTid ", globalThreadId
 !$OMP END CRITICAL
 !$OMP BARRIER
 !$OMP END PARALLEL
 
 ! Get the grid decomposition
-!call grid_3d_decomp_num_elements(rank, numProcs)
-call grid_3d_decomp_num_elements(globalThreadId, totalThreads)
+call grid_3d_decomp_num_elements(rank, numProcs)
+!call grid_3d_decomp_num_elements(globalThreadId, totalThreads)
 
 call grid_3d_get_indices(numElems, gridIndicesStart, gridIndicesEnd)
 
@@ -457,7 +477,8 @@ call determineCommSchedule(rank, numProcs, gridIndicesStart, gridIndicesEnd, num
 !call determineCommSchedule(globalThreadId, totalThreads, gridIndicesStart, gridIndicesEnd, numMessages, msgDirIndex, &
 !                           msgSizes, msgOffsets, neighborRanks)
 
-call setupCommOpenMP(numMessages)
+!call setupCommOpenMP(numMessages)
+call setupComm(numMessages)
 
 !print *, "rank ", rank, ", numMessages = ", numMessages
 
@@ -556,24 +577,28 @@ numIters = 10000
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 do iIter = 1, 2, 2
 
+  !$omp parallel do private(i)
   do i = 1, numMessages
     call packData(domain, gridIndicesStart, gridIndicesEnd, packBuffer(msgOffsets(i)+1:), msgDirIndex2(i))
   enddo
 
   call communication_notimers(packBuffer, unpackBuffer, numMessages, neighborRanks, msgSizes, msgOffsets)
 
+  !$omp parallel do private(i)
   do i = 1, numMessages
     call unpackData(domain, gridIndicesStart, gridIndicesEnd, unpackBuffer(msgOffsets(i)+1:), msgDirIndex2(i))
   enddo
 
   call relaxation(domain, tmpDomain, rhs, gridIndicesStart, gridIndicesEnd)
 
+  !$omp parallel do private(i)
   do i = 1, numMessages
     call packData(tmpDomain, gridIndicesStart, gridIndicesEnd, packBuffer(msgOffsets(i)+1:), msgDirIndex2(i))
   enddo
 
   call communication_notimers(packBuffer, unpackBuffer, numMessages, neighborRanks, msgSizes, msgOffsets)
 
+  !$omp parallel do private(i)
   do i = 1, numMessages
     call unpackData(tmpDomain, gridIndicesStart, gridIndicesEnd, unpackBuffer(msgOffsets(i)+1:), msgDirIndex2(i))
   enddo
@@ -588,6 +613,7 @@ gptlError = gptlstart('method1')
 
 do iIter = 1, numIters, 2
 
+  !$omp parallel do private(i)
   do i = 1, numMessages
     call packData(domain, gridIndicesStart, gridIndicesEnd, packBuffer(msgOffsets(i)+1:), msgDirIndex2(i))
   enddo
@@ -596,6 +622,7 @@ do iIter = 1, numIters, 2
   call communication(packBuffer, unpackBuffer, numMessages, neighborRanks, msgSizes, msgOffsets)
   gptlError = gptlstop('communication1')
 
+  !$omp parallel do private(i)
   do i = 1, numMessages
     call unpackData(domain, gridIndicesStart, gridIndicesEnd, unpackBuffer(msgOffsets(i)+1:), msgDirIndex2(i))
   enddo
@@ -609,6 +636,7 @@ do iIter = 1, numIters, 2
                           residualMax
 #endif
 
+  !$omp parallel do private(i)
   do i = 1, numMessages
     call packData(tmpDomain, gridIndicesStart, gridIndicesEnd, packBuffer(msgOffsets(i)+1:), msgDirIndex2(i))
   enddo
@@ -618,6 +646,7 @@ do iIter = 1, numIters, 2
   gptlError = gptlstop('communication1')
 
 
+  !$omp parallel do private(i)
   do i = 1, numMessages
     call unpackData(tmpDomain, gridIndicesStart, gridIndicesEnd, unpackBuffer(msgOffsets(i)+1:), msgDirIndex2(i))
   enddo
