@@ -31,11 +31,13 @@ SET(POISSON_3D_SRCS
 ADD_EXECUTABLE(poisson3d ${POISSON_3D_SRCS})
 TARGET_LINK_LIBRARIES(poisson3d mashm mashm_ftn ${GPTL_LIBRARIES})
 
-SET(OPENMP_POISSON_3D_SRCS
-  grid.F90
-  openMpPoisson3d.F90
-  poisson3dPack.F90
-)
+IF (ENABLE_OPENMP)
+  SET(OPENMP_POISSON_3D_SRCS
+    grid.F90
+    openMpPoisson3d.F90
+    poisson3dPack.F90
+  )
 
-ADD_EXECUTABLE(openMpPoisson3d ${OPENMP_POISSON_3D_SRCS})
-TARGET_LINK_LIBRARIES(openMpPoisson3d mashm mashm_ftn ${GPTL_LIBRARIES})
+  ADD_EXECUTABLE(openMpPoisson3d ${OPENMP_POISSON_3D_SRCS})
+  TARGET_LINK_LIBRARIES(openMpPoisson3d mashm mashm_ftn ${GPTL_LIBRARIES})
+ENDIF()

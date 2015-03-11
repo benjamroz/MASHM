@@ -192,7 +192,9 @@ integer :: ierr, errorCode, errorLen
 character(256) :: errorString
 integer :: gptlError
 
+#if 0
 !$omp parallel do private(i,ierr)
+#endif
 do i = 1, numMessages
   call MPI_Irecv(recvBuffer(msgOffsets(i)+1),msgSizes(i),MPI_REAL8,neighborRanks(i),10,MPI_COMM_WORLD,recvRequest(i),ierr)
 #if DEBUG
@@ -204,7 +206,9 @@ do i = 1, numMessages
 #endif
 end do
 
+#if 0
 !$omp parallel do private(i,ierr)
+#endif
 do i = 1, numMessages
   call MPI_Isend(sendBuffer(msgOffsets(i)+1),msgSizes(i),MPI_REAL8,neighborRanks(i),10,MPI_COMM_WORLD,sendRequest(i),ierr)
 #if DEBUG
@@ -420,7 +424,8 @@ integer :: numThreads, threadId
 integer :: totalThreads, globalThreadId
 integer :: mpiThreadProvided
 
-call MPI_Init_thread(MPI_THREAD_MULTIPLE, mpiThreadProvided, ierr)
+!call MPI_Init_thread(MPI_THREAD_MULTIPLE, mpiThreadProvided, ierr)
+call MPI_Init_thread(MPI_THREAD_SINGLE, mpiThreadProvided, ierr)
 call MPI_Comm_size(MPI_COMM_WORLD, numProcs, ierr)
 call MPI_Comm_rank(MPI_COMM_WORLD, rank, ierr)
 if (mpiThreadProvided .ne.  MPI_THREAD_MULTIPLE) then
