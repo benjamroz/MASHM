@@ -38,7 +38,7 @@ These are required by the library to implement the shared memory messaging. Thes
 1. OpenMPI >= 1.7.5
 2. MVAPICH >= 2.0
 3. MPICH >= 6.0.2
-4. IMPI ? 5.0.0
+4. IMPI >= 5.0.1
 
 To use the Fortran bindings of this library one must have a Fortran compiler which supports the 2003 standard. In particular, the Fortran implementation must support the following.
 
@@ -49,13 +49,35 @@ To use the Fortran bindings of this library one must have a Fortran compiler whi
 
 The library uses CMake to build and install the library, as well as building and running several tests and examples. CMake supports (recommended) out of place builds.
 
-cmake /path/to/source
+jamroz@yslogin2:mashm-opt> cat config.sh
+#!/bin/bash
+
+rm -rf CMakeFiles CMakeCache.txt
+
+cmake \
+  -DCMAKE_C_COMPILER="mpicc" \
+  -DCMAKE_Fortran_COMPILER="mpif90" \
+  -DCMAKE_C_FLAGS="-O3" \
+  -DCMAKE_Fortran_FLAGS="-O3" \
+  /path/to/source
+
+jamroz@yslogin2:mashm-opt> ./config.sh
+jamroz@yslogin2:mashm-opt> make -j 8 
+
+This will produce executables under the following directory.
+
+/path/to/build/test
+
+# How to build with timers (GPTL)
+
+MASHM optionally can use the General Purpose Timing Library (GPTL), available at http://jmrosinski.github.io/GPTL/ , to provide timings of the communication routines. To enable these timers build and install GPTL (to say /path/to/gptl-install) and set the following configure time variable.
+
+  -DGPTL_DIR=/path/to/gptl-install
+
+Ensure that the output of the configure step indicates that the GPTL library was found.
 
 # TODO:
 
 1. Extend the documentation to internal classes 
 2. Compiler checks in CMake (MPI, F2003)
-3. More robust examples
-4. Condense the two structs: commTuple, MashmCommCollection
-5. Remove unnecessary data from MashmPrivate
-6. Ensure proper cleanup (destructors) 
+3. Remove unnecessary data from MashmPrivate
