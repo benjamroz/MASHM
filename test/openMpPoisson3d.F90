@@ -177,7 +177,7 @@ end subroutine
 
 subroutine communication(sendBuffer, recvBuffer, numMessages, neighborRanks, msgSizes, msgOffsets)
 use mpi
-use gptl
+use mashmGptl
 implicit none
 real*8, intent(in) :: sendBuffer(:)
 real*8, intent(out) :: recvBuffer(:)
@@ -220,10 +220,10 @@ do i = 1, numMessages
 #endif
 end do
 
-gptlError = gptlstart('communication1_waitall')
+gptlError = mashmGptlstart('communication1_waitall')
 call MPI_Waitall(numMessages,recvRequest,recvStatus,ierr)
 call MPI_Waitall(numMessages,sendRequest,sendStatus,ierr)
-gptlError = gptlstop('communication1_waitall')
+gptlError = mashmGptlstop('communication1_waitall')
 
 end subroutine 
 
@@ -379,7 +379,7 @@ use mpi
 use arrayOfPointers_mod
 use grid_data
 use commCycle
-use gptl
+use mashmGptl
 use poisson3dPack
 use omp_lib
 implicit none
@@ -447,10 +447,10 @@ endif
 call read_grid_data_namelist(MPI_COMM_WORLD)
 
 ! Set gptl to nanotime
-gptlError = gptlsetutr(gptlnanotime)
+gptlError = mashmGptlsetutr(gptlnanotime)
 
 ! Initialize gptl
-gptlError = gptlinitialize()
+gptlError = mashmGptlinitialize()
 
 ! Calculate the number of OpenMP threads
 !$OMP PARALLEL DEFAULT(SHARED), &
@@ -614,7 +614,7 @@ enddo
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 call MPI_Barrier(MPI_COMM_WORLD, ierr)
-gptlError = gptlstart('method1')
+gptlError = mashmGptlstart('method1')
 
 do iIter = 1, numIters, 2
 
@@ -623,9 +623,9 @@ do iIter = 1, numIters, 2
     call packData(domain, gridIndicesStart, gridIndicesEnd, packBuffer(msgOffsets(i)+1:), msgDirIndex2(i))
   enddo
 
-  gptlError = gptlstart('communication1')
+  gptlError = mashmGptlstart('communication1')
   call communication(packBuffer, unpackBuffer, numMessages, neighborRanks, msgSizes, msgOffsets)
-  gptlError = gptlstop('communication1')
+  gptlError = mashmGptlstop('communication1')
 
   !$omp parallel do private(i)
   do i = 1, numMessages
@@ -646,9 +646,9 @@ do iIter = 1, numIters, 2
     call packData(tmpDomain, gridIndicesStart, gridIndicesEnd, packBuffer(msgOffsets(i)+1:), msgDirIndex2(i))
   enddo
 
-  gptlError = gptlstart('communication1')
+  gptlError = mashmGptlstart('communication1')
   call communication(packBuffer, unpackBuffer, numMessages, neighborRanks, msgSizes, msgOffsets)
-  gptlError = gptlstop('communication1')
+  gptlError = mashmGptlstop('communication1')
 
 
   !$omp parallel do private(i)
@@ -666,7 +666,7 @@ do iIter = 1, numIters, 2
 #endif
 
 enddo
-gptlError = gptlstop('method1')
+gptlError = mashmGptlstop('method1')
 
 #ifndef PRINT_ITER
 call calcL2Norm(domain, solution, gridIndicesStart, gridIndicesEnd, residualL2, residualMax, &
@@ -675,8 +675,8 @@ if (rank == 0) print *, "running iter ", iIter, " residual ", residualL2, &
                         residualMax
 #endif
 
-gptlError = gptlpr_summary_file(MPI_COMM_WORLD,'openMpPoisson3d.timing')
-!gptlError = gptlpr_file('poisson3d.timing')
+gptlError = mashmGptlpr_summary_file(MPI_COMM_WORLD,'openMpPoisson3d.timing')
+!gptlError = mashmGptlpr_file('poisson3d.timing')
 ! Restore (nullify) the Mashm access pointers
 
 deallocate(packBuffer)

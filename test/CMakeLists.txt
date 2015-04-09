@@ -10,6 +10,7 @@ INCLUDE_DIRECTORIES(
   ${CMAKE_BINARY_DIR}/src
   ${CMAKE_SOURCE_DIR}/src/fortran
   ${CMAKE_BINARY_DIR}/src/fortran
+  ${CMAKE_BINARY_DIR}/bindings
   ${GPTL_INCLUDE_DIRS}
   )
  
@@ -29,7 +30,7 @@ SET(POISSON_3D_SRCS
 )
 
 ADD_EXECUTABLE(poisson3d ${POISSON_3D_SRCS})
-TARGET_LINK_LIBRARIES(poisson3d mashm mashm_ftn ${GPTL_LIBRARIES})
+TARGET_LINK_LIBRARIES(poisson3d mashm mashm_ftn mashmGptlBindings ${GPTL_LIBRARIES})
 
 IF (ENABLE_OPENMP)
   SET(OPENMP_POISSON_3D_SRCS
@@ -39,5 +40,5 @@ IF (ENABLE_OPENMP)
   )
 
   ADD_EXECUTABLE(openMpPoisson3d ${OPENMP_POISSON_3D_SRCS})
-  TARGET_LINK_LIBRARIES(openMpPoisson3d mashm mashm_ftn ${GPTL_LIBRARIES})
+  TARGET_LINK_LIBRARIES(openMpPoisson3d mashm mashm_ftn mashmGptlBindings ${GPTL_LIBRARIES})
 ENDIF()

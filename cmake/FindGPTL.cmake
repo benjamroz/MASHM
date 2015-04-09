@@ -22,7 +22,19 @@ ELSE()
   SET(GPTL_FOUND FALSE)
 ENDIF()
 
-IF(GPTL_FIND_REQUIRED AND NOT GPTL_FOUND)
-  MESSAGE(FATAL_ERROR "Did not find required library GPTL.\n"
-          "Please set location of GPTL with -DGPTL_DIR")
+IF(NOT GPTL_FOUND)
+  IF(GPTL_FIND_REQUIRED)
+    MESSAGE(FATAL_ERROR "Did not find required library GPTL.\n"
+            "Please set location of GPTL with -DGPTL_DIR")
+  ELSE() 
+    MESSAGE(STATUS "Warning: Not building with GPTL. Timings are not supported.")
+    # These variables are set to NOT-FOUND which will cause an error
+    #   if they are used in INCLUDE_DIRECTORIES or 
+    #   TARGET_LINK_LIBARIES
+    # Reset them to empty so that we can still use the empty variables 
+    #   in these calls
+    SET(GPTL_INCLUDE_DIRS)
+    SET(GPTL_LIBRARIES)
+
+  ENDIF()
 ENDIF()

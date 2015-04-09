@@ -22,7 +22,9 @@ IF (DOXYGEN_FOUND)
   ADD_SUBDIRECTORY(doc)
 ENDIF()
 
-FIND_PACKAGE(GPTL REQUIRED)
+# GPTL is optional (but required to get timings...)
+#   Set with GPTL_DIR=/path/to/gptl/install
+FIND_PACKAGE(GPTL)
 
 # If enable debug set MASHM_DEBUG ifdef in src/MashmConfig.h
 IF (MASHM_ENABLE_DEBUG)
@@ -55,4 +57,5 @@ IF (ENABLE_OPENMP)
 ENDIF ()
 
 ADD_SUBDIRECTORY(src)
+ADD_SUBDIRECTORY(bindings)
 ADD_SUBDIRECTORY(test)

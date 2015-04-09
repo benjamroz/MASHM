@@ -176,7 +176,7 @@ end subroutine
 
 subroutine communication(sendBuffer, recvBuffer, numMessages, neighborRanks, msgSizes, msgOffsets)
 use mpi
-use gptl
+use mashmGptl
 implicit none
 real*8, intent(in) :: sendBuffer(:)
 real*8, intent(out) :: recvBuffer(:)
@@ -209,16 +209,16 @@ do i = 1, numMessages
   endif
 end do
 
-gptlError = gptlstart('communication1_waitall')
+gptlError = mashmGptlstart('communication1_waitall')
 call MPI_Waitall(numMessages,recvRequest,recvStatus,ierr)
 call MPI_Waitall(numMessages,sendRequest,sendStatus,ierr)
-gptlError = gptlstop('communication1_waitall')
+gptlError = mashmGptlstop('communication1_waitall')
 
 end subroutine 
 
 subroutine communication_notimers(sendBuffer, recvBuffer, numMessages, neighborRanks, msgSizes, msgOffsets)
 use mpi
-use gptl
+use mashmGptl
 implicit none
 real*8, intent(in) :: sendBuffer(:)
 real*8, intent(out) :: recvBuffer(:)
@@ -371,7 +371,7 @@ use arrayOfPointers_mod
 use grid_data
 use commCycle
 use Mashm_type
-use gptl
+use mashmGptl
 use poisson3dPack
 implicit none
 
@@ -423,10 +423,10 @@ call MPI_Comm_rank(MPI_COMM_WORLD, rank, ierr)
 call read_grid_data_namelist(MPI_COMM_WORLD)
 
 ! Set gptl to nanotime
-gptlError = gptlsetutr(gptlnanotime)
+gptlError = mashmGptlsetutr(gptlnanotime)
 
 ! Initialize gptl
-gptlError = gptlinitialize()
+gptlError = mashmGptlinitialize()
 
 ! Get the grid decomposition
 call grid_3d_decomp_num_elements(rank, numProcs)
@@ -563,7 +563,7 @@ enddo
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 call MPI_Barrier(MPI_COMM_WORLD, ierr)
-gptlError = gptlstart('method1')
+gptlError = mashmGptlstart('method1')
 
 do iIter = 1, numIters, 2
 
@@ -571,9 +571,9 @@ do iIter = 1, numIters, 2
     call packData(domain, gridIndicesStart, gridIndicesEnd, packBuffer(msgOffsets(i)+1:), msgDirIndex2(i))
   enddo
 
-  gptlError = gptlstart('communication1')
+  gptlError = mashmGptlstart('communication1')
   call communication(packBuffer, unpackBuffer, numMessages, neighborRanks, msgSizes, msgOffsets)
-  gptlError = gptlstop('communication1')
+  gptlError = mashmGptlstop('communication1')
 
   do i = 1, numMessages
     call unpackData(domain, gridIndicesStart, gridIndicesEnd, unpackBuffer(msgOffsets(i)+1:), msgDirIndex2(i))
@@ -592,9 +592,9 @@ do iIter = 1, numIters, 2
     call packData(tmpDomain, gridIndicesStart, gridIndicesEnd, packBuffer(msgOffsets(i)+1:), msgDirIndex2(i))
   enddo
 
-  gptlError = gptlstart('communication1')
+  gptlError = mashmGptlstart('communication1')
   call communication(packBuffer, unpackBuffer, numMessages, neighborRanks, msgSizes, msgOffsets)
-  gptlError = gptlstop('communication1')
+  gptlError = mashmGptlstop('communication1')
 
 
   do i = 1, numMessages
@@ -611,7 +611,7 @@ do iIter = 1, numIters, 2
 #endif
 
 enddo
-gptlError = gptlstop('method1')
+gptlError = mashmGptlstop('method1')
 
 #ifndef PRINT_ITER
 call calcL2Norm(domain, solution, gridIndicesStart, gridIndicesEnd, residualL2, residualMax, &
@@ -735,24 +735,24 @@ enddo
 
 
 call MPI_Barrier(MPI_COMM_WORLD, ierr)
-gptlError = gptlstart('method2')
+gptlError = mashmGptlstart('method2')
 do iIter = 1, numIters, 2
 
   do i = 1, numMessages
     call packData(domain, gridIndicesStart, gridIndicesEnd, mashmSendBufferPtrs(i)%p, msgDirIndex2(i))
   enddo
 
-  gptlError = gptlstart('communication2')
+  gptlError = mashmGptlstart('communication2')
   call MashmInterNodeCommBegin(myMashm)
-  gptlError = gptlstart('communication2_intra')
+  gptlError = mashmGptlstart('communication2_intra')
   call MashmIntraNodeCommBegin(myMashm)
 
   call MashmIntraNodeCommEnd(myMashm)
-  gptlError = gptlstop('communication2_intra')
-  gptlError = gptlstart('communication2_waitall')
+  gptlError = mashmGptlstop('communication2_intra')
+  gptlError = mashmGptlstart('communication2_waitall')
   call MashmInterNodeCommEnd(myMashm)
-  gptlError = gptlstop('communication2_waitall')
-  gptlError = gptlstop('communication2')
+  gptlError = mashmGptlstop('communication2_waitall')
+  gptlError = mashmGptlstop('communication2')
 
   do i = 1, numMessages
     call unpackData(domain, gridIndicesStart, gridIndicesEnd, mashmRecvBufferPtrs(i)%p, msgDirIndex2(i))
@@ -772,17 +772,17 @@ do iIter = 1, numIters, 2
     call packData(tmpDomain, gridIndicesStart, gridIndicesEnd, mashmSendBufferPtrs(i)%p, msgDirIndex2(i))
   enddo
 
-  gptlError = gptlstart('communication2')
+  gptlError = mashmGptlstart('communication2')
   call MashmInterNodeCommBegin(myMashm)
-  gptlError = gptlstart('communication2_intra')
+  gptlError = mashmGptlstart('communication2_intra')
   call MashmIntraNodeCommBegin(myMashm)
   call MashmIntraNodeCommEnd(myMashm)
-  gptlError = gptlstop('communication2_intra')
+  gptlError = mashmGptlstop('communication2_intra')
 
-  gptlError = gptlstart('communication2_waitall')
+  gptlError = mashmGptlstart('communication2_waitall')
   call MashmInterNodeCommEnd(myMashm)
-  gptlError = gptlstop('communication2_waitall')
-  gptlError = gptlstop('communication2')
+  gptlError = mashmGptlstop('communication2_waitall')
+  gptlError = mashmGptlstop('communication2')
   do i = 1, numMessages
     call unpackData(tmpDomain, gridIndicesStart, gridIndicesEnd, mashmRecvBufferPtrs(i)%p, msgDirIndex2(i))
   enddo
@@ -798,7 +798,7 @@ do iIter = 1, numIters, 2
 #endif
 
 enddo
-gptlError = gptlstop('method2')
+gptlError = mashmGptlstop('method2')
 
 #ifndef PRINT_ITER
 call calcL2Norm(domain, solution, gridIndicesStart, gridIndicesEnd, residualL2, residualMax, &
@@ -903,7 +903,7 @@ enddo
 
 ! Stride two 
 call MPI_Barrier(MPI_COMM_WORLD, ierr)
-gptlError = gptlstart('method3')
+gptlError = mashmGptlstart('method3')
 do iIter = 1, numIters, 2
 
   do i = 1, numMessages
@@ -912,11 +912,11 @@ do iIter = 1, numIters, 2
     endif
   enddo
 
-  gptlError = gptlstart('communication3_inter')
-  gptlError = gptlstart('communication3')
+  gptlError = mashmGptlstart('communication3_inter')
+  gptlError = mashmGptlstart('communication3')
   call MashmInterNodeCommBegin(myMashm)
-  gptlError = gptlstop('communication3')
-  gptlError = gptlstop('communication3_inter')
+  gptlError = mashmGptlstop('communication3')
+  gptlError = mashmGptlstop('communication3_inter')
 
   do i = 1, numMessages
     if (MashmIsMsgIntraNodal(myMashm, i)) then
@@ -924,12 +924,12 @@ do iIter = 1, numIters, 2
     endif
   enddo
 
-  gptlError = gptlstart('communication3_intra')
-  gptlError = gptlstart('communication3')
+  gptlError = mashmGptlstart('communication3_intra')
+  gptlError = mashmGptlstart('communication3')
   call MashmIntraNodeCommBegin(myMashm)
   call MashmIntraNodeCommEnd(myMashm)
-  gptlError = gptlstop('communication3')
-  gptlError = gptlstop('communication3_intra')
+  gptlError = mashmGptlstop('communication3')
+  gptlError = mashmGptlstop('communication3_intra')
 
   do i = 1, numMessages
     if (MashmIsMsgIntraNodal(myMashm, i)) then
@@ -937,13 +937,13 @@ do iIter = 1, numIters, 2
     endif
   enddo
 
-  gptlError = gptlstart('communication3_waitall')
-  gptlError = gptlstart('communication3_inter')
-  gptlError = gptlstart('communication3')
+  gptlError = mashmGptlstart('communication3_waitall')
+  gptlError = mashmGptlstart('communication3_inter')
+  gptlError = mashmGptlstart('communication3')
   call MashmInterNodeCommEnd(myMashm)
-  gptlError = gptlstop('communication3')
-  gptlError = gptlstop('communication3_inter')
-  gptlError = gptlstop('communication3_waitall')
+  gptlError = mashmGptlstop('communication3')
+  gptlError = mashmGptlstop('communication3_inter')
+  gptlError = mashmGptlstop('communication3_waitall')
 
   do i = 1, numMessages
     if (.not. MashmIsMsgIntraNodal(myMashm, i)) then
@@ -966,11 +966,11 @@ do iIter = 1, numIters, 2
     endif
   enddo
 
-  gptlError = gptlstart('communication3_inter')
-  gptlError = gptlstart('communication3')
+  gptlError = mashmGptlstart('communication3_inter')
+  gptlError = mashmGptlstart('communication3')
   call MashmInterNodeCommBegin(myMashm)
-  gptlError = gptlstop('communication3')
-  gptlError = gptlstop('communication3_inter')
+  gptlError = mashmGptlstop('communication3')
+  gptlError = mashmGptlstop('communication3_inter')
 
   do i = 1, numMessages
     if (MashmIsMsgIntraNodal(myMashm, i)) then
@@ -978,12 +978,12 @@ do iIter = 1, numIters, 2
     endif
   enddo
 
-  gptlError = gptlstart('communication3_intra')
-  gptlError = gptlstart('communication3')
+  gptlError = mashmGptlstart('communication3_intra')
+  gptlError = mashmGptlstart('communication3')
   call MashmIntraNodeCommBegin(myMashm)
   call MashmIntraNodeCommEnd(myMashm)
-  gptlError = gptlstop('communication3')
-  gptlError = gptlstop('communication3_intra')
+  gptlError = mashmGptlstop('communication3')
+  gptlError = mashmGptlstop('communication3_intra')
 
   do i = 1, numMessages
     if (MashmIsMsgIntraNodal(myMashm, i)) then
@@ -991,13 +991,13 @@ do iIter = 1, numIters, 2
     endif
   enddo
 
-  gptlError = gptlstart('communication3_waitall')
-  gptlError = gptlstart('communication3_inter')
-  gptlError = gptlstart('communication3')
+  gptlError = mashmGptlstart('communication3_waitall')
+  gptlError = mashmGptlstart('communication3_inter')
+  gptlError = mashmGptlstart('communication3')
   call MashmInterNodeCommEnd(myMashm)
-  gptlError = gptlstop('communication3')
-  gptlError = gptlstop('communication3_inter')
-  gptlError = gptlstop('communication3_waitall')
+  gptlError = mashmGptlstop('communication3')
+  gptlError = mashmGptlstop('communication3_inter')
+  gptlError = mashmGptlstop('communication3_waitall')
 
   do i = 1, numMessages
     if (.not. MashmIsMsgIntraNodal(myMashm, i)) then
@@ -1015,7 +1015,7 @@ do iIter = 1, numIters, 2
 #endif
 
 enddo
-gptlError = gptlstop('method3')
+gptlError = mashmGptlstop('method3')
 
 #ifndef PRINT_ITER
 call calcL2Norm(domain, solution, gridIndicesStart, gridIndicesEnd, residualL2, residualMax, &
@@ -1024,8 +1024,8 @@ if (rank == 0) print *, "running iter ", iIter, " residual ", residualL2, &
                         residualMax
 #endif
 
-gptlError = gptlpr_summary_file(MPI_COMM_WORLD,'poisson3d.timing')
-!gptlError = gptlpr_file('poisson3d.timing')
+gptlError = mashmGptlpr_summary_file(MPI_COMM_WORLD,'poisson3d.timing')
+!gptlError = mashmGptlpr_file('poisson3d.timing')
 ! Restore (nullify) the Mashm access pointers
 do i = 1, numMessages
   call MashmRetireBufferPointer(myMashm, mashmSendBufferPtrs(i))
