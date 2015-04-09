@@ -87,7 +87,7 @@ This will produce executables under the following directory.
 
 # How to build MASHM with GPTL timers
 
-MASHM optionally can use the General Purpose Timing Library (GPTL), available at http://jmrosinski.github.io/GPTL/ , to provide timings of the communication routines. To enable these timers build and install GPTL (to say /path/to/gptl-install) and set the following configure time variable.
+MASHM optionally can use the General Purpose Timing Library (GPTL), available at [http://jmrosinski.github.io/GPTL/](http://jmrosinski.github.io/GPTL/), to provide timings of the communication routines. To enable these timers build and install GPTL (to say /path/to/gptl-install) and set the following configure time variable.
 
     -DGPTL_DIR=/path/to/gptl-install \
 
