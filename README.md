@@ -49,30 +49,30 @@ To use the Fortran bindings of this library one must have a Fortran compiler whi
 
 The library uses CMake to build and install the library, as well as building and running several tests and examples. CMake supports (recommended) out of place builds.
 
-jamroz@yslogin2:mashm-opt> cat config.sh
-#!/bin/bash
+    jamroz@yslogin2:mashm-opt> cat config.sh
+    #!/bin/bash
 
-rm -rf CMakeFiles CMakeCache.txt
+    rm -rf CMakeFiles CMakeCache.txt
 
-cmake \
-  -DCMAKE_C_COMPILER="mpicc" \
-  -DCMAKE_Fortran_COMPILER="mpif90" \
-  -DCMAKE_C_FLAGS="-O3" \
-  -DCMAKE_Fortran_FLAGS="-O3" \
-  /path/to/source
+    cmake \
+      -DCMAKE_C_COMPILER="mpicc" \
+      -DCMAKE_Fortran_COMPILER="mpif90" \
+      -DCMAKE_C_FLAGS="-O3" \
+      -DCMAKE_Fortran_FLAGS="-O3" \
+      /path/to/source
 
-jamroz@yslogin2:mashm-opt> ./config.sh
-jamroz@yslogin2:mashm-opt> make -j 8 
+    jamroz@yslogin2:mashm-opt> ./config.sh
+    jamroz@yslogin2:mashm-opt> make -j 8 
 
 This will produce executables under the following directory.
 
-/path/to/build/test
+    /path/to/build/test
 
 # How to build with timers (GPTL)
 
 MASHM optionally can use the General Purpose Timing Library (GPTL), available at http://jmrosinski.github.io/GPTL/ , to provide timings of the communication routines. To enable these timers build and install GPTL (to say /path/to/gptl-install) and set the following configure time variable.
 
-  -DGPTL_DIR=/path/to/gptl-install
+    -DGPTL_DIR=/path/to/gptl-install
 
 Ensure that the output of the configure step indicates that the GPTL library was found.
 
