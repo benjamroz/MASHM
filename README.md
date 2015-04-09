@@ -1,8 +1,38 @@
-# Minimal Aggregated SHared memory Messaging - Message Passing Layer (MASHM - MPL)
+# Minimal Aggregated SHared memory Messaging (MASHM) - Message Passing Layer
+
+Many high-performance distributed memory applications rely on
+point-to-point messaging using the Message Passing Interface (MPI). Due
+to latency of the network, and other costs, this communication can limit
+the scalability of an application when run on large node-counts of
+distributed memory supercomputers. Communication costs are further
+increased on modern multi- and many-core architectures, when using more
+than one MPI process per node, as each process sends and receives
+messages independently, inducing multiple latencies and contention for
+resources. 
+
+We use shared memory constructs, available in
+the MPI 3.0 standard, to implement an aggregated communication method to
+minimize the number of inter-node messages while eliminating intra-node
+messages altogether to reduce these costs. 
+This is called the Minimal Aggregated SHared Memory (MASHM) communication method.
+
+The MASHM library facilitates the use of the MASHM communication method in user codes. One only needs to set the number of messages, the destination and size of each message, and the library will set up the MASHM communication method and return pointers by which the original point-to-point data can be written and read. Through a straightforward sequence of calls, the user can then initiate minimal aggregated inter-node communication as well as exchange intra-node data. As MASHM is a layer on top of MPI, all MPI communication calls are handled internally to the library. The library provides consistent C and Fortran bindings. We hope that this library will encourage others to use the MASHM communication method.
+
+
+# Using the MASHM library in applications
+
+The usage of the MASHM in user codes assumes the following.
+
+1. That a point-to-point MPI communication exchange currently exists
+2. That the point-to-point messaging information (source, destination, and size of the messages) is explicitly available.
+
+With the above information, one can use the API provided in this library to specify necessary information and then use the shared memory communication methods available.
+
+Fortran bindings for this library are provided, although the Fortran API differs from the C API slightly to handle multi-dimensional pointers.
+
+Examples are provided in the test/ directory. 
 
 # Design decisions
-
-The following library is designed to facilitate the use of MPI 3.0 shared memory features in user codes. Here, we specifically target nearest neighbor communication patterns which are common in high-performance scientific applications. 
 
 The design of the API was chosen to balance simplifying the setup of shared memory communication schemes with the flexibility to allow for the overlap of computation and communication. The API calls handle many of the gory details of the setup and implementation of shared memory communication schemes, however the user needs to be aware of the order of API calls. In particular, since the intranodal communication can be separated from the internodal communication, once set up, a full communication exchange has the following form.
 
@@ -12,19 +42,6 @@ The design of the API was chosen to balance simplifying the setup of shared memo
 4. MashmInterNodeCommEnd(myMashm);
 
 Although this requires four API calls, it provides the user the maximal opportunities to perform computation overlapped with communication.
-
-# Usage
-
-The assumptions of user codes are the following:
-
-1. An existing point to point MPI communication exchange
-2. Connectivity information explicitly available
-
-With the above information, one can use the API provided in this library to specify necessary information and then use the shared memory communication methods available.
-
-Fortran bindings for this library are provided, although the Fortran API differs from the C API slightly to handle multi-dimensional pointers.
-
-Examples are provided in the test/ directory. Here, a two-dimensional domain is set up and a domain decomposition is performed. The resulting communication pattern is fed into the library which then sets upt he resulting communication reducing methods.
 
 # Dependencies
 
@@ -68,13 +85,13 @@ This will produce executables under the following directory.
 
     /path/to/build/test
 
-# How to build with timers (GPTL)
+# How to build MASHM with GPTL timers
 
 MASHM optionally can use the General Purpose Timing Library (GPTL), available at http://jmrosinski.github.io/GPTL/ , to provide timings of the communication routines. To enable these timers build and install GPTL (to say /path/to/gptl-install) and set the following configure time variable.
 
-    -DGPTL_DIR=/path/to/gptl-install
+    -DGPTL_DIR=/path/to/gptl-install \
 
-Ensure that the output of the configure step indicates that the GPTL library was found.
+Ensure that the output of the configure step indicates that the GPTL library was found and then build the code as above (by typing make).
 
 # TODO:
 
