@@ -144,3 +144,20 @@ void MashmSetCacheBlocking(const Mashm in_mashm, MashmBool blockCache) {
 void MashmPrintMessageStats(const Mashm in_mashm) {
   p_MashmPrintMessageStats(in_mashm.p);
 }
+
+void MashmWriteCommunication(const Mashm in_mashm) {
+  p_MashmWriteCommunication(in_mashm.p);
+}
+
+void MashmWriteCommunicationToFile(const Mashm in_mashm, const char* filename) {
+  p_MashmWriteCommunicationToFile(in_mashm.p, filename);
+}
+
+void MashmReadCommunication(const Mashm in_mashm) {
+  p_MashmReadCommunication(in_mashm.p);
+}
+
+void MashmReadCommunicationFromFile(const Mashm in_mashm, const char* filename) {
+  p_MashmReadCommunicationFromFile(in_mashm.p, filename);
+}
+

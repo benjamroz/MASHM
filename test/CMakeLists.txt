@@ -42,3 +42,13 @@ IF (ENABLE_OPENMP)
   ADD_EXECUTABLE(openMpPoisson3d ${OPENMP_POISSON_3D_SRCS})
   TARGET_LINK_LIBRARIES(openMpPoisson3d mashm mashm_ftn mashmGptlBindings ${GPTL_LIBRARIES})
 ENDIF()
+
+
+SET(RESTART_SRCS
+  grid.F90
+  restart.F90
+  poisson3dPack.F90
+)
+
+ADD_EXECUTABLE(restart ${RESTART_SRCS})
+TARGET_LINK_LIBRARIES(restart mashm mashm_ftn mashmGptlBindings ${GPTL_LIBRARIES})

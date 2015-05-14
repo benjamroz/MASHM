@@ -625,22 +625,36 @@ call MashmInit(myMashm, MPI_COMM_WORLD)
 ! Print nodal comm info
 !call MashmPrintInfo(myMashm)
 
-call MashmSetNumComms(myMashm, numMessages)
+call MPI_Barrier(MPI_COMM_WORLD, ierr)
+call MPI_Barrier(MPI_COMM_WORLD, ierr)
+call MPI_Barrier(MPI_COMM_WORLD, ierr)
+call MPI_Barrier(MPI_COMM_WORLD, ierr)
+if (rank == 0) print *, "Calling Read Communication"
+flush(6)
+call MPI_Barrier(MPI_COMM_WORLD, ierr)
+call MPI_Barrier(MPI_COMM_WORLD, ierr)
+call MPI_Barrier(MPI_COMM_WORLD, ierr)
+call MPI_Barrier(MPI_COMM_WORLD, ierr)
 
-! Add communications calculated above
-do i = 1, numMessages
-  ! Fortran to C indexing 
-  call MashmSetComm(myMashm, i, neighborRanks(i), msgSizes(i))
-enddo
+call MashmReadCommunication(myMashm)
 
-! Choose the communitcation method
+call MPI_Barrier(MPI_COMM_WORLD, ierr)
+call MPI_Barrier(MPI_COMM_WORLD, ierr)
+call MPI_Barrier(MPI_COMM_WORLD, ierr)
+call MPI_Barrier(MPI_COMM_WORLD, ierr)
+if (rank == 0) print *, "Finished Read Communication"
+flush(6)
+call MPI_Barrier(MPI_COMM_WORLD, ierr)
+call MPI_Barrier(MPI_COMM_WORLD, ierr)
+call MPI_Barrier(MPI_COMM_WORLD, ierr)
+call MPI_Barrier(MPI_COMM_WORLD, ierr)
+
+! Choose the communication method
 commMethod = MASHM_COMM_MIN_AGG
 
 call MashmSetCommMethod(myMashm, commMethod)
 
 call MashmSetCacheBlocking(myMashm, .true.)
-
-call MashmWriteCommunication(myMashm)
 
 ! Perform precalculation
 call MashmCommFinish(myMashm)
@@ -649,6 +663,16 @@ call MashmCommFinish(myMashm)
 call MashmPrintMessageStats(myMashm)
 !call MashmPrintCommCollection(myMashm)
 
+call MPI_Barrier(MPI_COMM_WORLD, ierr)
+call MPI_Barrier(MPI_COMM_WORLD, ierr)
+call MPI_Barrier(MPI_COMM_WORLD, ierr)
+call MPI_Barrier(MPI_COMM_WORLD, ierr)
+if (rank == 0) print *, "Returned from finish"
+flush(6)
+call MPI_Barrier(MPI_COMM_WORLD, ierr)
+call MPI_Barrier(MPI_COMM_WORLD, ierr)
+call MPI_Barrier(MPI_COMM_WORLD, ierr)
+call MPI_Barrier(MPI_COMM_WORLD, ierr)
 ! Retrieve pointers for buffers
 allocate(mashmSendBufferPtrs(numMessages))
 allocate(mashmRecvBufferPtrs(numMessages))

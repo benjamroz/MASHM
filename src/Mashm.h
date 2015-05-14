@@ -253,4 +253,34 @@ void MashmSetCacheBlocking(const Mashm in_mashm, MashmBool blockCache);
  */
 void MashmPrintMessageStats(const Mashm in_mashm);
 
+/** 
+ *  \memberof Mashm
+ *  @brief Print the message connectivity to file
+ *  @param in_mashm Mashm object
+ */
+void MashmWriteCommunication(const Mashm in_mashm);
+
+/** 
+ *  \memberof Mashm
+ *  @brief Print the message connectivity to file
+ *  @param in_mashm Mashm object
+ *  @param filename file which to write the data
+ */
+void MashmWriteCommunicationToFile(const Mashm in_mashm, const char* filename);
+
+/** 
+ *  \memberof Mashm
+ *  @brief Print the message connectivity to file
+ *  @param in_mashm Mashm object
+ */
+void MashmReadCommunication(const Mashm in_mashm);
+
+/** 
+ *  \memberof Mashm
+ *  @brief Print the message connectivity to file
+ *  @param in_mashm Mashm object
+ *  @param filename file which to write the data
+ */
+void MashmReadCommunicationFromFile(const Mashm in_mashm, const char* filename);
+
 #endif 

@@ -1697,3 +1697,253 @@ void p_MashmPrintInterNodeMessages(struct MashmPrivate* p_mashm) {
 void p_MashmSetCacheBlocking(struct MashmPrivate* p_mashm, MashmBool blockCache) {
   p_mashm->cacheBlocking = blockCache;
 }
+
+void p_MashmWriteCommunication(struct MashmPrivate* p_mashm) {
+  char filename[] = "mashmCommunication.mashm";
+  p_MashmWriteCommunicationToFile(p_mashm, filename);
+
+}
+
+void p_MashmWriteCommunicationToFile(struct MashmPrivate* p_mashm, const char* filename) {
+  /* Independently of the MashmFinish routine, 
+   * print out the number of MPI ranks, 
+   * number of nodes, 
+   * the number of original point to point messages for each rank, 
+   * and the destination and sizes for each message
+   */
+  int ierr; /* MPI Error code */
+  int i, j, runningIndex; /* Indices for iteration */
+  int sumNumMsgs; /* The total number of messages across all ranks */
+
+  int* numMessages; /* The number of messages per rank */
+  int* nodeIndices; /* The node index of each rank */
+
+  int* displs; /* standard MPI array see MPI doc */
+  int* allMsgDests; /* The destination of each message for all messages */
+  int* allMsgSizes; /* The size of each message for all messages */
+
+  int* myMsgDests; /* The destination of each message for this process */
+  int* myMsgSizes; /* The size of each message for this process */
+
+  int numRanks = p_mashm->size;  /* Shorthand variable */
+
+  /* Allocate space to write the number of messages for each rank
+   * Note that this only needs to be done on the root process */
+  if (p_mashm->rank == 0) {
+    numMessages = (int*) malloc(sizeof(int)*numRanks);
+    nodeIndices = (int*) malloc(sizeof(int)*numRanks);
+  } 
+
+  /* Gather the number of messages for each rank */
+  ierr = MPI_Gather(&(p_mashm->commCollection.commArraySize), 1, MPI_INT, 
+                    numMessages, 1, MPI_INT, 0, p_mashm->comm);
+
+  /* Gather the node indices for each rank */
+  ierr = MPI_Gather(&(p_mashm->sharedMemIndex), 1, MPI_INT, 
+                    nodeIndices, 1, MPI_INT, 0, p_mashm->comm);
+
+  /* Calculate the total number of messages 
+   * Note that this only needs to be done on the root process */
+  if (p_mashm->rank == 0) {
+    sumNumMsgs = 0;
+    for (i = 0; i < numRanks; i++) {
+      sumNumMsgs += numMessages[i];
+    }
+  } 
+
+  /* Ugh, every rank has to write the destination and size into a linear array */
+  int myNumMsgs = p_mashm->commCollection.commArraySize;
+
+  myMsgDests = (int*) malloc(sizeof(int)*myNumMsgs);
+  myMsgSizes = (int*) malloc(sizeof(int)*myNumMsgs);
+
+  for (i = 0; i < myNumMsgs; i++) {
+    myMsgDests[i] = p_mashm->commCollection.commArray[i].pairRank;
+    myMsgSizes[i] = p_mashm->commCollection.commArray[i].recvSize;
+  }
+
+  /* Allocate data for the destination and size of each message
+   * Note that this only needs to be done on the root process */
+  if (p_mashm->rank == 0) {
+    displs = (int*) malloc(sizeof(int)*sumNumMsgs);
+    allMsgDests = (int*) malloc(sizeof(int)*sumNumMsgs);
+    allMsgSizes = (int*) malloc(sizeof(int)*sumNumMsgs);
+   
+    displs[0] = 0;
+    for (i = 1; i < sumNumMsgs; i++) {
+      displs[i] = displs[i-1] + numMessages[i-1];
+    }
+  } 
+  
+  ierr = MPI_Gatherv(myMsgDests, myNumMsgs, MPI_INT,
+                     allMsgDests, numMessages, displs, MPI_INT, 0, p_mashm->comm);
+  ierr = MPI_Gatherv(myMsgSizes, myNumMsgs, MPI_INT,
+                     allMsgSizes, numMessages, displs, MPI_INT, 0, p_mashm->comm);
+
+  if (p_mashm->rank == 0) {
+    FILE *fid = fopen(filename,"w");
+    if (fid == NULL) {
+      printf("MASHM: Error opening file %s\n", filename);
+    }
+    fprintf(fid, "/* Mashm Data File */\n");
+    fprintf(fid, "%d\n",p_mashm->size);
+    fprintf(fid, "%d\n",p_mashm->numSharedMemNodes);
+    fprintf(fid, "%d\n",sumNumMsgs);
+    runningIndex = 0;
+    /* Loop over each rank */
+    for (i = 0; i < p_mashm->size; i++) {
+      fprintf(fid, "%d\n", i);
+      fprintf(fid, "%d\n", nodeIndices[i]);
+      fprintf(fid, "%d\n", numMessages[i]);
+      for (j = 0; j < numMessages[i]; j++) {
+        fprintf(fid, "%d %d\n", allMsgDests[runningIndex], allMsgSizes[runningIndex]);
+        runningIndex += 1;
+      }
+    }
+    fclose(fid);
+
+    free(displs); /* Only needed by root process */
+    free(allMsgDests); /* Only needed by root process */
+    free(allMsgSizes); /* Only needed by root process */
+    free(numMessages); /* Only needed by root process */
+    free(nodeIndices); /* Only needed by root process */
+  }
+  free(myMsgDests);
+  free(myMsgSizes);
+}
+
+void p_MashmReadCommunication(struct MashmPrivate* p_mashm) {
+  char filename[] = "mashmCommunication.mashm";
+  p_MashmReadCommunicationFromFile(p_mashm, filename);
+
+}
+
+void p_MashmReadCommunicationFromFile(struct MashmPrivate* p_mashm, const char* filename) {
+
+  int* allMsgDests; /* The destination of each message for all messages */
+  int* allMsgSizes; /* The size of each message for all messages */
+
+  char line[256];
+  int lineLen = 256;
+  int tmpSize, tmpNumNodes;
+  int totalNumMsgs;
+  int* rankIndices;
+  int* nodeIndices;
+  int* numMessages;
+  int i, j, runningIndex;
+  int ierr;
+
+  int myNodeIndex;
+  int myNumMsgs;
+  int* myMsgDests;
+  int* myMsgSizes;
+
+  int* displs; /* standard MPI array see MPI doc */
+
+  if (p_mashm->rank == 0) {
+    FILE *fid = fopen(filename,"rt");
+    if (fid == NULL) {
+      printf("MASHM: Error opening file %s\n", filename);
+    }
+    fgets(line, lineLen, fid); /* Ignore a line */
+    fgets(line, lineLen, fid);
+    sscanf(line, "%d", &tmpSize); /* Get the number of MPI ranks */
+    fgets(line, lineLen, fid);
+    sscanf(line, "%d", &tmpNumNodes); /* Get the number of shared memory nodes */
+    fgets(line, lineLen, fid);
+    sscanf(line, "%d", &totalNumMsgs); /* Get the number of total messages */
+    
+    /* Check that the read in values match the current decomposition */
+    if (tmpSize != p_mashm->size) {
+      printf("MASHM: Error file %s requires %d MPI processes, MASHM run with %d\n", filename, tmpSize, p_mashm->size);
+    }
+    if (tmpNumNodes != p_mashm->numSharedMemNodes) {
+      printf("MASHM: Error file %s requires %d nodes, MASHM run with %d\n", filename, tmpNumNodes, p_mashm->numSharedMemNodes);
+    }
+
+    /* Allocate data to store the data from the file */
+    rankIndices = (int*) malloc(sizeof(int)*p_mashm->size);
+    nodeIndices = (int*) malloc(sizeof(int)*p_mashm->size);
+    numMessages = (int*) malloc(sizeof(int)*p_mashm->size);
+
+    /* Allocate data to store the destination and size of each messages */
+    allMsgDests = (int*) malloc(sizeof(int)*totalNumMsgs);
+    allMsgSizes = (int*) malloc(sizeof(int)*totalNumMsgs);
+
+    runningIndex = 0;
+    /* Loop over each rank */
+    for (i = 0; i < p_mashm->size; i++) {
+      fgets(line, lineLen, fid);
+      /* get the rank */
+      sscanf(line, "%d", &(rankIndices[i]));
+      if (rankIndices[i] != i) {
+        printf("MASHM: Error reading file %s - rank %d not equal %d", filename, rankIndices[i], i);
+      }
+      fgets(line, lineLen, fid);
+      /* get the node index for this rank */
+      sscanf(line, "%d", &(nodeIndices[i]));
+
+      fgets(line, lineLen, fid);
+      /* get the number of messages for this rank */
+      sscanf(line, "%d", &(numMessages[i]));
+      for (j = 0; j < numMessages[i]; j++) {
+        fgets(line, lineLen, fid);
+        /* get the number of messages for this rank */
+        sscanf(line, "%d %d", &(allMsgDests[runningIndex]), &(allMsgSizes[runningIndex]));
+        runningIndex += 1;
+      }
+    }
+    if (runningIndex != totalNumMsgs) {
+      printf("MASHM: Error runningIndex %d != totalNumMsgs %d\n", runningIndex, totalNumMsgs);
+    }
+  }
+
+  ierr = MPI_Scatter(nodeIndices, 1, MPI_INT, 
+                     &(myNodeIndex), 1, MPI_INT, 0, p_mashm->comm);
+  ierr = MPI_Scatter(numMessages, 1, MPI_INT, 
+                     &(myNumMsgs), 1, MPI_INT, 0, p_mashm->comm);
+
+  /* Ensure that myNodeIndex is the shared memory node index of each rank */
+  if (myNodeIndex != p_mashm->sharedMemIndex) {
+    printf("MASHM: Error rank %d, node index %d read from file %s doesn't match current node index %d\n",
+           p_mashm->rank, myNodeIndex, filename, p_mashm->sharedMemIndex);
+  }
+
+  /* Allocate data to store the destinations and sizes for the messages of each processor */
+  myMsgDests = (int *) malloc(sizeof(int)*myNumMsgs);
+  myMsgSizes = (int *) malloc(sizeof(int)*myNumMsgs);
+
+  if (p_mashm->rank == 0) {
+    displs = (int*) malloc(sizeof(int)*totalNumMsgs);
+   
+    displs[0] = 0;
+    for (i = 1; i < totalNumMsgs; i++) {
+      displs[i] = displs[i-1] + numMessages[i-1];
+    }
+  }
+  
+  /* Scatter the messages destinations and sizes to other processes */
+  ierr = MPI_Scatterv(allMsgDests, numMessages, displs, MPI_INT, 
+                     myMsgDests, myNumMsgs, MPI_INT, 0, p_mashm->comm);
+  ierr = MPI_Scatterv(allMsgSizes, numMessages, displs, MPI_INT, 
+                     myMsgSizes, myNumMsgs, MPI_INT, 0, p_mashm->comm);
+
+  /* Now set the communication with this data */
+  p_MashmSetNumComms(p_mashm, myNumMsgs);
+
+  for (i = 0; i < myNumMsgs; i++) {
+    p_MashmSetComm(p_mashm, i, myMsgDests[i], myMsgSizes[i]);
+  }
+
+  if (p_mashm->rank == 0) {
+    free(rankIndices);
+    free(nodeIndices);
+    free(numMessages);
+    free(allMsgDests);
+    free(allMsgSizes);
+  }
+  free(myMsgDests);
+  free(myMsgSizes);
+
+}
+

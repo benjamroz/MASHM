@@ -251,4 +251,12 @@ void p_MashmPrintMessageStats(struct MashmPrivate* p_mashm);
 
 void p_MashmSetCacheBlocking(struct MashmPrivate* p_mashm, MashmBool blockCache);
 
+void p_MashmWriteCommunication(struct MashmPrivate* p_mashm);
+
+void p_MashmWriteCommunicationToFile(struct MashmPrivate* p_mashm, const char* filename);
+
+void p_MashmReadCommunication(struct MashmPrivate* p_mashm);
+
+void p_MashmReadCommunicationFromFile(struct MashmPrivate* p_mashm, const char* filename);
+
 #endif

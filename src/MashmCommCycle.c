@@ -62,7 +62,12 @@ void MashmCommCollectionSetSize(MashmCommCollection* commCollection, int numComm
     commCollection->isAllocated = false;
   }
   commCollection->commArraySize = numComms;
-  commCollection->commArray = (MashmComm*) malloc(commCollection->commArraySize * sizeof(MashmComm));
+  if (commCollection->commArraySize > 0) {
+    commCollection->commArray = (MashmComm*) malloc(commCollection->commArraySize * sizeof(MashmComm));
+  }
+  else {
+    commCollection->commArray = NULL;
+  }
   commCollection->isAllocated = true;
 }
 

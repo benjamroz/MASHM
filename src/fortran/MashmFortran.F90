@@ -248,7 +248,24 @@ interface
     integer, value :: blockCache
   end subroutine
 
+  subroutine MashmWriteCommunication(in_mashm) &
+    bind(c, name='MashmWriteCommunication')
+    use, intrinsic :: iso_c_binding
+    use Mashm_type
+    implicit none
+    type(Mashm), value :: in_mashm
+  end subroutine
 
+  subroutine MashmReadCommunication(in_mashm) &
+    bind(c, name='MashmReadCommunication')
+    use, intrinsic :: iso_c_binding
+    use Mashm_type
+    implicit none
+    type(Mashm), value :: in_mashm
+  end subroutine
+
+  ! TODO: Add the MashmWriteCommunicationToFile 
+  !   and MashmReadCommunicationFromFile
 end interface
 
 contains
