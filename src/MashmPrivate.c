@@ -851,15 +851,27 @@ void p_MashmCalculateNodalMsgSchedule(struct MashmPrivate* p_mashm) {
     p_mashm->numCommNodes = nodeCounter;
 
 
-    p_mashm->uniqueNodeIndices = (int*) malloc(sizeof(int)*(p_mashm->numCommNodes));
+    p_mashm->uniqueNodeIndices = (int*) malloc(sizeof(int)*(p_mashm->numNodalMsgs));
 
     nodeCounter = 0;
-    p_mashm->uniqueNodeIndices[nodeCounter] = commArray[0].destNodeIndex;
-    nodeCounter = nodeCounter + 1;
-    for (i = 1; i < sumNumMsgs; i++) {
-      if (commArray[i].destNodeIndex != commArray[i-1].destNodeIndex) {
-        p_mashm->uniqueNodeIndices[nodeCounter] = commArray[i].destNodeIndex;
-        nodeCounter = nodeCounter + 1;
+    if (commArrayOffset != sumNumMsgs) {
+      // Check that numNodalMsgs > 0
+      if (p_mashm->numNodalMsgs <= 0) {
+        printf("MASHM: Error numNodalMsgs <= 0 but commArrayOffset != sumNumMsgs\n");
+      }
+      p_mashm->uniqueNodeIndices[nodeCounter] = commArray[commArrayOffset].destNodeIndex;
+      nodeCounter = nodeCounter + 1;
+      for (i = commArrayOffset+1; i < sumNumMsgs; i++) {
+        if (commArray[i].destNodeIndex != commArray[i-1].destNodeIndex) {
+          p_mashm->uniqueNodeIndices[nodeCounter] = commArray[i].destNodeIndex;
+          nodeCounter = nodeCounter + 1;
+        }
+      }
+    }
+    else {
+      // Check that numNodalMsgs <= 0
+      if (p_mashm->numNodalMsgs > 0) {
+        printf("MASHM: Error commArrayOffset != sumNumMsgs but numNodalMsgs > 0numNodeMsgs <= 0 but commArrayOffset != sumNumMsgs\n");
       }
     }
 
@@ -906,11 +918,11 @@ void p_MashmCalculateNodalMsgSchedule(struct MashmPrivate* p_mashm) {
       /* Usual point to point communication */
       for (i = 0; i < p_mashm->numNodalMsgs; i++) {
         //printf("Rank %d receiving message from rank %d\n", p_mashm->sharedMemIndex, p_mashm->uniqueNodeIndices[i+1]);
-        ierr = MPI_Irecv(&(p_mashm->nodalMsgRecvSizes[i]), 1, MPI_INT, p_mashm->uniqueNodeIndices[i+1], 0, p_mashm->rankComm, &recvRequests[i]);
+        ierr = MPI_Irecv(&(p_mashm->nodalMsgRecvSizes[i]), 1, MPI_INT, p_mashm->uniqueNodeIndices[i], 0, p_mashm->rankComm, &recvRequests[i]);
       }
       for (i = 0; i < p_mashm->numNodalMsgs; i++) {
         //printf("Rank %d sending rank %d message\n", p_mashm->sharedMemIndex, p_mashm->uniqueNodeIndices[i+1]);
-        ierr = MPI_Isend(&(p_mashm->nodalMsgSendSizes[i]), 1, MPI_INT, p_mashm->uniqueNodeIndices[i+1], 0, p_mashm->rankComm, &sendRequests[i]);
+        ierr = MPI_Isend(&(p_mashm->nodalMsgSendSizes[i]), 1, MPI_INT, p_mashm->uniqueNodeIndices[i], 0, p_mashm->rankComm, &sendRequests[i]);
       }
 
       ierr = MPI_Waitall(p_mashm->numNodalMsgs,recvRequests,recvStatuses); 
@@ -956,7 +968,7 @@ void p_MashmCalculateNodalMsgSchedule(struct MashmPrivate* p_mashm) {
     msgOffsets = (int*) malloc(sizeof(int)*p_mashm->numNodalSubMsgs);
     p_mashm->nodalMsgSendSizes = (int*) malloc(sizeof(int)*p_mashm->numNodalMsgs);
     p_mashm->nodalMsgRecvSizes = (int*) malloc(sizeof(int)*p_mashm->numNodalMsgs);
-    p_mashm->uniqueNodeIndices = (int*) malloc(sizeof(int)*(p_mashm->numCommNodes));
+    p_mashm->uniqueNodeIndices = (int*) malloc(sizeof(int)*(p_mashm->numNodalMsgs));
   }
 
   /* Broadcast the msgOffsets and the nodalMsgsSizes */
@@ -966,7 +978,7 @@ void p_MashmCalculateNodalMsgSchedule(struct MashmPrivate* p_mashm) {
   ierr = MPI_Bcast(msgOffsets, p_mashm->numNodalSubMsgs, MPI_INT, 0, p_mashm->intraComm.comm);
   ierr = MPI_Bcast(p_mashm->nodalMsgSendSizes, p_mashm->numNodalMsgs, MPI_INT, 0, p_mashm->intraComm.comm);
   ierr = MPI_Bcast(p_mashm->nodalMsgRecvSizes, p_mashm->numNodalMsgs, MPI_INT, 0, p_mashm->intraComm.comm);
-  ierr = MPI_Bcast(p_mashm->uniqueNodeIndices, p_mashm->numCommNodes, MPI_INT, 0, p_mashm->intraComm.comm);
+  ierr = MPI_Bcast(p_mashm->uniqueNodeIndices, p_mashm->numNodalMsgs, MPI_INT, 0, p_mashm->intraComm.comm);
 
   p_mashm->sendAggMsgOffsets = (int*) malloc(sizeof(int)*p_mashm->numOrigMessages);
   p_mashm->recvAggMsgOffsets = (int*) malloc(sizeof(int)*p_mashm->numOrigMessages);
@@ -1097,7 +1109,7 @@ void p_MashmSetupAggType(struct MashmPrivate* p_mashm) {
     /* Exchange the ranks with the */
     for (i = 0; i < numNodalMsgs; i++) {
       ierr = MPI_Irecv(&(p_mashm->nodalRecvRank[i]), 1, MPI_INT,
-                       p_mashm->uniqueNodeIndices[i+1], 1, p_mashm->rankComm, &(tmpRecvRequests[i])); 
+                       p_mashm->uniqueNodeIndices[i], 1, p_mashm->rankComm, &(tmpRecvRequests[i])); 
       if (ierr != MPI_SUCCESS) {
         printf("Error in MPI_Irecv %d\n", ierr);
       }
@@ -1106,7 +1118,7 @@ void p_MashmSetupAggType(struct MashmPrivate* p_mashm) {
       sharedRankMsgOwner = p_mashm->nodalMsgOwner[i];
       nodalSendData[i] = p_mashm->intraComm.parentRanksOnNode[sharedRankMsgOwner];
       ierr = MPI_Isend(&(nodalSendData[i]), 1, MPI_INT,
-                       p_mashm->uniqueNodeIndices[i+1], 1, p_mashm->rankComm, &(tmpSendRequests[i])); 
+                       p_mashm->uniqueNodeIndices[i], 1, p_mashm->rankComm, &(tmpSendRequests[i])); 
       if (ierr != MPI_SUCCESS) {
         printf("Error in MPI_Isend %d\n", ierr);
       }
@@ -1156,14 +1168,14 @@ void p_MashmCalcMsgIndicesMinAgg(struct MashmPrivate* p_mashm) {
     else {
       /* Now find the index of the nodalMsgDest */
       /* Ignore the 0th entry since it is sharedMemIndex */
-      for (i = 1; i < p_mashm->numCommNodes; i++) {
+      for (i = 0; i < p_mashm->numNodalMsgs; i++) {
         if (p_mashm->uniqueNodeIndices[i] == nodalMsgDest) {
           break; 
         }
       }
       /* Minus one because of the difference in indexing between
        *   uniqueNodeIndices and nodalOffsets */
-      nodalMsgIndex = i-1;
+      nodalMsgIndex = i;
       nodalMsgOffset = p_mashm->nodalOffsets[nodalMsgIndex];
       sendMsgOffset = p_mashm->sendAggMsgOffsets[iMsg];
       recvMsgOffset = p_mashm->recvAggMsgOffsets[iMsg];

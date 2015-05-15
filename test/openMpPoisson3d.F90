@@ -229,7 +229,7 @@ end subroutine
 
 subroutine communication_notimers(sendBuffer, recvBuffer, numMessages, neighborRanks, msgSizes, msgOffsets)
 use mpi
-use gptl
+use mashmGptl
 implicit none
 real*8, intent(in) :: sendBuffer(:)
 real*8, intent(out) :: recvBuffer(:)
