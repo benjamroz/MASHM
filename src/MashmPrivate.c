@@ -1524,7 +1524,7 @@ void p_MashmPrintMessageStats(struct MashmPrivate* p_mashm) {
       printf("MASHM: Size of intranode messages %d B\n", totalIntraMsgSizes*8);
       printf("MASHM:   Min, Avg., Max %d, %f, %d B\n", intraSizeMin*8, ((double) totalIntraMsgSizes)/numIntraNodeMsgs*8, intraSizeMax*8);
       printf("MASHM: Number of nodal messages %d\n", numNodalMsgs);
-      printf("MASHM:   Min, Avg., Max %d, %f, %d\n", minNodalMsgSize, ((double) totalInterMsgSizes)/numNodalMsgs, maxNodalMsgSize);
+      printf("MASHM:   Min, Avg., Max %d, %f, %d B\n", minNodalMsgSize*8, ((double) totalInterMsgSizes)/numNodalMsgs*8, maxNodalMsgSize*8);
     }
   }
  
