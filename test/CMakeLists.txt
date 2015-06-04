@@ -19,36 +19,36 @@ ADD_SUBDIRECTORY(testHelpers)
 ADD_EXECUTABLE(nodalComm ${NODAL_COMM_SRCS})
 ADD_EXECUTABLE(nodalCommFtn nodalCommFtn.F90 testHelpers/decomp2d.c)
 
-#TARGET_LINK_LIBRARIES(nodalComm testHelpers mashm)
 TARGET_LINK_LIBRARIES(nodalComm mashm)
 TARGET_LINK_LIBRARIES(nodalCommFtn mashm mashm_ftn testHelpers)
 
-SET(POISSON_3D_SRCS
+SET(POISSON_HELPER_SRCS
   grid.F90
-  poisson3d.F90
   poisson3dPack.F90
 )
 
+ADD_LIBRARY(poissonHelper ${POISSON_HELPER_SRCS})
+
+SET(POISSON_3D_SRCS
+  poisson3d.F90
+)
+
 ADD_EXECUTABLE(poisson3d ${POISSON_3D_SRCS})
-TARGET_LINK_LIBRARIES(poisson3d mashm mashm_ftn mashmGptlBindings ${GPTL_LIBRARIES})
+TARGET_LINK_LIBRARIES(poisson3d poissonHelper mashm mashm_ftn mashmGptlBindings ${GPTL_LIBRARIES})
 
 IF (ENABLE_OPENMP)
   SET(OPENMP_POISSON_3D_SRCS
-    grid.F90
     openMpPoisson3d.F90
-    poisson3dPack.F90
   )
 
   ADD_EXECUTABLE(openMpPoisson3d ${OPENMP_POISSON_3D_SRCS})
-  TARGET_LINK_LIBRARIES(openMpPoisson3d mashm mashm_ftn mashmGptlBindings ${GPTL_LIBRARIES})
+  TARGET_LINK_LIBRARIES(openMpPoisson3d poissonHelper mashm mashm_ftn mashmGptlBindings ${GPTL_LIBRARIES})
 ENDIF()
 
 
 SET(RESTART_SRCS
-  grid.F90
   restart.F90
-  poisson3dPack.F90
 )
 
 ADD_EXECUTABLE(restart ${RESTART_SRCS})
-TARGET_LINK_LIBRARIES(restart mashm mashm_ftn mashmGptlBindings ${GPTL_LIBRARIES})
+TARGET_LINK_LIBRARIES(restart poissonHelper mashm mashm_ftn mashmGptlBindings ${GPTL_LIBRARIES})
