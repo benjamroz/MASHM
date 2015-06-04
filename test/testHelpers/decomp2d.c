@@ -1,5 +1,6 @@
 #include "math.h"
 #include "stdlib.h"
+#include "stdio.h"
 #include "MashmBool.h"
 #include "decomp2d.h"
 

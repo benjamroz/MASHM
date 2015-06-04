@@ -93,7 +93,7 @@ interface
     use Mashm_type
     implicit none
     type(Mashm), value :: in_mashm
-    integer, value :: numComms
+    integer(c_int), value :: numComms
   end subroutine 
 
   subroutine MashmSetCommMethod(in_mashm, commMethod) &
@@ -107,13 +107,13 @@ interface
 
 
   subroutine MashmAddSymComm(in_mashm, pairRank, msgSize) &
-    bind(c, name='MashmAddSymCom')
+    bind(c, name='MashmAddSymComm')
     use, intrinsic :: iso_c_binding
     use Mashm_type
     implicit none
     type(Mashm), value :: in_mashm
-    integer, value :: pairRank
-    integer, value :: msgSize
+    integer(c_int), value :: pairRank
+    integer(c_int), value :: msgSize
   end subroutine 
 
   subroutine MashmSetCommC(in_mashm, commIndex, pairRank, msgSize) &
@@ -133,8 +133,8 @@ interface
     use Mashm_type
     implicit none
     type(Mashm), value :: in_mashm
-    integer, value :: commIndex
-    integer :: msgRank
+    integer(c_int), value :: commIndex
+    integer(c_int) :: msgRank
   end function
 
   function MashmGetCommSize(in_mashm, commIndex) result(msgSize) &
@@ -225,8 +225,8 @@ interface
     use Mashm_type
     implicit none
     type(Mashm), value :: in_mashm
-    integer, value :: commIndex
-    integer :: isOnNode
+    integer(c_int), value :: commIndex
+    integer(c_int) :: isOnNode
    
   end function
 
@@ -245,7 +245,7 @@ interface
     use Mashm_type
     implicit none
     type(Mashm), value :: in_mashm
-    integer, value :: blockCache
+    integer(c_int), value :: blockCache
   end subroutine
 
   subroutine MashmWriteCommunication(in_mashm) &
@@ -276,12 +276,12 @@ contains
     use Mashm_type
     implicit none
     type(Mashm), value :: in_mashm
-    integer, intent(in) :: i
+    integer(c_int), intent(in) :: i
     integer(c_int), intent(in) :: sendReceive
     type(MashmBufferPointer), intent(inout) :: ftnBufferPointer
     integer(c_int) :: msgSize
     integer(c_int) :: iBaseZero
-    integer :: fMsgSize
+    integer(c_int) :: fMsgSize
     iBaseZero = i - 1
 
     ! TODO: move to MashmGetBufferPointerC function call - not working for some
@@ -317,7 +317,7 @@ contains
     use Mashm_type
     implicit none
     type(Mashm), value :: in_mashm
-    integer, value :: commIndex
+    integer(c_int), value :: commIndex
     integer(c_int), value :: pairRank
     integer(c_int), value :: msgSize
     integer(c_int) :: commIndexBaseZero
@@ -330,7 +330,7 @@ contains
     use Mashm_type
     implicit none
     type(Mashm), value :: in_mashm
-    integer, value :: commIndex
+    integer(c_int), value :: commIndex
     logical :: isOnNode
     isOnNode = ( MashmIsMsgIntraNodalC(in_mashm, int(commIndex - 1,kind=c_int)) .eq. 1 )
 
@@ -343,9 +343,9 @@ contains
     implicit none
     type(Mashm), value :: in_mashm
     logical :: blockCache
-    integer :: blockCacheC
+    integer(c_int) :: blockCacheC
 
-    if (blockCache == .true.) then
+    if (blockCache) then
       blockCacheC = 1
     else
       blockCacheC = 0

@@ -105,12 +105,12 @@ coefYY = nu1*dcos(angleBeta)**2*dsin(angleAlpha)**2 + &
 coefZZ = nu1*dsin(angleBeta)**2 + &
          nu3*dcos(angleBeta)**2
 coefXY = -2*nu1*dcos(angleBeta)**2*dcos(angleAlpha)*dsin(angleAlpha) + &
-         -2*nu2*dsin(angleAlpha)*dcos(angleAlpha) + &
-         -2*nu3*dsin(angleBeta)**2*dcos(angleAlpha)*dsin(angleAlpha)
+         (-2)*nu2*dsin(angleAlpha)*dcos(angleAlpha) + &
+         (-2)*nu3*dsin(angleBeta)**2*dcos(angleAlpha)*dsin(angleAlpha)
 coefXZ = -2*nu1*dcos(angleBeta)*dsin(angleBeta)*dcos(angleAlpha) + &
           2*nu3*dsin(angleBeta)*dcos(angleBeta)*dcos(angleAlpha)
 coefYZ =  2*nu1*dcos(angleBeta)*dsin(angleBeta)*dsin(angleAlpha) + &
-         -2*nu3*dsin(angleBeta)*dcos(angleBeta)*dsin(angleAlpha)
+         (-2)*nu3*dsin(angleBeta)*dcos(angleBeta)*dsin(angleAlpha)
 
 coefs = coefXX * derivXX &
       + coefYY * derivYY &
