@@ -164,7 +164,7 @@ The driver nodalCommFtn.F90 is the same as the C program just described except t
 The poisson3d.F90 driver performs a relaxation of a three-dimensional anisotropic Laplace's equation using standard non-blocking point-to-point MPI communication as well as the MASHM communication method. Here a three-dimensional domain is decomposed across MPI processes, the MPI process connectivity information is given and used to set up the standard communication scheme as well as the MASHM library.
 
 
-Using the MASHM library in applications
+Using the MASHM Library in Applications
 ---------------------------------------
 
 The usage of the MASHM in user codes assumes the following.
@@ -176,10 +176,6 @@ With the above information, one can use the API provided in this library to spec
 
 Fortran bindings for this library are provided, although the Fortran API differs from the C API slightly to handle multi-dimensional pointers.
 
-Examples are provided in the test/ directory. 
-
-# Design decisions
-
 The design of the API was chosen to balance simplifying the setup of shared memory communication schemes with the flexibility to allow for the overlap of computation and communication. The API calls handle many of the gory details of the setup and implementation of shared memory communication schemes, however the user needs to be aware of the order of API calls. In particular, since the intranodal communication can be separated from the internodal communication, once set up, a full communication exchange has the following form.
 
 1. MashmInterNodeCommBegin(myMashm);
@@ -189,9 +185,9 @@ The design of the API was chosen to balance simplifying the setup of shared memo
 
 Although this requires four API calls, it provides the user the maximal opportunities to perform computation overlapped with communication.
 
-The usage of MASHM in an application has the following form.
+The usage of MASHM in an application has the following form. First one declares and initializes the MASHM object.
 
-.. code-block:: C
+.. code-block:: c
 
     /* Declare the MASHM object */
     Mashm myMashm;
@@ -199,32 +195,65 @@ The usage of MASHM in an application has the following form.
     /* Initialize the MASHM object */
     MashmInit(&myMashm, MPI_COMM_WORLD);
 
-    /* Print nodal comm info */
+Note that the initialization requires an MPI communicator. One can print the MPI process decomposition onto nodes by the following call.
+
+.. code-block:: c
+
+    /* Print nodal MPI process decomposition info */
     MashmPrintInfo(myMashm);
 
-    /* Add the number of messages for each processes */
+The number of messages each MPI process sends, in a standard point-to-point communication method, is set with
+
+.. code-block:: c
+
+    /* Set the number of messages for each processes */
     MashmSetNumComms(myMashm, numNeighbors);
+
+and the destination and size of each message is set with the following.
+
+.. code-block:: c
 
     /* Add the destination and size of each message */
     for (i = 0; i < numNeighbors; i++) {
       MashmSetComm(myMashm, i, msgDest[i], msgSizes[i]);
     }
-    /* Perform precalculation */
+
+After all of the messages sizes and destinations have been specified the MASHM precalculation stage can occur. This allocates shared memory for nodal messages as well as intra-node messages. This is accomplished with a call to MashmCommFinish.
+
+.. code-block:: c
+
+    /* Perform MASHM precalculation */
     MashmCommFinish(myMashm);
+
+One can print out all of the messages with a call to MashmPrintCommCollection.
+
+.. code-block:: c
 
     /* Print the communication collection */
     MashmPrintCommCollection(myMashm);
 
+Next, we need to retrieve the pointers to the MASHM shared memory regions. Thus we need an array of pointers for each the send and receive buffers.
+
+.. code-block:: c
+
     /* Retrieve pointers for buffers */
     mashmSendBufferPtrs = (double**) malloc(sizeof(double*)*numNeighbors);
     mashmRecvBufferPtrs = (double**) malloc(sizeof(double*)*numNeighbors);
+
+We can then retrieve the pointers for the shared memory send and receive regions with calls to MashmGetBufferPointer specifying the send or receive buffer as follows.
+
+.. code-block:: c
 
     /* Retrieve the pointer to access the MASHM's storage for each message */
     for (i = 0; i < numNeighbors; i++) {
       mashmSendBufferPtrs[i] = MashmGetBufferPointer(myMashm, i, MASHM_SEND);
       mashmRecvBufferPtrs[i] = MashmGetBufferPointer(myMashm, i, MASHM_RECEIVE);
     }
+
+Now that we have the pointers set up we can begin filling the MASHM memory regions with the data that we want messages. We can first set only the inter-node data.
    
+.. code-block:: c
+
     /* Fill internode buffers */
     for (i = 0; i < numNeighbors; i++) {
       if (! MashmIsMsgIntraNodal(myMashm, i)) {
@@ -234,11 +263,19 @@ The usage of MASHM in an application has the following form.
       }
     }
 
-    /* Send internode messages */
+and then begin the sending of the nodal messages with the following non-blocking call.
+
+.. code-block:: c
+
+    /* Begin sending internode messages */
     MashmInterNodeCommBegin(myMashm);
 
+Next, we can set the data for the intra-node messages
+
+.. code-block:: c
+
     /* Messages sent and receives posted 
-     * Can asynchronously do work on nodal data 
+     * Can asynchronously do work on intra-node data 
      */
     for (i = 0; i < numNeighbors; i++) {
       if (MashmIsMsgIntraNodal(myMashm, i)) {
@@ -248,13 +285,29 @@ The usage of MASHM in an application has the following form.
       }
     }
 
+and begin sending the intra-node data.
+
+.. code-block:: c
+
     /* Send intranode messages */
     MashmIntraNodeCommBegin(myMashm);
+
+At this point, all of the communication has been posted in a non-blocking manner. One can overlap the communication with some computation etc. Here we can allocate an array.
+
+.. code-block:: c
 
     /* Asynchronously do some computation */
     mashmData = (double*) malloc(sizeof(double)*sumMsgSizes);
 
+We can then wait for the intra-node data to be successfully completed
+
+.. code-block:: c
+
     MashmIntraNodeCommEnd(myMashm);
+
+and then retrieve this data from MASHM into our application.
+
+.. code-block:: c
 
     /* Asynchronously do work on nodal data */
     for (i = 0; i < numNeighbors; i++) {
@@ -267,8 +320,16 @@ The usage of MASHM in an application has the following form.
       }
     }
 
+Finally, we can wait on the nodal messages
+
+.. code-block:: c
+
     /* Now wait on nodal messages */
     MashmInterNodeCommEnd(myMashm);
+
+and retrieve this data as well.
+
+.. code-block:: c
 
     for (i = 0; i < numNeighbors; i++) {
       if (! MashmIsMsgIntraNodal(myMashm, i)) {
@@ -280,11 +341,19 @@ The usage of MASHM in an application has the following form.
       }
     }
 
+To clean up, we can retire the pointers to the MASHM data
+
+.. code-block:: c
+
     /* Retire the Mashm buffer pointers */
     for (i = 0; i < numNeighbors; i++) {
       MashmRetireBufferPointer(myMashm, &(mashmSendBufferPtrs[i]));
       MashmRetireBufferPointer(myMashm, &(mashmRecvBufferPtrs[i]));
     }
+
+and destroy the MASHM object.
+
+.. code-block:: c
 
     /* Destroy the Mashm object */
     if (rank == 0) printf("Calling Mashm Destroy.\n");
