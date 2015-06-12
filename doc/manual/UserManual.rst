@@ -108,6 +108,16 @@ This will compile the MASHM library as well as the example executables. Finally,
 
     $ make install
 
+How to build MASHM with GPTL timers
+-----------------------------------
+
+MASHM optionally can use the General Purpose Timing Library (GPTL), available at [http://jmrosinski.github.io/GPTL/](http://jmrosinski.github.io/GPTL/), to provide timings of the communication routines. To enable these timers build and install GPTL (to say /path/to/gptl-install) and set the following configure time variable.
+
+    -DGPTL_DIR=/path/to/gptl-install \
+
+Ensure that the output of the configure step indicates that the GPTL library was found and then build the code as above (by typing make).
+
+
 Generating the User Documentation
 ---------------------------------
 
@@ -123,6 +133,7 @@ An HTML version of the User Manual will be created (provided you have
 sphinx installed) by running
 
 ::
+
     $ make manual
 
 and will be located in the build directory under
@@ -153,28 +164,8 @@ The driver nodalCommFtn.F90 is the same as the C program just described except t
 The poisson3d.F90 driver performs a relaxation of a three-dimensional anisotropic Laplace's equation using standard non-blocking point-to-point MPI communication as well as the MASHM communication method. Here a three-dimensional domain is decomposed across MPI processes, the MPI process connectivity information is given and used to set up the standard communication scheme as well as the MASHM library.
 
 
-# Minimal Aggregated SHared memory Messaging (MASHM) - Message Passing Layer
-
-Many high-performance distributed memory applications rely on
-point-to-point messaging using the Message Passing Interface (MPI). Due
-to latency of the network, and other costs, this communication can limit
-the scalability of an application when run on large node-counts of
-distributed memory supercomputers. Communication costs are further
-increased on modern multi- and many-core architectures, when using more
-than one MPI process per node, as each process sends and receives
-messages independently, inducing multiple latencies and contention for
-resources. 
-
-We use shared memory constructs, available in
-the MPI 3.0 standard, to implement an aggregated communication method to
-minimize the number of inter-node messages while eliminating intra-node
-messages altogether to reduce these costs. 
-This is called the Minimal Aggregated SHared Memory (MASHM) communication method.
-
-The MASHM library facilitates the use of the MASHM communication method in user codes. One only needs to set the number of messages, the destination and size of each message, and the library will set up the MASHM communication method and return pointers by which the original point-to-point data can be written and read. Through a straightforward sequence of calls, the user can then initiate minimal aggregated inter-node communication as well as exchange intra-node data. As MASHM is a layer on top of MPI, all MPI communication calls are handled internally to the library. The library provides consistent C and Fortran bindings. We hope that this library will encourage others to use the MASHM communication method.
-
-
-# Using the MASHM library in applications
+Using the MASHM library in applications
+---------------------------------------
 
 The usage of the MASHM in user codes assumes the following.
 
@@ -198,58 +189,106 @@ The design of the API was chosen to balance simplifying the setup of shared memo
 
 Although this requires four API calls, it provides the user the maximal opportunities to perform computation overlapped with communication.
 
-# Dependencies
+The usage of MASHM in an application has the following form.
 
-By default, this package requires the use of MPI and specifically requires a version which supports the following MPI 3.0 features.
+.. code-block:: C
 
-1. MPI_Comm_split_type - MPI_COMM_TYPE_SHARED
-2. MPI_Win_allocate_shared
+    /* Declare the MASHM object */
+    Mashm myMashm;
 
-These are required by the library to implement the shared memory messaging. These features have been found to be supported in the following implementations and versions
+    /* Initialize the MASHM object */
+    MashmInit(&myMashm, MPI_COMM_WORLD);
 
-1. OpenMPI >= 1.7.5
-2. MVAPICH >= 2.0
-3. MPICH >= 6.0.2
-4. IMPI >= 5.0.1
+    /* Print nodal comm info */
+    MashmPrintInfo(myMashm);
 
-To use the Fortran bindings of this library one must have a Fortran compiler which supports the 2003 standard. In particular, the Fortran implementation must support the following.
+    /* Add the number of messages for each processes */
+    MashmSetNumComms(myMashm, numNeighbors);
 
-1. iso_c_binding, c_ptr
-2. c_f_pointer
+    /* Add the destination and size of each message */
+    for (i = 0; i < numNeighbors; i++) {
+      MashmSetComm(myMashm, i, msgDest[i], msgSizes[i]);
+    }
+    /* Perform precalculation */
+    MashmCommFinish(myMashm);
 
-# How to build and install the package
+    /* Print the communication collection */
+    MashmPrintCommCollection(myMashm);
 
-The library uses CMake to build and install the library, as well as building and running several tests and examples. CMake supports (recommended) out of place builds.
+    /* Retrieve pointers for buffers */
+    mashmSendBufferPtrs = (double**) malloc(sizeof(double*)*numNeighbors);
+    mashmRecvBufferPtrs = (double**) malloc(sizeof(double*)*numNeighbors);
 
-    jamroz@yslogin2:mashm-opt> cat config.sh
-    #!/bin/bash
+    /* Retrieve the pointer to access the MASHM's storage for each message */
+    for (i = 0; i < numNeighbors; i++) {
+      mashmSendBufferPtrs[i] = MashmGetBufferPointer(myMashm, i, MASHM_SEND);
+      mashmRecvBufferPtrs[i] = MashmGetBufferPointer(myMashm, i, MASHM_RECEIVE);
+    }
+   
+    /* Fill internode buffers */
+    for (i = 0; i < numNeighbors; i++) {
+      if (! MashmIsMsgIntraNodal(myMashm, i)) {
+        for (j = 0; j < msgSizes[i]; j++) {
+          mashmSendBufferPtrs[i][j] = rank*msgSizes[i]+j;
+        }
+      }
+    }
 
-    rm -rf CMakeFiles CMakeCache.txt
+    /* Send internode messages */
+    MashmInterNodeCommBegin(myMashm);
 
-    cmake \
-      -DCMAKE_C_COMPILER="mpicc" \
-      -DCMAKE_Fortran_COMPILER="mpif90" \
-      -DCMAKE_C_FLAGS="-O3" \
-      -DCMAKE_Fortran_FLAGS="-O3" \
-      /path/to/source
+    /* Messages sent and receives posted 
+     * Can asynchronously do work on nodal data 
+     */
+    for (i = 0; i < numNeighbors; i++) {
+      if (MashmIsMsgIntraNodal(myMashm, i)) {
+        for (j = 0; j < msgSizes[i]; j++) {
+          mashmSendBufferPtrs[i][j] = rank*msgSizes[i]+j;
+        }
+      }
+    }
 
-    jamroz@yslogin2:mashm-opt> ./config.sh
-    jamroz@yslogin2:mashm-opt> make -j 8 
+    /* Send intranode messages */
+    MashmIntraNodeCommBegin(myMashm);
 
-This will produce executables under the following directory.
+    /* Asynchronously do some computation */
+    mashmData = (double*) malloc(sizeof(double)*sumMsgSizes);
 
-    /path/to/build/test
+    MashmIntraNodeCommEnd(myMashm);
 
-# How to build MASHM with GPTL timers
+    /* Asynchronously do work on nodal data */
+    for (i = 0; i < numNeighbors; i++) {
+      if (MashmIsMsgIntraNodal(myMashm, i)) {
+        /* Unpack individual buffer */
+        offset = msgOffsets[i];
+        for (j = 0; j < msgSizes[i]; j++) {
+          mashmData[offset+j] = mashmRecvBufferPtrs[i][j];
+        }
+      }
+    }
 
-MASHM optionally can use the General Purpose Timing Library (GPTL), available at [http://jmrosinski.github.io/GPTL/](http://jmrosinski.github.io/GPTL/), to provide timings of the communication routines. To enable these timers build and install GPTL (to say /path/to/gptl-install) and set the following configure time variable.
+    /* Now wait on nodal messages */
+    MashmInterNodeCommEnd(myMashm);
 
-    -DGPTL_DIR=/path/to/gptl-install \
+    for (i = 0; i < numNeighbors; i++) {
+      if (! MashmIsMsgIntraNodal(myMashm, i)) {
+        /* Unpack individual buffer */
+        offset = msgOffsets[i];
+        for (j = 0; j < msgSizes[i]; j++) {
+          mashmData[offset+j] = mashmRecvBufferPtrs[i][j];
+        }
+      }
+    }
 
-Ensure that the output of the configure step indicates that the GPTL library was found and then build the code as above (by typing make).
+    /* Retire the Mashm buffer pointers */
+    for (i = 0; i < numNeighbors; i++) {
+      MashmRetireBufferPointer(myMashm, &(mashmSendBufferPtrs[i]));
+      MashmRetireBufferPointer(myMashm, &(mashmRecvBufferPtrs[i]));
+    }
 
-# TODO:
+    /* Destroy the Mashm object */
+    if (rank == 0) printf("Calling Mashm Destroy.\n");
+    MashmDestroy(&myMashm);
 
-1. Extend the documentation to internal classes 
-2. Compiler checks in CMake (MPI, F2003)
-3. Remove unnecessary data from MashmPrivate
+
+
